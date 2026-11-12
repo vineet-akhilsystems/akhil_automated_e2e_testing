@@ -11,7 +11,6 @@ blob-report/
 portal/test-output/
 portal/__pycache__/
 tmp/pdfs/
-qa/modules/registration/results/
 *.mp4
 
 # --- added for push readiness ---
@@ -25,8 +24,8 @@ PORTAL_LOGIN.txt
 output/
 head.json
 head.err
-*.xlsx
-*.pdf
 .DS_Store
 akhil_automated_e2e_testing/
 tmp/
+qa/modules/registration/results/.*
+~$*

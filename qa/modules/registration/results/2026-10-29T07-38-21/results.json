@@ -1,0 +1,204 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T07:38:21.324Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "created; toast contains \"Registration Number\"; saved {\"first_name\":\"Agent\",\"last_name\":\"UserFifteen\",\"mobile\":\"9301497000\",\"state\":\"DELHI\"}",
+      "actual": "created (UHID ASNR0000000403); toast: Registration Number: ASNR0000000403",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000403"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserFifteen",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9301497000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 15",
+        "mark_permanent": "true",
+        "saved:first_name": "Agent",
+        "saved:last_name": "UserFifteen",
+        "saved:mobile": "9301497000",
+        "saved:state": "DELHI"
+      },
+      "durationMs": 19630,
+      "registrationId": "ASNR0000000403",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000403"
+      }
+    },
+    {
+      "id": "REG-003",
+      "title": "Female patient with title Mrs. is created with gender Female",
+      "category": "happy",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "created; saved {\"gender\":\"Female\",\"title\":\"Mrs.\"}",
+      "actual": "created (UHID ASNR0000000404); toast: Registration Number: ASNR0000000404",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000404"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mrs.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSixteen",
+        "gender": "Female",
+        "dob": "15/08/1990",
+        "mobile": "9322224002",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 16",
+        "mark_permanent": "true",
+        "saved:gender": "Female",
+        "saved:title": "Mrs."
+      },
+      "durationMs": 23221,
+      "registrationId": "ASNR0000000404",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000404"
+      }
+    },
+    {
+      "id": "REG-010",
+      "title": "Saving an empty form is blocked with a required-field message",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; toast contains \"required field\"",
+      "actual": "blocked; toast: Please fill the required field: First Name",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: First Name"
+      ],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Deployed build (2.0.66) names one missing field at a time ('Please fill the required field: First Name'); repo code lists all.",
+      "durationMs": 23713,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-011",
+      "title": "Missing First Name blocks save",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; toast contains \"First Name\"",
+      "actual": "blocked; toast: Please fill the required field: First Name; errors {\"First Name\":\"This field is required.\"}",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: First Name"
+      ],
+      "fieldErrors": {
+        "First Name": "This field is required."
+      },
+      "values": {
+        "title": "Mr.",
+        "first_name": "",
+        "middle_name": "Testing",
+        "last_name": "UserEighteen",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9370842006",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 18",
+        "mark_permanent": "true"
+      },
+      "durationMs": 34020,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-014",
+      "title": "Missing Mobile No blocks save",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; toast contains \"Mobile\"",
+      "actual": "blocked; toast: Please fill the required field: Mobile No; errors {\"Mobile No\":\"This field is required.\"}",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: Mobile No"
+      ],
+      "fieldErrors": {
+        "Mobile No": "This field is required."
+      },
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNineteen",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 19",
+        "mark_permanent": "true"
+      },
+      "durationMs": 33368,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-069",
+      "title": "Filling only Current Address (Permanent tab untouched) blocks save on Permanent Pin Code",
+      "category": "address",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; toast contains \"Permanent Address\"",
+      "actual": "blocked; toast: Please fill the required field: Pin Code (Permanent Address)",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: Pin Code (Permanent Address)"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserTwenty",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9457128010",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 20",
+        "mark_permanent": "false"
+      },
+      "note": "Observed on demo 2.0.66. The Permanent tab is hidden behind a tab and not auto-filled; UX risk for receptionists.",
+      "durationMs": 34993,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    }
+  ]
+}

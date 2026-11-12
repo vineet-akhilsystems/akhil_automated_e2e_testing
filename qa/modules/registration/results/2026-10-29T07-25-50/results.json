@@ -1,0 +1,20 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T07:25:50.286Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "created",
+      "actual": "runner error: option \"Mr.\" in title",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    }
+  ]
+}

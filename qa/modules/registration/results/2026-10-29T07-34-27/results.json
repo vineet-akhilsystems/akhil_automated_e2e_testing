@@ -1,0 +1,159 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T07:34:27.216Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "created; toast contains \"Registration Number\"; saved {\"first_name\":\"Agent\",\"last_name\":\"UserNine\",\"mobile\":\"9092245000\",\"state\":\"DELHI\"}",
+      "actual": "blocked; toast: Please fill the required field: Pin Code (Permanent Address)",
+      "mismatches": [
+        "outcome: expected \"created\", got \"blocked\"",
+        "toast: expected to contain \"Registration Number\", got [\"Please fill the required field: Pin Code (Permanent Address)\"]"
+      ],
+      "toasts": [
+        "Please fill the required field: Pin Code (Permanent Address)"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNine",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9092245000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 9"
+      },
+      "durationMs": 36192,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-010",
+      "title": "Saving an empty form is blocked and lists all required fields",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "blocked; toast contains \"Please fill required field(s)\"",
+      "actual": "blocked; toast: Please fill the required field: First Name",
+      "mismatches": [
+        "toast: expected to contain \"Please fill required field(s)\", got [\"Please fill the required field: First Name\"]"
+      ],
+      "toasts": [
+        "Please fill the required field: First Name"
+      ],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 23174,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-020",
+      "title": "9-digit mobile number shows an error and blocks save",
+      "category": "phone",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; errors {\"mobile\":\"valid 10-digit\"}",
+      "actual": "blocked; toast: Please fill the required field: Pin Code (Permanent Address); errors {\"Mobile No\":\"Enter a valid 10-digit mobile number for India (e.g. 8123456789)\"}",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: Pin Code (Permanent Address)"
+      ],
+      "fieldErrors": {
+        "Mobile No": "Enter a valid 10-digit mobile number for India (e.g. 8123456789)"
+      },
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserEleven",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "987654321",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 11"
+      },
+      "durationMs": 38753,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-033",
+      "title": "Full name typed into First Name is split into middle and last name",
+      "category": "name",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "field-state; values {\"first_name\":\"Agent\",\"middle_name\":\"Testing\",\"last_name\":\"UserTwelve\"}",
+      "actual": "values {\"first_name\":\"Agent Testing UserTwelve\",\"middle_name\":\"\",\"last_name\":\"\"}",
+      "mismatches": [
+        "value.first_name: expected \"Agent\", got \"Agent Testing UserTwelve\"",
+        "value.middle_name: expected \"Testing\", got \"\"",
+        "value.last_name: expected \"UserTwelve\", got \"\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "first_name": "Agent Testing UserTwelve",
+        "middle_name": "",
+        "last_name": ""
+      },
+      "durationMs": 11545
+    },
+    {
+      "id": "REG-060",
+      "title": "PIN 110001 fills State/District/City and asks to choose an Area",
+      "category": "address",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "field-state; values {\"country\":\"India\",\"state\":\"DELHI\",\"district\":\"NEW DELHI\",\"city\":\"NEW DELHI\"}; hints {\"pin_code\":\"Several areas share\"}",
+      "actual": "values {\"country\":\"India\",\"state\":\"DELHI\",\"district\":\"NEW DELHI\",\"city\":\"NEW DELHI\",\"pin_code\":\"110001\",\"hint:pin_code\":\"Several areas share this PIN code — select one\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "country": "India",
+        "state": "DELHI",
+        "district": "NEW DELHI",
+        "city": "NEW DELHI",
+        "pin_code": "110001",
+        "hint:pin_code": "Several areas share this PIN code — select one"
+      },
+      "durationMs": 13458
+    },
+    {
+      "id": "REG-070",
+      "title": "Default payer is Self-Paid with Payer and Sponsor = Cash",
+      "category": "payer",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "field-state; values {\"payer_type\":\"Self-Paid\",\"payer\":\"Cash\",\"sponsor\":\"Cash\"}",
+      "actual": "values {\"payer_type\":\"Self-Paid\",\"payer\":\"Cash\",\"sponsor\":\"Cash\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "payer_type": "Self-Paid",
+        "payer": "Cash",
+        "sponsor": "Cash"
+      },
+      "durationMs": 9185
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "module": "registration",
+  "bases": {
+    "valid": {
+      "title": "Mr.",
+      "first_name": "Agent",
+      "middle_name": "Testing",
+      "last_name": "User{{seqWord}}",
+      "gender": "Male",
+      "dob": "15/08/1990",
+      "mobile": "{{phone}}",
+      "pin_code": "110001",
+      "area": "{{first}}",
+      "address": "Agent test address, Lane {{seq}}",
+      "mark_permanent": true
+    }
+  },
+  "cases": [
+    {
+      "id": "REG-FLOW-PIN-CLEAR",
+      "title": "Clearing a populated PIN clears State, District and City",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "pin-clear"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_036. Partial business coverage: this test verifies only the behavior stated in its title. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-INSURANCE-PAYER-RESET",
+      "title": "Insurance to Self-Paid resets payer and sponsor to locked Cash defaults",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "insurance-payer-reset"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_042. See workflow implementation for explicit checks. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-NEW-RESET-ADDRESS",
+      "title": "New clears unsaved current and permanent address data and stale validation",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "new-reset-address"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    }
+  ]
+}

@@ -1,0 +1,348 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T08:34:04.961Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "created; toast contains \"Registration Number\"; saved {\"first_name\":\"Agent\",\"last_name\":\"UserOneHundredFour\",\"mobile\":\"9556276000\",\"state\":\"DELHI\"}",
+      "actual": "created (UHID ASNR0000000433); toast: Registration Number: ASNR0000000433",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000433"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFour",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9556276000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 104",
+        "mark_permanent": "true",
+        "saved:first_name": "Agent",
+        "saved:last_name": "UserOneHundredFour",
+        "saved:mobile": "9556276000",
+        "saved:state": "DELHI"
+      },
+      "durationMs": 29063,
+      "registrationId": "ASNR0000000433",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000433"
+      }
+    },
+    {
+      "id": "REG-010",
+      "title": "Saving an empty form is blocked with a required-field message",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked; toast contains \"required field\"",
+      "actual": "blocked; toast: Please fill the required field: First Name",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: First Name"
+      ],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Deployed build (2.0.66) names one missing field at a time ('Please fill the required field: First Name'); repo code lists all.",
+      "durationMs": 12967,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-061",
+      "title": "Unknown PIN 000000 shows 'not recognized'",
+      "category": "address",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "field-state; values {\"state\":\"\"}; hints {\"pin_code\":\"not recognized\"}",
+      "actual": "values {\"state\":\"\",\"pin_code\":\"000000\",\"hint:pin_code\":\"PIN code not recognized — please verify or enter address manually\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "state": "",
+        "pin_code": "000000",
+        "hint:pin_code": "PIN code not recognized — please verify or enter address manually"
+      },
+      "durationMs": 11647
+    },
+    {
+      "id": "REG-062",
+      "title": "5-digit PIN does not trigger a lookup",
+      "category": "address",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "field-state; values {\"state\":\"\"}",
+      "actual": "values {\"state\":\"\",\"pin_code\":\"11000\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "state": "",
+        "pin_code": "11000"
+      },
+      "durationMs": 12416
+    },
+    {
+      "id": "REG-064",
+      "title": "Choosing State, District and Area without a PIN fills the PIN (reverse lookup)",
+      "category": "address",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; values {\"pin_code\":\"*\"}",
+      "actual": "values {\"pin_code\":\"\",\"state\":\"DELHI\",\"district\":\"NEW DELHI\",\"area\":\"F F C Okhla\"}",
+      "mismatches": [
+        "value.pin_code: expected \"*\", got \"\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "pin_code": "",
+        "state": "DELHI",
+        "district": "NEW DELHI",
+        "area": "F F C Okhla"
+      },
+      "durationMs": 14098
+    },
+    {
+      "id": "REG-066",
+      "title": "Changing State after a typed PIN clears District/City, keeps the typed PIN and warns of the mismatch",
+      "category": "address",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "field-state; values {\"district\":\"\",\"city\":\"\",\"pin_code\":\"110001\"}; hints {\"pin_code\":\"don't match\"}",
+      "actual": "values {\"district\":\"\",\"city\":\"\",\"pin_code\":\"110001\",\"state\":\"UTTARAKHAND\",\"hint:pin_code\":\"Address details don't match the entered PIN code\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "district": "",
+        "city": "",
+        "pin_code": "110001",
+        "state": "UTTARAKHAND",
+        "hint:pin_code": "Address details don't match the entered PIN code"
+      },
+      "note": "PinCodeField.jsx:145-188 clears only a system-filled PIN; a user-typed PIN stays, so 110001 (Delhi) + UTTARAKHAND should show the mismatch hint.",
+      "durationMs": 12343
+    },
+    {
+      "id": "REG-068",
+      "title": "Very long (600 char) address is accepted or limited",
+      "category": "address",
+      "priority": "P3",
+      "status": "OBSERVED",
+      "expected": "observe",
+      "actual": "values {\"address\":\"Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address bl\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "address": "Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address bl"
+      },
+      "durationMs": 10415
+    },
+    {
+      "id": "REG-090",
+      "title": "Registering the exact same patient twice is not reported as a success",
+      "category": "duplicate",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "duplicate-warning",
+      "actual": "duplicate-warning",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredEleven",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9676461004",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 111",
+        "mark_permanent": "true"
+      },
+      "note": "Backend returns {statusCode:409} with HTTP 200; frontend treats any non-400 body as success (api.js:2416).",
+      "durationMs": 39641,
+      "registrationId": "ASNR0000000434",
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-100",
+      "title": "Search 'Agent Testing' finds the agent-created patients",
+      "category": "search",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "found",
+      "actual": "found (32 records found)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 11783,
+      "serverResponse": {
+        "status": 201,
+        "summary": "32 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-101",
+      "title": "Search 'Vineet' finds the existing patient Vineet",
+      "category": "search",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "found",
+      "actual": "not-found (0 records found)",
+      "mismatches": [
+        "outcome: expected \"found\", got \"not-found\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Walkthrough video showed '0 records found' for 'vineet'.",
+      "durationMs": 11416,
+      "serverResponse": {
+        "status": 201,
+        "summary": "0 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-102",
+      "title": "Search 'Vivek' finds the existing patient Vivek",
+      "category": "search",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "found",
+      "actual": "found (23 records found)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 10933,
+      "serverResponse": {
+        "status": 201,
+        "summary": "23 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-103",
+      "title": "Search by the mobile number of REG-001 finds it",
+      "category": "search",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "found",
+      "actual": "found (opened single match)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 31295,
+      "serverResponse": {
+        "status": 201,
+        "summary": "",
+        "url": "https://demo.augastam.com/registration/1101f999-7c91-4ba5-a52b-a80d728c588e/ASNR0000000433"
+      }
+    },
+    {
+      "id": "REG-104",
+      "title": "Search with a regex character '(' does not error",
+      "category": "search",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "no-error",
+      "actual": "error (0 records found)",
+      "mismatches": [
+        "outcome: expected \"no-error\", got \"error\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Search text is not regex-escaped on the server (controller.ts:4901).",
+      "durationMs": 10811,
+      "serverResponse": {
+        "status": 500,
+        "summary": "0 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-105",
+      "title": "Search for a nonsense name returns 0 records",
+      "category": "search",
+      "priority": "P3",
+      "status": "PASS",
+      "expected": "not-found",
+      "actual": "not-found (0 records found)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 11315,
+      "serverResponse": {
+        "status": 201,
+        "summary": "0 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-110",
+      "title": "Update button stays disabled until something changes",
+      "category": "update",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; Update button disabled",
+      "actual": "field-state; Update button enabled before changes",
+      "mismatches": [
+        "saveDisabled: expected true, got false"
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 9473,
+      "registrationId": "ASNR0000000433"
+    },
+    {
+      "id": "REG-111",
+      "title": "Editing the email of REG-001 and submitting remarks updates the record",
+      "category": "update",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "updated; saved {\"email\":\"agent.updated119@example.com\"}",
+      "actual": "updated; Update button enabled before changes",
+      "mismatches": [],
+      "toasts": [
+        "data updated successfully"
+      ],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 16960,
+      "serverResponse": {
+        "status": 200,
+        "body": "data updated successfully"
+      },
+      "registrationId": "ASNR0000000433"
+    }
+  ]
+}

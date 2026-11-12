@@ -1,0 +1,379 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T08:58:32.948Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "created; toast contains \"Registration Number\"; saved {\"first_name\":\"Agent\",\"last_name\":\"UserOneHundredFortyFive\",\"mobile\":\"9873432000\",\"state\":\"DELHI\"}",
+      "actual": "created (UHID ASNR0000000445); toast: Registration Number: ASNR0000000445",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000445"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFortyFive",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9873432000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 145",
+        "mark_permanent": "true",
+        "saved:first_name": "Agent",
+        "saved:last_name": "UserOneHundredFortyFive",
+        "saved:mobile": "9873432000",
+        "saved:state": "DELHI"
+      },
+      "durationMs": 26889,
+      "registrationId": "ASNR0000000445",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000445"
+      }
+    },
+    {
+      "id": "REG-064",
+      "title": "Choosing State, District and Area without a PIN fills the PIN (reverse lookup)",
+      "category": "address",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; values {\"pin_code\":\"*\"}",
+      "actual": "values {\"pin_code\":\"\",\"state\":\"DELHI\",\"district\":\"NEW DELHI\",\"area\":\"F F C Okhla\"}",
+      "mismatches": [
+        "value.pin_code: expected \"*\", got \"\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "pin_code": "",
+        "state": "DELHI",
+        "district": "NEW DELHI",
+        "area": "F F C Okhla"
+      },
+      "durationMs": 17449
+    },
+    {
+      "id": "REG-101",
+      "title": "Search 'Vineet' finds the existing patient Vineet",
+      "category": "search",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "found",
+      "actual": "not-found (0 records found)",
+      "mismatches": [
+        "outcome: expected \"found\", got \"not-found\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Walkthrough video showed '0 records found' for 'vineet'.",
+      "durationMs": 11539,
+      "serverResponse": {
+        "status": 201,
+        "summary": "0 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-104",
+      "title": "Search with a regex character '(' does not error",
+      "category": "search",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "no-error",
+      "actual": "error (0 records found)",
+      "mismatches": [
+        "outcome: expected \"no-error\", got \"error\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Search text is not regex-escaped on the server (controller.ts:4901).",
+      "durationMs": 12040,
+      "serverResponse": {
+        "status": 500,
+        "summary": "0 records found",
+        "url": "https://demo.augastam.com/registration"
+      }
+    },
+    {
+      "id": "REG-110",
+      "title": "Update button stays disabled until something changes",
+      "category": "update",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; Update button disabled",
+      "actual": "field-state; Update button enabled before changes",
+      "mismatches": [
+        "saveDisabled: expected true, got false"
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 10201,
+      "registrationId": "ASNR0000000445"
+    },
+    {
+      "id": "REG-130",
+      "title": "Apostrophe surname D'Souza is saved exactly",
+      "category": "real-names",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "created; saved {\"last_name\":\"D'SouzaUserOneHundredFifty\"}",
+      "actual": "created (UHID ASNR0000000446); toast: Registration Number: ASNR0000000446",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000446"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "D'SouzaUserOneHundredFifty",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9980613000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 150",
+        "mark_permanent": "true",
+        "saved:last_name": "D'SouzaUserOneHundredFifty"
+      },
+      "note": "Real Indian surnames contain apostrophes; stripping them corrupts identity.",
+      "durationMs": 42467,
+      "registrationId": "ASNR0000000446",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000446"
+      }
+    },
+    {
+      "id": "REG-132",
+      "title": "Initial with a dot 'S.' as first name is saved exactly",
+      "category": "real-names",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "created; saved {\"first_name\":\"S.\"}",
+      "actual": "created (UHID ASNR0000000447); toast: Registration Number: ASNR0000000447",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000447"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "S.",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFiftyOne",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9023791002",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 151",
+        "mark_permanent": "true",
+        "saved:first_name": "S."
+      },
+      "durationMs": 26359,
+      "registrationId": "ASNR0000000447",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000447"
+      }
+    },
+    {
+      "id": "REG-133",
+      "title": "Single-letter first name 'A' is accepted",
+      "category": "real-names",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "created; saved {\"first_name\":\"A\"}",
+      "actual": "created (UHID ASNR0000000448); toast: Registration Number: ASNR0000000448",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000448"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "A",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFiftyTwo",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9050555004",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 152",
+        "mark_permanent": "true",
+        "saved:first_name": "A"
+      },
+      "durationMs": 28790,
+      "registrationId": "ASNR0000000448",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000448"
+      }
+    },
+    {
+      "id": "REG-150",
+      "title": "Email with plus-addressing is accepted and saved",
+      "category": "email",
+      "priority": "P3",
+      "status": "PASS",
+      "expected": "created; saved {\"email\":\"agent+153@example.com\"}",
+      "actual": "created (UHID ASNR0000000449); toast: Registration Number: ASNR0000000449",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000449"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFiftyThree",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9081580006",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 153",
+        "mark_permanent": "true",
+        "email": "agent+153@example.com",
+        "saved:email": "agent+153@example.com"
+      },
+      "durationMs": 31629,
+      "registrationId": "ASNR0000000449",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000449"
+      }
+    },
+    {
+      "id": "REG-151",
+      "title": "Email with spaces is rejected",
+      "category": "email",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000450); toast: Registration Number: ASNR0000000450",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000450"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFiftyFour",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9113590008",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 154",
+        "mark_permanent": "true",
+        "email": "agent testing@example.com"
+      },
+      "durationMs": 49985,
+      "registrationId": "ASNR0000000450",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000450"
+      }
+    },
+    {
+      "id": "REG-192",
+      "title": "New Born with DOB 30 years ago is rejected",
+      "category": "registration-type",
+      "priority": "P2",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNBR240000000009); toast: Registration Number: ASNBR240000000009",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNBR240000000009"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Baby of",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserOneHundredFiftyFive",
+        "gender": "Male",
+        "dob": "15/08/1996",
+        "mobile": "9175765000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 155",
+        "mark_permanent": "true",
+        "mother_uhid": "ASNR0000000445"
+      },
+      "note": "A newborn registration for a 30-year-old is a data-entry error.",
+      "durationMs": 52629,
+      "registrationId": "ASNBR240000000009",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNBR240000000009"
+      }
+    },
+    {
+      "id": "REG-210",
+      "title": "Search by the UHID of REG-001 opens it",
+      "category": "search",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "found",
+      "actual": "found (opened single match)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 38675,
+      "serverResponse": {
+        "status": 201,
+        "summary": "",
+        "url": "https://demo.augastam.com/registration/1101f999-7c91-4ba5-a52b-a80d728c588e/ASNR0000000445"
+      }
+    },
+    {
+      "id": "REG-220",
+      "title": "Changing the mobile of REG-001 to 9 digits blocks the update",
+      "category": "update",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "blocked",
+      "actual": "blocked; Update button enabled before changes; toast: Mobile No: Enter a valid 10-digit mobile number for India (e.g. 8123456789); errors {\"Mobile No\":\"Enter a valid 10-digit mobile number for India (e.g. 8123456789)\"}",
+      "mismatches": [],
+      "toasts": [
+        "Mobile No: Enter a valid 10-digit mobile number for India (e.g. 8123456789)"
+      ],
+      "fieldErrors": {
+        "Mobile No": "Enter a valid 10-digit mobile number for India (e.g. 8123456789)"
+      },
+      "values": {},
+      "note": "Invalid phone must not be saved through the edit path either.",
+      "durationMs": 33548,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      },
+      "registrationId": "ASNR0000000445"
+    }
+  ]
+}

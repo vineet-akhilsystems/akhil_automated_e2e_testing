@@ -1,0 +1,100 @@
+{
+  "REG-001": {
+    "seq": "145",
+    "seqWord": "OneHundredFortyFive",
+    "phone": "9873432000",
+    "phone2": "9873432001",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000445"
+  },
+  "REG-064": {
+    "seq": "146",
+    "seqWord": "OneHundredFortySix",
+    "phone": "9909200002",
+    "phone2": "9909200003",
+    "today": "29/10/2026"
+  },
+  "REG-101": {
+    "seq": "147",
+    "seqWord": "OneHundredFortySeven",
+    "phone": "9934849000",
+    "phone2": "9934849001",
+    "today": "29/10/2026"
+  },
+  "REG-104": {
+    "seq": "148",
+    "seqWord": "OneHundredFortyEight",
+    "phone": "9950561000",
+    "phone2": "9950561001",
+    "today": "29/10/2026"
+  },
+  "REG-110": {
+    "seq": "149",
+    "seqWord": "OneHundredFortyNine",
+    "phone": "9966192000",
+    "phone2": "9966192001",
+    "today": "29/10/2026"
+  },
+  "REG-130": {
+    "seq": "150",
+    "seqWord": "OneHundredFifty",
+    "phone": "9980613000",
+    "phone2": "9980613001",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000446"
+  },
+  "REG-132": {
+    "seq": "151",
+    "seqWord": "OneHundredFiftyOne",
+    "phone": "9023791002",
+    "phone2": "9023791003",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000447"
+  },
+  "REG-133": {
+    "seq": "152",
+    "seqWord": "OneHundredFiftyTwo",
+    "phone": "9050555004",
+    "phone2": "9050555005",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000448"
+  },
+  "REG-150": {
+    "seq": "153",
+    "seqWord": "OneHundredFiftyThree",
+    "phone": "9081580006",
+    "phone2": "9081580007",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000449"
+  },
+  "REG-151": {
+    "seq": "154",
+    "seqWord": "OneHundredFiftyFour",
+    "phone": "9113590008",
+    "phone2": "9113590009",
+    "today": "29/10/2026",
+    "regId": "ASNR0000000450"
+  },
+  "REG-192": {
+    "seq": "155",
+    "seqWord": "OneHundredFiftyFive",
+    "phone": "9175765000",
+    "phone2": "9175765001",
+    "today": "29/10/2026",
+    "regId": "ASNBR240000000009"
+  },
+  "REG-210": {
+    "seq": "156",
+    "seqWord": "OneHundredFiftySix",
+    "phone": "9237665000",
+    "phone2": "9237665001",
+    "today": "29/10/2026"
+  },
+  "REG-220": {
+    "seq": "157",
+    "seqWord": "OneHundredFiftySeven",
+    "phone": "9277695002",
+    "phone2": "9277695003",
+    "today": "29/10/2026"
+  }
+}

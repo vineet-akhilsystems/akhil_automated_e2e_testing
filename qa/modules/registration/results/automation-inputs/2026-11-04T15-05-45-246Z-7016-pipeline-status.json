@@ -1,0 +1,581 @@
+{
+  "source": "portal",
+  "snapshot": "C:\\Users\\HP\\Desktop\\akhil_system\\Company Enhancement Projects\\augastam_e2e_testing\\qa\\modules\\registration\\results\\automation-inputs\\2026-11-04T15-05-45-246Z-7016.json",
+  "selected": [
+    "REG-001",
+    "REG-002",
+    "REG-003",
+    "REG-004",
+    "REG-010",
+    "REG-011",
+    "REG-012",
+    "REG-013",
+    "REG-014",
+    "REG-015",
+    "REG-016",
+    "REG-017",
+    "REG-018",
+    "REG-019",
+    "REG-037",
+    "REG-020",
+    "REG-021",
+    "REG-022",
+    "REG-023",
+    "REG-024",
+    "REG-025",
+    "REG-026",
+    "REG-027",
+    "REG-030",
+    "REG-031",
+    "REG-032",
+    "REG-033",
+    "REG-034",
+    "REG-035",
+    "REG-040",
+    "REG-041",
+    "REG-042",
+    "REG-043",
+    "REG-044",
+    "REG-045",
+    "REG-050",
+    "REG-060",
+    "REG-061",
+    "REG-062",
+    "REG-063",
+    "REG-064",
+    "REG-065",
+    "REG-066",
+    "REG-067",
+    "REG-069",
+    "REG-068",
+    "REG-070",
+    "REG-080",
+    "REG-081",
+    "REG-082",
+    "REG-083",
+    "REG-084",
+    "REG-085",
+    "REG-090",
+    "REG-100",
+    "REG-101",
+    "REG-102",
+    "REG-103",
+    "REG-104",
+    "REG-105",
+    "REG-110",
+    "REG-111",
+    "REG-130",
+    "REG-131",
+    "REG-132",
+    "REG-133",
+    "REG-134",
+    "REG-140",
+    "REG-141",
+    "REG-142",
+    "REG-150",
+    "REG-151",
+    "REG-160",
+    "REG-161",
+    "REG-170",
+    "REG-171",
+    "REG-172",
+    "REG-180",
+    "REG-190",
+    "REG-191",
+    "REG-192",
+    "REG-200",
+    "REG-210",
+    "REG-211",
+    "REG-212",
+    "REG-220",
+    "REG-221",
+    "REG-222",
+    "REG-223",
+    "REG-224",
+    "REG-225",
+    "REG-226",
+    "REG-227",
+    "REG-228",
+    "REG-229",
+    "REG-230",
+    "REG-231",
+    "REG-232",
+    "REG-233",
+    "REG-234",
+    "REG-235",
+    "REG-236",
+    "REG-237",
+    "REG-238",
+    "REG-239",
+    "REG-240",
+    "REG-241",
+    "REG-242",
+    "REG-243",
+    "REG-244",
+    "REG-245",
+    "REG-246",
+    "REG-247",
+    "REG-248",
+    "REG-249",
+    "REG-250",
+    "REG-251",
+    "REG-252",
+    "REG-253",
+    "REG-254",
+    "REG-255",
+    "REG-256",
+    "REG-257",
+    "REG-258",
+    "REG-259",
+    "REG-260",
+    "REG-261",
+    "REG-262",
+    "REG-263",
+    "REG-264",
+    "REG-265",
+    "REG-266",
+    "REG-267",
+    "REG-268",
+    "REG-269",
+    "REG-270",
+    "REG-E2E-BASE",
+    "REG-FLOW-NEW-RESET",
+    "REG-FLOW-KEYBOARD-FIELDS",
+    "REG-FLOW-TITLE-GENDER",
+    "REG-FLOW-DOB-AGE",
+    "REG-FLOW-ADDRESS-COPY",
+    "REG-FLOW-ADDRESS-INDEPENDENT",
+    "REG-FLOW-PAYER-RESET",
+    "REG-FLOW-NEWBORN-FIELDS",
+    "REG-FLOW-STAFF-FIELDS",
+    "REG-FLOW-DOCUMENT-GATE",
+    "REG-FLOW-NOTES-GATE",
+    "REG-FLOW-ADDON-SHELLS",
+    "REG-FLOW-SEARCH-IDENTITY",
+    "REG-FLOW-UPDATE-REMARKS",
+    "REG-FLOW-UPDATE-PERSIST",
+    "REG-FLOW-ACTIVE-CANCEL",
+    "REG-FLOW-PRINT-CARD",
+    "REG-FLOW-PRINT-FORM",
+    "REG-FLOW-QR-DOWNLOAD",
+    "REG-FLOW-QUICK-ACTIONS",
+    "REG-WB-022",
+    "REG-WB-023",
+    "REG-WB-027",
+    "REG-WB-034",
+    "REG-WB-042",
+    "REG-FLOW-DOCUMENT-UPLOAD",
+    "REG-FLOW-DOCUMENT-FORMAT",
+    "REG-FLOW-DOCUMENT-CLEAR",
+    "REG-FLOW-ABHA-DIALOG",
+    "REG-FLOW-REDIRECT-BILLING",
+    "REG-FLOW-REDIRECT-ADMISSION",
+    "REG-FLOW-REDIRECT-APPOINTMENT"
+  ],
+  "excludedManualCases": [
+    {
+      "id": "TC_REG_001",
+      "title": "Verify registration types are configurable",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_002",
+      "title": "Verify configurable workflow steps",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_003",
+      "title": "Verify combination workflow support",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_004",
+      "title": "Verify registration type can be tagged to specific workflow",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_005",
+      "title": "Verify document category configuration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_006",
+      "title": "Verify title lookup list creation",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_007",
+      "title": "Verify gender lookup list",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_008",
+      "title": "Verify configurable duplicate check fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_009",
+      "title": "Verify registration charge business rules",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_010",
+      "title": "Verify default settings based on registration type",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_011",
+      "title": "Verify language translation in registration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_012",
+      "title": "Verify facility change by authorized user",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_013",
+      "title": "Verify facility change blocked for unauthorized user",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_014",
+      "title": "Verify tab navigation across mandatory fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_015",
+      "title": "Verify keyboard navigation in dropdowns",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_016",
+      "title": "Verify keyboard shortcut to save registration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_017",
+      "title": "Verify Help icon availability and functionality",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_018",
+      "title": "Search patient by UHID",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_019",
+      "title": "Search patient by pre-registration number",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_020",
+      "title": "Verify magic search by multiple criteria",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_021",
+      "title": "Magic search with partial name",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_022",
+      "title": "Verify new patient registration with all mandatory fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_023",
+      "title": "Verify UHID not generated without mandatory fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_024",
+      "title": "Verify UHID format is alphanumeric as configured",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_025",
+      "title": "Verify auto-gender selection on title change",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_026",
+      "title": "Verify age auto-calculation from DOB",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_027",
+      "title": "Verify age entry when DOB is unknown",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_028",
+      "title": "Verify manual patient photo upload",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_029",
+      "title": "Verify newborn registration tagged with mother UHID",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_030",
+      "title": "Verify staff registration with employee ID",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_031",
+      "title": "Verify mandatory fields for international patient",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_032",
+      "title": "Verify staff dependent registration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_033",
+      "title": "Verify duplicate mobile number alert",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_034",
+      "title": "Verify mobile number length validation by country",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_035",
+      "title": "Verify mobile country code auto-selects with country",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_036",
+      "title": "Verify pin code auto-fills address fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_037",
+      "title": "Verify present address copies to permanent address",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_038",
+      "title": "Verify multiple emergency contacts can be added",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_039",
+      "title": "Verify WhatsApp availability check on mobile number",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_040",
+      "title": "Verify identity type linked to identity number field",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_041",
+      "title": "Verify nationality-based identity options",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_042",
+      "title": "Verify self-pay payer type selection",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_043",
+      "title": "Verify corporate payer selection",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_044",
+      "title": "Verify insurance payer details capture",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_045",
+      "title": "Verify system blocks transactions after insurance expiry",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_046",
+      "title": "Verify insurance eligibility check",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_047",
+      "title": "Verify referral doctor and specialization auto-link",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_048",
+      "title": "Verify referred type options and sub-fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_049",
+      "title": "Verify lead source capture and narration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_050",
+      "title": "Verify VIP patient color coding in other modules",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_051",
+      "title": "Verify confidential patient name and address masking",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_052",
+      "title": "Verify handle with care flag visible across modules",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_053",
+      "title": "Verify vulnerable patient alert to concerned department",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_054",
+      "title": "Verify promotional consent checkbox saves preference",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_055",
+      "title": "Verify registration card print",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_056",
+      "title": "Verify registration form print",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_057",
+      "title": "Verify outpatient wristband print",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_058",
+      "title": "Verify duplicate printout marked accordingly",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_059",
+      "title": "Verify post-save redirect options",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_060",
+      "title": "Verify QR code generation on save",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_061",
+      "title": "Verify patient record update with mandatory remarks",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_062",
+      "title": "Verify document upload against patient UHID",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_063",
+      "title": "Verify invalid document format rejected",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_064",
+      "title": "Verify mandatory documents enforced per registration type",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_065",
+      "title": "Verify duplicate registration detection",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_066",
+      "title": "Verify merging duplicate registrations",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_067",
+      "title": "Verify quick registration with minimal fields",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_068",
+      "title": "Verify family linking and family ID creation",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_069",
+      "title": "Verify ABHA ID creation and linking",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_070",
+      "title": "Verify UHID inactivation for deceased patient",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_071",
+      "title": "Verify bulk registration via Excel upload",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_072",
+      "title": "Verify group registration with auto-fill",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_073",
+      "title": "Verify digital consent form creation and e-signature",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_074",
+      "title": "Verify token number generation and queue display",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_075",
+      "title": "Verify insurance eligibility integration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_076",
+      "title": "Verify audit fields auto-populate on registration",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_077",
+      "title": "Verify complete audit trail of field changes",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_078",
+      "title": "Verify dynamic registration report",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_079",
+      "title": "Verify ABHA link and delink functionality",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    },
+    {
+      "id": "TC_REG_080",
+      "title": "Verify redirect from registration to OPD invoice",
+      "reason": "Manual procedure requires structured automation and its stated prerequisites."
+    }
+  ],
+  "state": "blocked-before-execution",
+  "startedAt": "2026-11-04T15:05:45.249Z",
+  "reason": "Session/environment preflight failed. No registration cases executed. Inspect the Playwright error; for an expired session run npm run auth.",
+  "finishedAt": "2026-11-04T15:05:55.784Z"
+}

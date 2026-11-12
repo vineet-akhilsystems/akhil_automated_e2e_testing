@@ -1,0 +1,855 @@
+{
+  "casesFile": "qa/modules/registration/cases/registration-cases.json",
+  "runAt": "2026-10-29T08:26:38.684Z",
+  "results": [
+    {
+      "id": "REG-001",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "category": "happy",
+      "priority": "P1",
+      "status": "PASS",
+      "expected": "created; toast contains \"Registration Number\"; saved {\"first_name\":\"Agent\",\"last_name\":\"UserSeventyOne\",\"mobile\":\"9555881000\",\"state\":\"DELHI\"}",
+      "actual": "created (UHID ASNR0000000421); toast: Registration Number: ASNR0000000421",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASNR0000000421"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyOne",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9555881000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 71",
+        "mark_permanent": "true",
+        "saved:first_name": "Agent",
+        "saved:last_name": "UserSeventyOne",
+        "saved:mobile": "9555881000",
+        "saved:state": "DELHI"
+      },
+      "durationMs": 26364,
+      "registrationId": "ASNR0000000421",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000421"
+      }
+    },
+    {
+      "id": "REG-010",
+      "title": "Saving an empty form is blocked with a required-field message",
+      "category": "mandatory",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "blocked; toast contains \"required field\"",
+      "actual": "blocked",
+      "mismatches": [
+        "toast: expected to contain \"required field\", got []"
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Deployed build (2.0.66) names one missing field at a time ('Please fill the required field: First Name'); repo code lists all.",
+      "durationMs": 28457,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-019",
+      "title": "Choosing 'None' for required Title blocks save",
+      "category": "mandatory",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "blocked; toast: Please fill the required field: Title",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: Title"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyThree",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9614407000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 73",
+        "mark_permanent": "true"
+      },
+      "note": "Title is marked * but is not in the hard-coded save check.",
+      "durationMs": 31761,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-037",
+      "title": "Title 'Mrs.' with Gender 'Male' is flagged as inconsistent",
+      "category": "name",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000422); toast: Registration Number: ASNR0000000422",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000422"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mrs.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyFour",
+        "gender": "Female",
+        "dob": "15/08/1990",
+        "mobile": "9646320002",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 74",
+        "mark_permanent": "true"
+      },
+      "note": "No title/gender consistency rule found in code.",
+      "durationMs": 17834,
+      "registrationId": "ASNR0000000422",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000422"
+      }
+    },
+    {
+      "id": "REG-025",
+      "title": "All-same-digit mobile 9999999999 is rejected",
+      "category": "phone",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000423); toast: Registration Number: ASNR0000000423",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000423"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyFive",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9999999999",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 75",
+        "mark_permanent": "true"
+      },
+      "note": "libphonenumber treats it as valid; business rule not defined.",
+      "durationMs": 18406,
+      "registrationId": "ASNR0000000423",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000423"
+      }
+    },
+    {
+      "id": "REG-026",
+      "title": "5-digit WhatsApp number is rejected",
+      "category": "phone",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000424); toast: Registration Number: ASNR0000000424",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000424"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventySix",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9687740000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 76",
+        "mark_permanent": "true",
+        "whatsapp": "98765"
+      },
+      "durationMs": 26309,
+      "registrationId": "ASNR0000000424",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000424"
+      }
+    },
+    {
+      "id": "REG-027",
+      "title": "3-digit emergency contact mobile is rejected",
+      "category": "phone",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000425); toast: Registration Number: ASNR0000000425",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000425"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventySeven",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9718743000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 77",
+        "mark_permanent": "true",
+        "emergency_name": "Agent Testing Contact",
+        "emergency_mobile": "123"
+      },
+      "durationMs": 25635,
+      "registrationId": "ASNR0000000425",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000425"
+      }
+    },
+    {
+      "id": "REG-030",
+      "title": "Digits in First Name are rejected",
+      "category": "name",
+      "priority": "P2",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000426); toast: Registration Number: ASNR0000000426",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000426"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyEight",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9748719000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 78",
+        "mark_permanent": "true"
+      },
+      "durationMs": 18348,
+      "registrationId": "ASNR0000000426",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000426"
+      }
+    },
+    {
+      "id": "REG-031",
+      "title": "Special characters in First Name are rejected",
+      "category": "name",
+      "priority": "P2",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000427); toast: Registration Number: ASNR0000000427",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000427"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Ag@nt#",
+        "middle_name": "Testing",
+        "last_name": "UserSeventyNine",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9770795000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 79",
+        "mark_permanent": "true"
+      },
+      "durationMs": 23361,
+      "registrationId": "ASNR0000000427",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000427"
+      }
+    },
+    {
+      "id": "REG-033",
+      "title": "Full name typed into First Name is split into middle and last name",
+      "category": "name",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "field-state; values {\"first_name\":\"Agent\",\"middle_name\":\"Testing\",\"last_name\":\"UserEighty\"}",
+      "actual": "values {\"first_name\":\"Agent Testing UserEighty\",\"middle_name\":\"\",\"last_name\":\"\"}",
+      "mismatches": [
+        "value.first_name: expected \"Agent\", got \"Agent Testing UserEighty\"",
+        "value.middle_name: expected \"Testing\", got \"\"",
+        "value.last_name: expected \"UserEighty\", got \"\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "first_name": "Agent Testing UserEighty",
+        "middle_name": "",
+        "last_name": ""
+      },
+      "durationMs": 12155
+    },
+    {
+      "id": "REG-040",
+      "title": "Future DOB is rejected",
+      "category": "dob-age",
+      "priority": "P1",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000428); toast: Registration Number: ASNR0000000428",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000428"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserEightyOne",
+        "gender": "Male",
+        "dob": "01/01/2030",
+        "mobile": "9813891000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 81",
+        "mark_permanent": "true"
+      },
+      "note": "Depends on the DOB field's futureDates config.",
+      "durationMs": 22076,
+      "registrationId": "ASNR0000000428",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000428"
+      }
+    },
+    {
+      "id": "REG-044",
+      "title": "DOB in 1900 (age 126) is rejected",
+      "category": "dob-age",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000429); toast: Registration Number: ASNR0000000429",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000429"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserEightyTwo",
+        "gender": "Male",
+        "dob": "01/01/1900",
+        "mobile": "9840597000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 82",
+        "mark_permanent": "true"
+      },
+      "durationMs": 22358,
+      "registrationId": "ASNR0000000429",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000429"
+      }
+    },
+    {
+      "id": "REG-045",
+      "title": "Age 150 is rejected",
+      "category": "dob-age",
+      "priority": "P3",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000430); toast: Registration Number: ASNR0000000430",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000430"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserEightyThree",
+        "gender": "Male",
+        "dob": "29/10/1876",
+        "mobile": "9865444000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 83",
+        "mark_permanent": "true",
+        "age": "150Y 0M 0D"
+      },
+      "durationMs": 22976,
+      "registrationId": "ASNR0000000430",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000430"
+      }
+    },
+    {
+      "id": "REG-050",
+      "title": "Invalid email 'agent@' is rejected",
+      "category": "email",
+      "priority": "P2",
+      "status": "FAIL (assumed requirement)",
+      "expected": "blocked; (assumed requirement)",
+      "actual": "created (UHID ASNR0000000431); toast: Registration Number: ASNR0000000431",
+      "mismatches": [
+        "outcome: expected \"blocked\", got \"created\""
+      ],
+      "toasts": [
+        "Registration Number: ASNR0000000431"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserEightyFour",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9892937000",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 84",
+        "mark_permanent": "true",
+        "email": "agent@"
+      },
+      "note": "No email rule in registration code; only bulk import validates email.",
+      "durationMs": 20581,
+      "registrationId": "ASNR0000000431",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASNR0000000431"
+      }
+    },
+    {
+      "id": "REG-061",
+      "title": "Unknown PIN 000000 shows 'not recognized'",
+      "category": "address",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; values {\"state\":\"\"}; hints {\"pin_code\":\"not recognized\"}",
+      "actual": "values {\"state\":\"State\",\"pin_code\":\"000000\",\"hint:pin_code\":\"PIN code not recognized — please verify or enter address manually\"}",
+      "mismatches": [
+        "value.state: expected \"\", got \"State\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "state": "State",
+        "pin_code": "000000",
+        "hint:pin_code": "PIN code not recognized — please verify or enter address manually"
+      },
+      "durationMs": 8919
+    },
+    {
+      "id": "REG-062",
+      "title": "5-digit PIN does not trigger a lookup",
+      "category": "address",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "field-state; values {\"state\":\"\"}",
+      "actual": "values {\"state\":\"State\",\"pin_code\":\"11000\"}",
+      "mismatches": [
+        "value.state: expected \"\", got \"State\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "state": "State",
+        "pin_code": "11000"
+      },
+      "durationMs": 10471
+    },
+    {
+      "id": "REG-064",
+      "title": "Choosing State, District and Area without a PIN fills the PIN (reverse lookup)",
+      "category": "address",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "field-state; values {\"pin_code\":\"*\"}",
+      "actual": "values {\"pin_code\":\"\",\"state\":\"DELHI\",\"district\":\"NEW DELHI\",\"area\":\"F F C Okhla\"}",
+      "mismatches": [
+        "value.pin_code: expected \"*\", got \"\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "pin_code": "",
+        "state": "DELHI",
+        "district": "NEW DELHI",
+        "area": "F F C Okhla"
+      },
+      "durationMs": 12442
+    },
+    {
+      "id": "REG-066",
+      "title": "Changing State after PIN autofill clears District, City, Area and the PIN",
+      "category": "address",
+      "priority": "P2",
+      "status": "FAIL",
+      "expected": "field-state; values {\"district\":\"\",\"city\":\"\",\"pin_code\":\"\"}",
+      "actual": "values {\"district\":\"District\",\"city\":\"City\",\"pin_code\":\"110001\",\"state\":\"UTTARAKHAND\"}",
+      "mismatches": [
+        "value.district: expected \"\", got \"District\"",
+        "value.city: expected \"\", got \"City\"",
+        "value.pin_code: expected \"\", got \"110001\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "district": "District",
+        "city": "City",
+        "pin_code": "110001",
+        "state": "UTTARAKHAND"
+      },
+      "durationMs": 12444
+    },
+    {
+      "id": "REG-068",
+      "title": "Very long (600 char) address is accepted or limited",
+      "category": "address",
+      "priority": "P3",
+      "status": "ERROR",
+      "expected": "observe",
+      "actual": "runner error: locator.pressSequentially: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-070",
+      "title": "Default payer is Self-Paid with Payer and Sponsor = Cash",
+      "category": "payer",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "field-state; values {\"payer_type\":\"Self-Paid\",\"payer\":\"Cash\",\"sponsor\":\"Cash\"}",
+      "actual": "values {\"payer_type\":\"Self-Paid\",\"payer\":\"Cash\",\"sponsor\":\"Cash\"}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "payer_type": "Self-Paid",
+        "payer": "Cash",
+        "sponsor": "Cash"
+      },
+      "durationMs": 9569
+    },
+    {
+      "id": "REG-082",
+      "title": "Outside Registration with mandatory fields is created",
+      "category": "registration-type",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "created",
+      "actual": "created (UHID ASOR240000000012); toast: Registration Number: ASOR240000000012",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASOR240000000012"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNinetyOne",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9022984002",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 91",
+        "mark_permanent": "true"
+      },
+      "durationMs": 23920,
+      "registrationId": "ASOR240000000012",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASOR240000000012"
+      }
+    },
+    {
+      "id": "REG-083",
+      "title": "Diagnostic Registration with mandatory fields is created",
+      "category": "registration-type",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "created",
+      "actual": "created (UHID ASDR240000000001); toast: Registration Number: ASDR240000000001",
+      "mismatches": [],
+      "toasts": [
+        "Registration Number: ASDR240000000001"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNinetyTwo",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9047457004",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 92",
+        "mark_permanent": "true"
+      },
+      "durationMs": 29033,
+      "registrationId": "ASDR240000000001",
+      "serverResponse": {
+        "status": 201,
+        "body": "ASDR240000000001"
+      }
+    },
+    {
+      "id": "REG-084",
+      "title": "Staff Registration without Staff Details (marked *) is blocked",
+      "category": "registration-type",
+      "priority": "P2",
+      "status": "PASS",
+      "expected": "blocked",
+      "actual": "blocked; toast: Please fill the required field: Staff Details",
+      "mismatches": [],
+      "toasts": [
+        "Please fill the required field: Staff Details"
+      ],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNinetyThree",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9076871006",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 93",
+        "mark_permanent": "true"
+      },
+      "durationMs": 41304,
+      "registrationId": null,
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-085",
+      "title": "Switching registration type does not show 'required' errors before Save",
+      "category": "ui",
+      "priority": "P3",
+      "status": "PASS",
+      "expected": "no-errors",
+      "actual": "values {}",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "note": "Seen in the walkthrough video: First/Last Name show 'This field is required.' right after switching type.",
+      "durationMs": 10952
+    },
+    {
+      "id": "REG-090",
+      "title": "Registering the exact same patient twice is not reported as a success",
+      "category": "duplicate",
+      "priority": "P1",
+      "status": "FAIL",
+      "expected": "duplicate-warning",
+      "actual": "blocked",
+      "mismatches": [
+        "outcome: expected \"duplicate-warning\", got \"blocked\""
+      ],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {
+        "title": "Mr.",
+        "first_name": "Agent",
+        "middle_name": "Testing",
+        "last_name": "UserNinetyFive",
+        "gender": "Male",
+        "dob": "15/08/1990",
+        "mobile": "9129878010",
+        "pin_code": "110001",
+        "area": "Baroda House",
+        "address": "Agent test address, Lane 95",
+        "mark_permanent": "true"
+      },
+      "note": "Backend returns {statusCode:409} with HTTP 200; frontend treats any non-400 body as success (api.js:2416).",
+      "durationMs": 60355,
+      "registrationId": "ASNR0000000432",
+      "serverResponse": {
+        "status": null,
+        "body": null
+      }
+    },
+    {
+      "id": "REG-100",
+      "title": "Search 'Agent Testing' finds the agent-created patients",
+      "category": "search",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "found",
+      "actual": "runner error: locator.fill: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-101",
+      "title": "Search 'Vineet' finds the existing patient Vineet",
+      "category": "search",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "found",
+      "actual": "runner error: locator.fill: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-102",
+      "title": "Search 'Vivek' finds the existing patient Vivek",
+      "category": "search",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "found",
+      "actual": "runner error: locator.fill: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-103",
+      "title": "Search by the mobile number of REG-001 finds it",
+      "category": "search",
+      "priority": "P2",
+      "status": "ERROR",
+      "expected": "found",
+      "actual": "runner error: Case REG-103 needs {{phone@REG-001}} but REG-001 did not produce it (did it fail?)",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-104",
+      "title": "Search with a regex character '(' does not error",
+      "category": "search",
+      "priority": "P2",
+      "status": "ERROR",
+      "expected": "no-error",
+      "actual": "runner error: locator.fill: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-105",
+      "title": "Search for a nonsense name returns 0 records",
+      "category": "search",
+      "priority": "P3",
+      "status": "ERROR",
+      "expected": "not-found",
+      "actual": "runner error: locator.fill: Timeout 20000ms exceeded.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-110",
+      "title": "Update button stays disabled until something changes",
+      "category": "update",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "field-state",
+      "actual": "runner error: REG-110 needs the registration id from REG-001, which did not create a patient.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    },
+    {
+      "id": "REG-111",
+      "title": "Editing the email of REG-001 and submitting remarks updates the record",
+      "category": "update",
+      "priority": "P1",
+      "status": "ERROR",
+      "expected": "updated",
+      "actual": "runner error: REG-111 needs the registration id from REG-001, which did not create a patient.",
+      "mismatches": [],
+      "toasts": [],
+      "fieldErrors": {},
+      "values": {},
+      "durationMs": 0
+    }
+  ]
+}

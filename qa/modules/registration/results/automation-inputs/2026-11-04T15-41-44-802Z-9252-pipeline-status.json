@@ -1,0 +1,14 @@
+{
+  "source": "workflow-suite",
+  "snapshot": "C:\\Users\\HP\\Desktop\\akhil_system\\Company Enhancement Projects\\augastam_e2e_testing\\qa\\modules\\registration\\results\\automation-inputs\\2026-11-04T15-41-44-802Z-9252.json",
+  "selected": [
+    "REG-FLOW-PIN-CLEAR",
+    "REG-FLOW-INSURANCE-PAYER-RESET",
+    "REG-FLOW-NEW-RESET-ADDRESS"
+  ],
+  "excludedManualCases": [],
+  "state": "failed",
+  "startedAt": "2026-11-04T15:41:44.803Z",
+  "reason": "Registration execution failed. Inspect per-case results and Playwright evidence.",
+  "finishedAt": "2026-11-04T15:43:56.159Z"
+}
