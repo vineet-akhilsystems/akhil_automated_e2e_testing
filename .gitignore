@@ -18,7 +18,6 @@ qa/modules/registration/results/
 .env.*
 !.env.example
 PORTAL_LOGIN.txt
-.mcp.json
 .portal-backup-*/
 .superpowers/
 .opencode/node_modules/

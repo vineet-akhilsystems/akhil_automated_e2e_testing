@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "playwright-test": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "playwright",
+        "run-test-mcp-server"
+      ]
+    },
+    "augastam-test-studio": {
+      "command": "node",
+      "args": [
+        "portal/mcp-server.mjs"
+      ],
+      "env": {
+        "PORTAL_URL": "${PORTAL_URL:-http://127.0.0.1:4173}",
+        "PORTAL_MCP_USER": "${PORTAL_MCP_USER:-}",
+        "PORTAL_MCP_PASSWORD": "${PORTAL_MCP_PASSWORD:-}"
+      }
+    }
+  }
+}
