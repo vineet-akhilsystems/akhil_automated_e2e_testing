@@ -1,0 +1,8 @@
+import { brandName } from '../boot.js';
+import { $, esc, icon } from '../components/dom.js';
+import { state } from '../state.js';
+
+export function loginScreen(message = '') {
+  state.data = null; state.user = null; state.productId = null; state.product = null; state.products = null; state.access = null; state.members = null; state.teams = null;
+  $('#app').innerHTML = `<div class="login-shell"><div class="login-card"><div class="brand"><span class="brand-mark">${icon('check')}</span><span><strong>${esc(brandName())}</strong><small>TEST STUDIO</small></span></div><h1>Sign in</h1><p>Use the username and password your administrator gave you.</p><form id="login-form"><div class="form-field"><label for="login-user">Username</label><input id="login-user" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" autofocus></div><div class="form-field"><label for="login-pass">Password</label><input id="login-pass" type="password" name="password" required autocomplete="current-password"></div><button class="primary" type="submit">Sign in ${icon('arrow')}</button><div id="login-error" class="login-error" role="alert">${esc(message)}</div></form><details class="login-alt"><summary>Use a workspace access key instead</summary><form id="token-form"><div class="form-field"><label for="login-token">Workspace access key</label><input id="login-token" type="password" name="token" required autocomplete="current-password"></div><button type="submit">Open workspace</button></form><p class="tiny muted">Only works while no user accounts have been created.</p></details></div></div>`;
+}

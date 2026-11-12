@@ -1,0 +1,1545 @@
+{
+  "a.adapterRegistration": {
+    "sha256": "b1452fba1009b6364968e2d6157b639194c0628cdffbfa7f6ad87995222d9fef",
+    "length": 5160,
+    "json": {
+      "id": "registration",
+      "name": "Registration · Playwright",
+      "spec": "tests/modules/registration/cases.spec.ts",
+      "fields": {
+        "title": {
+          "card": "Basic Information",
+          "label": "Title",
+          "kind": "select",
+          "column": "Title"
+        },
+        "first_name": {
+          "card": "Basic Information",
+          "label": "First Name",
+          "kind": "text",
+          "column": "first_name"
+        },
+        "middle_name": {
+          "card": "Basic Information",
+          "label": "Middle Name",
+          "kind": "text",
+          "column": "middle_name"
+        },
+        "last_name": {
+          "card": "Basic Information",
+          "label": "Last Name",
+          "kind": "text",
+          "column": "last_name"
+        },
+        "gender": {
+          "card": "Basic Information",
+          "label": "Gender",
+          "kind": "select",
+          "column": "gender"
+        },
+        "dob": {
+          "card": "Basic Information",
+          "label": "DOB",
+          "kind": "date"
+        },
+        "age": {
+          "card": "Basic Information",
+          "label": "Age",
+          "kind": "text",
+          "column": "age"
+        },
+        "legal_guardian": {
+          "card": "Basic Information",
+          "label": "Legal Guardian",
+          "kind": "text",
+          "column": "legal_guardian"
+        },
+        "marital_status": {
+          "card": "Basic Information",
+          "label": "Marital Status",
+          "kind": "select",
+          "column": "marital_status"
+        },
+        "mobile": {
+          "card": "Basic Information",
+          "label": "Mobile No",
+          "kind": "text",
+          "column": "patient_phone"
+        },
+        "whatsapp": {
+          "card": "Basic Information",
+          "label": "WhatsApp Mobile",
+          "kind": "text",
+          "column": "whatsapp"
+        },
+        "email": {
+          "card": "Basic Information",
+          "label": "Email ID",
+          "kind": "text",
+          "column": "email"
+        },
+        "mother_uhid": {
+          "card": "Basic Information",
+          "label": "Mother UHID",
+          "kind": "text",
+          "column": "mother_uhid"
+        },
+        "mother_name": {
+          "card": "Basic Information",
+          "label": "Mother's Name",
+          "kind": "text"
+        },
+        "father_name": {
+          "card": "Basic Information",
+          "label": "Father's name",
+          "kind": "text"
+        },
+        "delivery_type": {
+          "card": "Basic Information",
+          "label": "Delivery Type",
+          "kind": "select",
+          "column": "delivery_type"
+        },
+        "delivery_date": {
+          "card": "Basic Information",
+          "label": "Delivery Date",
+          "kind": "datetime",
+          "column": "delivery_date"
+        },
+        "weight_kg": {
+          "card": "Basic Information",
+          "label": "Weight (Kg)",
+          "kind": "text",
+          "column": "weight_kg"
+        },
+        "height_cm": {
+          "card": "Basic Information",
+          "label": "Height (cm)",
+          "kind": "text",
+          "column": "height_cm"
+        },
+        "dependants": {
+          "card": "Basic Information",
+          "label": "Dependants",
+          "kind": "select",
+          "column": "dependants"
+        },
+        "staff_details": {
+          "card": "Basic Information",
+          "label": "Staff Details",
+          "kind": "text",
+          "column": "searchQuick"
+        },
+        "mark_permanent": {
+          "card": "Address Details",
+          "label": "Mark current address as permanent",
+          "kind": "checkbox"
+        },
+        "country": {
+          "card": "Address Details",
+          "label": "Country",
+          "kind": "select",
+          "column": "Country"
+        },
+        "pin_code": {
+          "card": "Address Details",
+          "label": "Pin Code",
+          "kind": "text",
+          "column": "pin_code"
+        },
+        "state": {
+          "card": "Address Details",
+          "label": "State",
+          "kind": "select",
+          "column": "state"
+        },
+        "district": {
+          "card": "Address Details",
+          "label": "District",
+          "kind": "select",
+          "column": "district"
+        },
+        "city": {
+          "card": "Address Details",
+          "label": "City",
+          "kind": "select",
+          "column": "city"
+        },
+        "area": {
+          "card": "Address Details",
+          "label": "Area",
+          "kind": "select",
+          "column": "area"
+        },
+        "address": {
+          "card": "Address Details",
+          "label": "Address",
+          "kind": "textarea",
+          "column": "address_detail"
+        },
+        "payer_type": {
+          "card": "Payer Information",
+          "label": "Payer Type",
+          "kind": "select",
+          "column": "payer_type"
+        },
+        "payer": {
+          "card": "Payer Information",
+          "label": "Payer",
+          "kind": "select"
+        },
+        "sponsor": {
+          "card": "Payer Information",
+          "label": "Sponsor",
+          "kind": "select"
+        },
+        "department": {
+          "card": "Visit Details",
+          "label": "Department",
+          "kind": "select",
+          "column": "specialization"
+        },
+        "consultant": {
+          "card": "Visit Details",
+          "label": "Consultant",
+          "kind": "select",
+          "column": "doctor"
+        },
+        "referred_type": {
+          "card": "Visit Details",
+          "label": "Referred Type",
+          "kind": "select",
+          "column": "referred_type"
+        },
+        "id_type": {
+          "card": "Identity Information",
+          "label": "Id Type",
+          "kind": "select",
+          "column": "identity_type"
+        },
+        "id_number": {
+          "card": "Identity Information",
+          "label": "Id Number",
+          "kind": "text",
+          "column": "identity_no"
+        },
+        "emergency_name": {
+          "card": "Additional Details",
+          "label": "Name",
+          "kind": "text",
+          "column": "Name"
+        },
+        "emergency_relationship": {
+          "card": "Additional Details",
+          "label": "Relationship",
+          "kind": "select",
+          "column": "Relationship"
+        },
+        "emergency_mobile": {
+          "card": "Additional Details",
+          "label": "Mobile Number",
+          "kind": "text",
+          "column": "mobile_number"
+        },
+        "emergency_alternate": {
+          "card": "Additional Details",
+          "label": "Alternate Number",
+          "kind": "text",
+          "column": "alternate_number"
+        },
+        "consent": {
+          "card": "Consent",
+          "label": "I hereby declare",
+          "kind": "checkbox"
+        },
+        "workflow": {
+          "label": "Registration workflow key",
+          "kind": "text"
+        },
+        "peer": {
+          "label": "Second synthetic patient prerequisite",
+          "kind": "text"
+        },
+        "search": {
+          "label": "Search text",
+          "kind": "text"
+        },
+        "id_proof_file": {
+          "label": "ID proof (automation pending)",
+          "kind": "text",
+          "supported": false
+        }
+      },
+      "actions": {
+        "fill": "Fill and inspect fields",
+        "save": "Save registration",
+        "saveTwice": "Save the same patient twice",
+        "saveDoubleClick": "Double-click Save",
+        "search": "Search patients",
+        "update": "Update a patient",
+        "workflow": "Run a registration workflow",
+        "unavailable": "Automation blocked — not implemented"
+      },
+      "outcomes": [
+        "created",
+        "blocked",
+        "field-state",
+        "observe",
+        "no-errors",
+        "duplicate-warning",
+        "found",
+        "no-error",
+        "not-found",
+        "updated",
+        "created-once",
+        "verified",
+        "automation-blocked"
+      ],
+      "variants": [
+        "New Registration",
+        "New Born Registration",
+        "International Registration",
+        "Outside Registration",
+        "Staff Registration",
+        "Diagnostic Registration"
+      ],
+      "variantLabel": "Registration type",
+      "targetLabel": "Patient ID / previous-case reference (for updates)",
+      "targetPlaceholder": "{{regId@REG-001}}"
+    }
+  },
+  "b.validateCase": {
+    "registration": {
+      "fill valid": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "save valid": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "save"
+      },
+      "search valid": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "search"
+      },
+      "search with other inputs": {
+        "error": "Search cases accept only search text and do not use a starting-data template.",
+        "status": 400
+      },
+      "search without text": {
+        "error": "Search text must be non-empty text (up to 10000 characters).",
+        "status": 400
+      },
+      "update valid": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "update"
+      },
+      "update without target": {
+        "error": "Patient ID or dependency token must be non-empty text (up to 200 characters).",
+        "status": 400
+      },
+      "workbook id without source mapping": {
+        "error": "Original workbook IDs require their reviewed source mapping.",
+        "status": 400
+      },
+      "workbook source procedure changed": {
+        "error": "Workbook procedure changed or has no reviewed automation mapping. Review its mapping before running.",
+        "status": 400
+      },
+      "workbook source contract changed": {
+        "error": "Workbook automation contract changed. Update and review the source mapping instead of weakening its assertions.",
+        "status": 400
+      },
+      "workbook source exact copy": {
+        "ok": true,
+        "automationReadiness": "ready",
+        "action": "save"
+      },
+      "workbook source on unknown id": {
+        "error": "Workbook procedure changed or has no reviewed automation mapping. Review its mapping before running.",
+        "status": 400
+      },
+      "workbook source on manual mode": {
+        "error": "Connected workbook cases use automatic execution; manual result entry is not supported.",
+        "status": 400
+      },
+      "blocked workbook exact copy": {
+        "ok": true,
+        "automationReadiness": "blocked",
+        "action": "unavailable"
+      },
+      "workbook workflow exact copy": {
+        "ok": true,
+        "automationReadiness": "ready",
+        "action": "workflow"
+      },
+      "workbook workflow changed input": {
+        "error": "Workbook automation contract changed. Update and review the source mapping instead of weakening its assertions.",
+        "status": 400
+      },
+      "workbook save-blocked exact copy": {
+        "ok": true,
+        "automationReadiness": "ready",
+        "action": "save"
+      },
+      "blocked workbook changed blocker": {
+        "error": "Workbook automation contract changed. Update and review the source mapping instead of weakening its assertions.",
+        "status": 400
+      },
+      "blocked workbook with input added": {
+        "error": "Workbook automation contract changed. Update and review the source mapping instead of weakening its assertions.",
+        "status": 400
+      },
+      "blocked workbook disabled exact copy": {
+        "ok": true,
+        "automationReadiness": "blocked",
+        "action": "unavailable"
+      },
+      "blocked with unregistered id": {
+        "error": "Only reviewed workbook cases can carry a registered automation blocker.",
+        "status": 400
+      },
+      "blocked with wrong blocker text": {
+        "error": "Original workbook IDs require their reviewed source mapping.",
+        "status": 400
+      },
+      "automation-blocked outcome on fill": {
+        "error": "Automation-blocked outcome requires a registered blocker.",
+        "status": 400
+      },
+      "unsupported action": {
+        "error": "Choose a supported module action.",
+        "status": 400
+      },
+      "unsupported outcome": {
+        "error": "Choose a supported expected outcome.",
+        "status": 400
+      },
+      "unknown input field": {
+        "error": "Unknown input field: nope.",
+        "status": 400
+      },
+      "input wrong type": {
+        "error": "Input first_name must be text or a boolean.",
+        "status": 400
+      },
+      "bad values map": {
+        "error": "Invalid values check: nope.",
+        "status": 400
+      },
+      "unknown base": {
+        "error": "Starting data template does not exist.",
+        "status": 400
+      },
+      "unsupported variant": {
+        "error": "Choose a supported variant.",
+        "status": 400
+      },
+      "id proof wrong path": {
+        "error": "Use the provided synthetic ID-proof fixture.",
+        "status": 400
+      },
+      "id proof enabled": {
+        "error": "ID-proof upload automation is pending. Keep this case disabled or use manual execution.",
+        "status": 400
+      },
+      "id proof disabled": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "workflow ok not-saved": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "workflow"
+      },
+      "workflow ok saved record": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "workflow"
+      },
+      "workflow ok update email": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "workflow"
+      },
+      "workflow ok partial peer": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "workflow"
+      },
+      "workflow missing key": {
+        "error": "Choose a supported registration workflow key.",
+        "status": 400
+      },
+      "workflow unknown key": {
+        "error": "Choose a supported registration workflow key.",
+        "status": 400
+      },
+      "workflow wrong outcome": {
+        "error": "Registration workflows require the verified outcome.",
+        "status": 400
+      },
+      "workflow with base": {
+        "error": "Registration workflows manage their own data and variant; remove starting template and registration type.",
+        "status": 400
+      },
+      "workflow with variant": {
+        "error": "Registration workflows manage their own data and variant; remove starting template and registration type.",
+        "status": 400
+      },
+      "workflow extra input": {
+        "error": "Registration workflows accept only workflow and supported optional inputs.",
+        "status": 400
+      },
+      "workflow partial without peer": {
+        "error": "Second synthetic patient prerequisite must be non-empty text (up to 200 characters).",
+        "status": 400
+      },
+      "workflow peer on other workflow": {
+        "error": "Peer patient is only supported by the partial-name suggestions workflow.",
+        "status": 400
+      },
+      "workflow email on other workflow": {
+        "error": "Email input is only supported by update workflows.",
+        "status": 400
+      },
+      "workflow with field checks": {
+        "error": "Workflow checks are defined by the selected workflow; separate field/toast checks are unsupported.",
+        "status": 400
+      },
+      "workflow with toast check": {
+        "error": "Workflow checks are defined by the selected workflow; separate field/toast checks are unsupported.",
+        "status": 400
+      },
+      "workflow assumed": {
+        "error": "Workflow assertions cannot be marked assumed.",
+        "status": 400
+      },
+      "workflow saved record without target": {
+        "error": "Synthetic patient ID or dependency token must be non-empty text (up to 200 characters).",
+        "status": 400
+      },
+      "workflow blank start with target": {
+        "error": "This workflow starts with a blank registration. Remove the patient target.",
+        "status": 400
+      },
+      "workflow key on fill": {
+        "error": "Workflow key can only be used with a workflow action.",
+        "status": 400
+      },
+      "peer on fill": {
+        "error": "Peer patient can only be used with the partial-name workflow.",
+        "status": 400
+      },
+      "verified outcome on fill": {
+        "error": "Verified outcome requires a workflow action.",
+        "status": 400
+      },
+      "search text on fill": {
+        "error": "Search text can only be used with the Search action.",
+        "status": 400
+      },
+      "persisted on fill": {
+        "error": "Saved-value checks require Save, Save twice or Update.",
+        "status": 400
+      },
+      "saveDisabled on save": {
+        "error": "Update button checks require the Update action.",
+        "status": 400
+      },
+      "toast on fill": {
+        "error": "Toast checks require an action that submits the form.",
+        "status": 400
+      },
+      "observe with assertions": {
+        "error": "Observation-only cases cannot define pass/fail assertions. Choose a verifiable outcome.",
+        "status": 400
+      },
+      "registration by adapter only": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "manual valid": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": null
+      },
+      "manual without steps": {
+        "error": "Add at least one step and its expected result.",
+        "status": 400
+      },
+      "no adapter": {
+        "error": "Automation is not connected for this module. Choose manual execution.",
+        "status": 400
+      }
+    },
+    "dynamic": {
+      "dynamic fill ok": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "dynamic update without target": {
+        "error": "Target record or dependency token must be non-empty text (up to 200 characters).",
+        "status": 400
+      },
+      "dynamic update with target": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "update"
+      },
+      "dynamic workflow key is just an unsupported action": {
+        "error": "Choose a supported module action.",
+        "status": 400
+      },
+      "dynamic id_proof_file is an unknown field": {
+        "error": "Unknown input field: id_proof_file.",
+        "status": 400
+      },
+      "dynamic verified outcome allowed on fill": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "dynamic workflow input field unknown": {
+        "error": "Unknown input field: workflow.",
+        "status": 400
+      },
+      "dynamic registration workbook id has no special meaning": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      },
+      "dynamic sourceWorkbook does not unlock workbook mapping": {
+        "ok": true,
+        "automationReadiness": "ready",
+        "action": "fill"
+      },
+      "dynamic unavailable needs reviewed source": {
+        "error": "Choose a supported expected outcome.",
+        "status": 400
+      },
+      "dynamic automation-blocked on fill": {
+        "error": "Choose a supported expected outcome.",
+        "status": 400
+      },
+      "dynamic unsupported variant": {
+        "error": "Choose a supported variant.",
+        "status": 400
+      },
+      "dynamic search ok": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "search"
+      },
+      "module id registration with a dynamic adapter takes registration branches": {
+        "error": "Verified outcome requires a workflow action.",
+        "status": 400
+      },
+      "module id registration with a dynamic adapter, plain fill": {
+        "ok": true,
+        "automationReadiness": null,
+        "action": "fill"
+      }
+    }
+  },
+  "c.ai": {
+    "registrationEmpty20": {
+      "moduleId": "registration",
+      "engine": "Augastam Schema & Coverage AI Synthesizer",
+      "prompt": "Out-of-the-box edge case generation",
+      "focus": "all",
+      "count": 20,
+      "coverageInsights": {
+        "totalCases": 0,
+        "fieldsWithoutChecks": 46,
+        "uncoveredRequirements": 12
+      },
+      "ids": [
+        "REG-001",
+        "REG-002",
+        "REG-003",
+        "REG-004",
+        "REG-005",
+        "REG-006",
+        "REG-007",
+        "REG-008",
+        "REG-009",
+        "REG-010",
+        "REG-011",
+        "REG-012",
+        "REG-013",
+        "REG-014",
+        "REG-015",
+        "REG-016",
+        "REG-017",
+        "REG-018",
+        "REG-019",
+        "REG-020"
+      ],
+      "titles": [
+        "Switching to Diagnostic Registration does not trigger premature required-field errors",
+        "Switching to Outside Registration starts with zero field validation errors",
+        "Selecting Title 'Ms.' auto-aligns Gender to 'Female' in the form",
+        "Entering PIN 110001 then clearing PIN clears auto-filled State, District and City",
+        "Selecting Payer Type Insurance then switching back to Self-Paid restores Cash defaults",
+        "Title 'Ms.' combined with Gender 'Male' is rejected as contradictory",
+        "10-year-old child (Age 10) without Legal Guardian is blocked on save",
+        "10-year-old child (Age 10) with Marital Status 'Divorced' is blocked as clinically invalid",
+        "New Born Registration with Mother UHID equal to Father Name or numeric garbage is rejected",
+        "New Born Registration with Title 'Mr.' or 'Mrs.' instead of 'Baby Of' is flagged",
+        "WhatsApp Mobile equal to all-zeros (0000000000) is rejected on save",
+        "Emergency Mobile starting with invalid Indian digit 2 (2222222222) is rejected",
+        "Emergency Alternate Number of only 4 digits (9876) is rejected on save",
+        "Address containing only whitespace (\"     \") is treated as empty and blocks save",
+        "Last Name containing only whitespace (\"    \") is treated as empty and blocks save",
+        "Search with unclosed regex group 'Agent(test' does not crash with HTTP 500",
+        "Search with regex quantifier '{1,}' or 'Agent++' does not crash the search API",
+        "SQL injection payload \"Agent' OR '1'='1\" in Last Name is rejected on save",
+        "HTML img onerror XSS payload in Address is rejected or sanitized",
+        "Setting required Title to 'None' during patient Update blocks the update"
+      ],
+      "categories": [
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "name",
+        "dob-age",
+        "dob-age",
+        "registration-type",
+        "registration-type",
+        "phone",
+        "phone",
+        "phone",
+        "mandatory",
+        "mandatory",
+        "search",
+        "search",
+        "name",
+        "address",
+        "update"
+      ],
+      "sortedIds": [
+        "REG-001",
+        "REG-002",
+        "REG-003",
+        "REG-004",
+        "REG-005",
+        "REG-006",
+        "REG-007",
+        "REG-008",
+        "REG-009",
+        "REG-010",
+        "REG-011",
+        "REG-012",
+        "REG-013",
+        "REG-014",
+        "REG-015",
+        "REG-016",
+        "REG-017",
+        "REG-018",
+        "REG-019",
+        "REG-020"
+      ],
+      "draftsSha256": "2bf389f2c5f17a3ea570042a93857c414ca7e09cbb84bf34228ea9170bd03141"
+    },
+    "registrationSeeded5": {
+      "moduleId": "registration",
+      "engine": "Augastam Schema & Coverage AI Synthesizer",
+      "prompt": "Out-of-the-box edge case generation",
+      "focus": "all",
+      "count": 5,
+      "coverageInsights": {
+        "totalCases": 132,
+        "fieldsWithoutChecks": 10,
+        "uncoveredRequirements": 0
+      },
+      "ids": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270"
+      ],
+      "titles": [
+        "Switching to Diagnostic Registration does not trigger premature required-field errors",
+        "Switching to Outside Registration starts with zero field validation errors",
+        "Selecting Title 'Ms.' auto-aligns Gender to 'Female' in the form",
+        "Entering PIN 110001 then clearing PIN clears auto-filled State, District and City",
+        "Selecting Payer Type Insurance then switching back to Self-Paid restores Cash defaults"
+      ],
+      "categories": [
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "ui"
+      ],
+      "sortedIds": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270"
+      ],
+      "draftsSha256": "69b137def1f5e702a414abadbb66a29e7fe7bd801c864bc45bfee7b9abb12e3d"
+    },
+    "registrationSeeded20": {
+      "moduleId": "registration",
+      "engine": "Augastam Schema & Coverage AI Synthesizer",
+      "prompt": "Out-of-the-box edge case generation",
+      "focus": "all",
+      "count": 20,
+      "coverageInsights": {
+        "totalCases": 132,
+        "fieldsWithoutChecks": 10,
+        "uncoveredRequirements": 0
+      },
+      "ids": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273",
+        "REG-274",
+        "REG-275",
+        "REG-276",
+        "REG-277",
+        "REG-278",
+        "REG-279",
+        "REG-280",
+        "REG-281",
+        "REG-282",
+        "REG-283",
+        "REG-284",
+        "REG-285"
+      ],
+      "titles": [
+        "Switching to Diagnostic Registration does not trigger premature required-field errors",
+        "Switching to Outside Registration starts with zero field validation errors",
+        "Selecting Title 'Ms.' auto-aligns Gender to 'Female' in the form",
+        "Entering PIN 110001 then clearing PIN clears auto-filled State, District and City",
+        "Selecting Payer Type Insurance then switching back to Self-Paid restores Cash defaults",
+        "Title 'Ms.' combined with Gender 'Male' is rejected as contradictory",
+        "10-year-old child (Age 10) without Legal Guardian is blocked on save",
+        "10-year-old child (Age 10) with Marital Status 'Divorced' is blocked as clinically invalid",
+        "New Born Registration with Mother UHID equal to Father Name or numeric garbage is rejected",
+        "New Born Registration with Title 'Mr.' or 'Mrs.' instead of 'Baby Of' is flagged",
+        "WhatsApp Mobile equal to all-zeros (0000000000) is rejected on save",
+        "Emergency Mobile starting with invalid Indian digit 2 (2222222222) is rejected",
+        "Emergency Alternate Number of only 4 digits (9876) is rejected on save",
+        "Address containing only whitespace (\"     \") is treated as empty and blocks save",
+        "Last Name containing only whitespace (\"    \") is treated as empty and blocks save",
+        "Search with unclosed regex group 'Agent(test' does not crash with HTTP 500",
+        "Search with regex quantifier '{1,}' or 'Agent++' does not crash the search API",
+        "SQL injection payload \"Agent' OR '1'='1\" in Last Name is rejected on save",
+        "HTML img onerror XSS payload in Address is rejected or sanitized",
+        "Setting required Title to 'None' during patient Update blocks the update"
+      ],
+      "categories": [
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "name",
+        "dob-age",
+        "dob-age",
+        "registration-type",
+        "registration-type",
+        "phone",
+        "phone",
+        "phone",
+        "mandatory",
+        "mandatory",
+        "search",
+        "search",
+        "name",
+        "address",
+        "update"
+      ],
+      "sortedIds": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273",
+        "REG-274",
+        "REG-275",
+        "REG-276",
+        "REG-277",
+        "REG-278",
+        "REG-279",
+        "REG-280",
+        "REG-281",
+        "REG-282",
+        "REG-283",
+        "REG-284",
+        "REG-285"
+      ],
+      "draftsSha256": "66e72f425374b23f5d40a56a4443a92ee0727ebf0ec8ba14a7a0a58817ba7258"
+    },
+    "registrationFocus": {
+      "moduleId": "registration",
+      "engine": "Augastam Schema & Coverage AI Synthesizer",
+      "prompt": "mobile number edge cases",
+      "focus": "validation",
+      "count": 8,
+      "coverageInsights": {
+        "totalCases": 132,
+        "fieldsWithoutChecks": 10,
+        "uncoveredRequirements": 0
+      },
+      "ids": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273"
+      ],
+      "titles": [
+        "AI Edge Case: Updating Mobile Number on an existing record persists the new value accurately",
+        "AI Edge Case: Special characters & whitespace boundary in Mobile Number (New Registration)",
+        "AI Edge Case: Updating Mobile No on an existing record persists the new value accurately",
+        "AI Edge Case: Special characters & whitespace boundary in Mobile No (New Registration)",
+        "Emergency Mobile starting with invalid Indian digit 2 (2222222222) is rejected",
+        "Emergency Alternate Number of only 4 digits (9876) is rejected on save",
+        "Updating Emergency Contact Name, Relationship, Mobile and Alternate Number persists all 4 fields",
+        "10-year-old child (Age 10) without Legal Guardian is blocked on save"
+      ],
+      "categories": [
+        "update",
+        "phone",
+        "update",
+        "phone",
+        "phone",
+        "phone",
+        "update",
+        "dob-age"
+      ],
+      "sortedIds": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273"
+      ],
+      "draftsSha256": "27dfcc14e987d2b423c3225264fbae6a619051ae29ef0f233e2921fd533a0778"
+    },
+    "registrationVariant": {
+      "moduleId": "registration",
+      "engine": "Augastam Schema & Coverage AI Synthesizer",
+      "prompt": "Out-of-the-box edge case generation",
+      "focus": "all",
+      "count": 8,
+      "coverageInsights": {
+        "totalCases": 132,
+        "fieldsWithoutChecks": 10,
+        "uncoveredRequirements": 0
+      },
+      "ids": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273"
+      ],
+      "titles": [
+        "Switching to Diagnostic Registration does not trigger premature required-field errors",
+        "Switching to Outside Registration starts with zero field validation errors",
+        "Selecting Title 'Ms.' auto-aligns Gender to 'Female' in the form",
+        "Entering PIN 110001 then clearing PIN clears auto-filled State, District and City",
+        "Selecting Payer Type Insurance then switching back to Self-Paid restores Cash defaults",
+        "Title 'Ms.' combined with Gender 'Male' is rejected as contradictory",
+        "10-year-old child (Age 10) without Legal Guardian is blocked on save",
+        "10-year-old child (Age 10) with Marital Status 'Divorced' is blocked as clinically invalid"
+      ],
+      "categories": [
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "ui",
+        "name",
+        "dob-age",
+        "dob-age"
+      ],
+      "sortedIds": [
+        "REG-266",
+        "REG-267",
+        "REG-268",
+        "REG-269",
+        "REG-270",
+        "REG-271",
+        "REG-272",
+        "REG-273"
+      ],
+      "draftsSha256": "ef38ace22f8b60dd261be1fb018f81b7fe75d3d724d6aedd3357b50073801ae1"
+    },
+    "dynamic": {
+      "empty8": {
+        "moduleId": "billing",
+        "engine": "Augastam Schema & Coverage AI Synthesizer",
+        "prompt": "Out-of-the-box edge case generation",
+        "focus": "all",
+        "count": 6,
+        "coverageInsights": {
+          "totalCases": 0,
+          "fieldsWithoutChecks": 3,
+          "uncoveredRequirements": 0
+        },
+        "ids": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "titles": [
+          "Bill to containing only whitespace is treated as empty and blocks save",
+          "Bill to rejects or safely handles a 500-character value with special characters",
+          "Opening the Cash Bill variant shows no premature validation errors",
+          "Opening the Credit Bill variant shows no premature validation errors",
+          "Search with regex metacharacters 'Agent(test' does not crash with HTTP 500",
+          "Search with regex metacharacters 'Agent++' does not crash with HTTP 500"
+        ],
+        "categories": [
+          "mandatory",
+          "boundary",
+          "ui",
+          "ui",
+          "search",
+          "search"
+        ],
+        "sortedIds": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "draftsSha256": "7cc9dbc3d60c541d7f57627acba31ef48490109a92b665bb4e4bace8078fb5aa"
+      },
+      "empty20": {
+        "moduleId": "billing",
+        "engine": "Augastam Schema & Coverage AI Synthesizer",
+        "prompt": "Out-of-the-box edge case generation",
+        "focus": "all",
+        "count": 6,
+        "coverageInsights": {
+          "totalCases": 0,
+          "fieldsWithoutChecks": 3,
+          "uncoveredRequirements": 0
+        },
+        "ids": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "titles": [
+          "Bill to containing only whitespace is treated as empty and blocks save",
+          "Bill to rejects or safely handles a 500-character value with special characters",
+          "Opening the Cash Bill variant shows no premature validation errors",
+          "Opening the Credit Bill variant shows no premature validation errors",
+          "Search with regex metacharacters 'Agent(test' does not crash with HTTP 500",
+          "Search with regex metacharacters 'Agent++' does not crash with HTTP 500"
+        ],
+        "categories": [
+          "mandatory",
+          "boundary",
+          "ui",
+          "ui",
+          "search",
+          "search"
+        ],
+        "sortedIds": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "draftsSha256": "7cc9dbc3d60c541d7f57627acba31ef48490109a92b665bb4e4bace8078fb5aa"
+      },
+      "focus": {
+        "moduleId": "billing",
+        "engine": "Augastam Schema & Coverage AI Synthesizer",
+        "prompt": "amount limits",
+        "focus": "validation",
+        "count": 6,
+        "coverageInsights": {
+          "totalCases": 0,
+          "fieldsWithoutChecks": 3,
+          "uncoveredRequirements": 0
+        },
+        "ids": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "titles": [
+          "Bill to containing only whitespace is treated as empty and blocks save",
+          "Bill to rejects or safely handles a 500-character value with special characters",
+          "Opening the Cash Bill variant shows no premature validation errors",
+          "Opening the Credit Bill variant shows no premature validation errors",
+          "Search with regex metacharacters 'Agent(test' does not crash with HTTP 500",
+          "Search with regex metacharacters 'Agent++' does not crash with HTTP 500"
+        ],
+        "categories": [
+          "mandatory",
+          "boundary",
+          "ui",
+          "ui",
+          "search",
+          "search"
+        ],
+        "sortedIds": [
+          "BIL-001",
+          "BIL-002",
+          "BIL-003",
+          "BIL-004",
+          "BIL-005",
+          "BIL-006"
+        ],
+        "draftsSha256": "7cc9dbc3d60c541d7f57627acba31ef48490109a92b665bb4e4bace8078fb5aa"
+      }
+    },
+    "presets": {
+      "all": {
+        "count": 12,
+        "sha256": "76cbbf2c2c5bfc45e3f3b31e0cb0632c0a04d6e9101e5fdd10761f357edc7bfa"
+      },
+      "registration": {
+        "sha256": "4bf8a7f5d26fdc7023e968af848938b1b7b90dd51bf1c7a15aa27ddd3fa29c3c",
+        "count": 6
+      },
+      "billing": {
+        "sha256": "aa59ea2f5d7f11f1b60b98ad8e3ed4cace20e2df11539400bf1286ffa1ce788e",
+        "count": 6
+      }
+    }
+  },
+  "d.seed": {
+    "modules": [
+      {
+        "id": "registration",
+        "productId": "augastam",
+        "name": "Registration",
+        "area": "Patient Care",
+        "prefix": "REG",
+        "description": "Patient registration, demographics, contact details and validation.",
+        "adapter": "registration",
+        "basesKeys": [
+          "valid"
+        ],
+        "requirementsCount": 12
+      }
+    ],
+    "registrationModuleConfigSha256": "d7e229c97631da42eb55da03ffe185f7ef9609ffee5bb5af130e22aa540d2509",
+    "caseCount": 132,
+    "firstCaseId": "REG-001",
+    "lastCaseId": "REG-120",
+    "caseIds": [
+      "REG-001",
+      "REG-002",
+      "REG-003",
+      "REG-004",
+      "REG-010",
+      "REG-011",
+      "REG-012",
+      "REG-013",
+      "REG-014",
+      "REG-015",
+      "REG-016",
+      "REG-017",
+      "REG-018",
+      "REG-019",
+      "REG-037",
+      "REG-020",
+      "REG-021",
+      "REG-022",
+      "REG-023",
+      "REG-024",
+      "REG-025",
+      "REG-026",
+      "REG-027",
+      "REG-030",
+      "REG-031",
+      "REG-032",
+      "REG-033",
+      "REG-034",
+      "REG-035",
+      "REG-040",
+      "REG-041",
+      "REG-042",
+      "REG-043",
+      "REG-044",
+      "REG-045",
+      "REG-050",
+      "REG-060",
+      "REG-061",
+      "REG-062",
+      "REG-063",
+      "REG-064",
+      "REG-065",
+      "REG-066",
+      "REG-067",
+      "REG-069",
+      "REG-068",
+      "REG-070",
+      "REG-080",
+      "REG-081",
+      "REG-082",
+      "REG-083",
+      "REG-084",
+      "REG-085",
+      "REG-090",
+      "REG-100",
+      "REG-101",
+      "REG-102",
+      "REG-103",
+      "REG-104",
+      "REG-105",
+      "REG-110",
+      "REG-111",
+      "REG-130",
+      "REG-131",
+      "REG-132",
+      "REG-133",
+      "REG-134",
+      "REG-140",
+      "REG-141",
+      "REG-142",
+      "REG-150",
+      "REG-151",
+      "REG-160",
+      "REG-161",
+      "REG-170",
+      "REG-171",
+      "REG-172",
+      "REG-180",
+      "REG-190",
+      "REG-191",
+      "REG-192",
+      "REG-200",
+      "REG-210",
+      "REG-211",
+      "REG-212",
+      "REG-220",
+      "REG-221",
+      "REG-222",
+      "REG-223",
+      "REG-224",
+      "REG-225",
+      "REG-226",
+      "REG-227",
+      "REG-228",
+      "REG-229",
+      "REG-230",
+      "REG-231",
+      "REG-232",
+      "REG-233",
+      "REG-234",
+      "REG-235",
+      "REG-236",
+      "REG-237",
+      "REG-238",
+      "REG-239",
+      "REG-240",
+      "REG-241",
+      "REG-242",
+      "REG-243",
+      "REG-244",
+      "REG-245",
+      "REG-246",
+      "REG-247",
+      "REG-248",
+      "REG-249",
+      "REG-250",
+      "REG-251",
+      "REG-252",
+      "REG-253",
+      "REG-254",
+      "REG-255",
+      "REG-256",
+      "REG-257",
+      "REG-258",
+      "REG-259",
+      "REG-260",
+      "REG-261",
+      "REG-262",
+      "REG-263",
+      "REG-264",
+      "REG-265",
+      "REG-120"
+    ],
+    "caseModes": [
+      "automated"
+    ],
+    "casesSha256": "c1d2c95f25de7ce1a9d5c1ec2ba1cbceb5c984e434c1163d1e0ef210b93b70b5"
+  },
+  "e.agentAndReadiness": {
+    "registrationAutomationJob": {
+      "status": "done",
+      "message": "Done. 1 proposed file(s). Registration already has its own automation, so this proposal is for reading only and cannot be installed. Warnings: fields.ts is missing from the proposal. case-runner.ts is missing from the proposal. cases.spec.ts is missing from the proposal. adapter.json is missing from the proposal.",
+      "referenceCopied": [
+        "aa-first.md",
+        "bb.ts",
+        "case-runner.ts",
+        "cases.spec.ts",
+        "cc.ts",
+        "dd.ts",
+        "ee.ts",
+        "fields.ts",
+        "registration.page.ts",
+        "workflow-runner.ts"
+      ]
+    },
+    "billingAutomationJob": {
+      "status": "done",
+      "message": "Done. 1 proposed file(s). A developer must review them and install with \"npm run module:adapter:install\"; nothing was installed or run. Warnings: fields.ts is missing from the proposal. case-runner.ts is missing from the proposal. cases.spec.ts is missing from the proposal. adapter.json is missing from the proposal.",
+      "referenceCopied": [
+        "aa-first.md",
+        "bb.ts",
+        "case-runner.ts",
+        "cases.spec.ts",
+        "cc.ts",
+        "dd.ts",
+        "ee.ts",
+        "fields.ts",
+        "registration.page.ts",
+        "workflow-runner.ts"
+      ]
+    },
+    "crossFieldRegistration": [
+      "5. Cross-field contradictions (P1): conflicting title/gender, minor without guardian, payer type without payer/policy."
+    ],
+    "crossFieldBilling": [
+      "5. Cross-field contradictions (P1): values that contradict each other across fields, mandatory fields that depend on another field's value, rules that change with the record's state or type."
+    ],
+    "crossFieldRegistrationUpperId": [
+      "5. Cross-field contradictions (P1): conflicting title/gender, minor without guardian, payer type without payer/policy."
+    ],
+    "referenceLines": [
+      "3. `reference/`: the production Registration module (fields.ts, registration.page.ts, case-runner.ts, cases.spec.ts, workflow-runner.ts). Copy its conventions, helper imports (tests/fixtures/*), environment variables and result shape."
+    ],
+    "registrationBriefSha256": "d614075530b99d3671d680373b5b0f968e53925978082c154c5e7640cdf52757",
+    "billingBriefSha256": "002671f9259dbaad13ef90fa9741df1b09f7199c63921c3cf376d46bf0c5e0eb",
+    "registrationAutomationBriefSha256": "ec8a1307f375c80648fb2d15db7184fa22af3497bac93c9658e9a36276ab3c67",
+    "readinessRegistrationEmpty": {
+      "stages": [
+        {
+          "id": "sources",
+          "label": "Sources",
+          "status": "ready",
+          "detail": "Reference module (built in). Uploads are optional."
+        },
+        {
+          "id": "insights",
+          "label": "Insights",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        },
+        {
+          "id": "cases",
+          "label": "Reviewed cases",
+          "status": "missing",
+          "detail": "No approved case yet. Write one or analyse the sources, then approve a draft.",
+          "action": {
+            "id": "review",
+            "label": "Review cases"
+          }
+        },
+        {
+          "id": "setup",
+          "label": "Target setup",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        },
+        {
+          "id": "discovery",
+          "label": "Discovery",
+          "status": "ready",
+          "detail": "Built in."
+        },
+        {
+          "id": "automation",
+          "label": "Automation package",
+          "status": "missing",
+          "detail": "No automation package yet."
+        },
+        {
+          "id": "smoke",
+          "label": "Smoke run",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        }
+      ],
+      "canGenerateAi": false,
+      "canProposeAutomation": false,
+      "blockers": [
+        "Automation package: No automation package yet."
+      ],
+      "proposalBlockers": [
+        "Reviewed cases: No approved case yet. Write one or analyse the sources, then approve a draft."
+      ],
+      "warnings": []
+    },
+    "readinessRegistrationCases": {
+      "stages": [
+        {
+          "id": "sources",
+          "label": "Sources",
+          "status": "ready",
+          "detail": "Reference module (built in). Uploads are optional."
+        },
+        {
+          "id": "insights",
+          "label": "Insights",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        },
+        {
+          "id": "cases",
+          "label": "Reviewed cases",
+          "status": "ready",
+          "detail": "131 approved case(s)."
+        },
+        {
+          "id": "setup",
+          "label": "Target setup",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        },
+        {
+          "id": "discovery",
+          "label": "Discovery",
+          "status": "ready",
+          "detail": "Built in."
+        },
+        {
+          "id": "automation",
+          "label": "Automation package",
+          "status": "ready",
+          "detail": "An automation adapter is connected and its spec file exists."
+        },
+        {
+          "id": "smoke",
+          "label": "Smoke run",
+          "status": "ready",
+          "detail": "Reference module (built in)."
+        }
+      ],
+      "canGenerateAi": true,
+      "canProposeAutomation": true,
+      "blockers": [],
+      "proposalBlockers": [],
+      "warnings": []
+    },
+    "readinessBillingEmpty": {
+      "stages": [
+        {
+          "id": "sources",
+          "label": "Sources",
+          "status": "missing",
+          "detail": "Upload at least one document, spreadsheet, PDF, screenshot or walkthrough video.",
+          "action": {
+            "id": "upload",
+            "label": "Upload files"
+          }
+        },
+        {
+          "id": "insights",
+          "label": "Insights",
+          "status": "missing",
+          "detail": "Needs a usable source first."
+        },
+        {
+          "id": "cases",
+          "label": "Reviewed cases",
+          "status": "missing",
+          "detail": "No approved case yet. Write one or analyse the sources, then approve a draft.",
+          "action": {
+            "id": "review",
+            "label": "Review cases"
+          }
+        },
+        {
+          "id": "setup",
+          "label": "Target setup",
+          "status": "missing",
+          "detail": "The module URL, variants and login profile are not confirmed.",
+          "action": {
+            "id": "confirm-setup",
+            "label": "Confirm target setup"
+          }
+        },
+        {
+          "id": "discovery",
+          "label": "Discovery",
+          "status": "missing",
+          "detail": "Confirm the target setup first; discovery scans the page it names."
+        },
+        {
+          "id": "automation",
+          "label": "Automation package",
+          "status": "missing",
+          "detail": "No automation package yet."
+        },
+        {
+          "id": "smoke",
+          "label": "Smoke run",
+          "status": "missing",
+          "detail": "Needs the automation package first."
+        }
+      ],
+      "canGenerateAi": false,
+      "canProposeAutomation": false,
+      "blockers": [
+        "Sources: Upload at least one document, spreadsheet, PDF, screenshot or walkthrough video.",
+        "Insights: Needs a usable source first.",
+        "Automation package: No automation package yet."
+      ],
+      "proposalBlockers": [
+        "Sources: Upload at least one document, spreadsheet, PDF, screenshot or walkthrough video.",
+        "Insights: Needs a usable source first.",
+        "Reviewed cases: No approved case yet. Write one or analyse the sources, then approve a draft.",
+        "Target setup: The module URL, variants and login profile are not confirmed.",
+        "Discovery: Confirm the target setup first; discovery scans the page it names."
+      ],
+      "warnings": []
+    }
+  }
+}

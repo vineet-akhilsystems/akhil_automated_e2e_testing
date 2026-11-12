@@ -1,0 +1,2147 @@
+{
+  "module": "registration",
+  "source": "Registration_Test_Cases 1.xlsx",
+  "cases": [
+    {
+      "id": "TC_REG_001",
+      "title": "Verify registration types are configurable",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 5. Module: Master. Feature: Registration Type. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Go to Master > Registration Type\n2. Create a new type\n3. Save and verify it appears in registration dropdown",
+          "expected": "Registration type is saved and visible in the dropdown"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Registration type is saved and visible in the dropdown"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_002",
+      "title": "Verify configurable workflow steps",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 6. Module: Master. Feature: Workflow Configuration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Navigate to Steps in HIS master\n2. Configure workflow: Appointment>>Registration>>Consultation Billing>>EMR\n3. Save and verify workflow",
+          "expected": "Workflow is saved and follows defined sequence"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Workflow is saved and follows defined sequence"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_003",
+      "title": "Verify combination workflow support",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 7. Module: Master. Feature: Workflow Configuration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Configure Workflow 1 with all steps\n2. Configure Workflow 2 without Appointment step\n3. Validate both workflows independently",
+          "expected": "Both workflows function independently without conflict"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Both workflows function independently without conflict"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_004",
+      "title": "Verify registration type can be tagged to specific workflow",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 8. Module: Master. Feature: Registration Type & Workflow Tagging. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select a registration type\n2. Tag it with a configured workflow\n3. Initiate registration with that type and verify steps",
+          "expected": "Only the tagged workflow steps appear for that registration type"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Only the tagged workflow steps appear for that registration type"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_005",
+      "title": "Verify document category configuration",
+      "category": "Master Configuration",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 9. Module: Master. Feature: Documents Category. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Go to Documents Category master\n2. Configure size, format (jpeg/pdf)\n3. Save and verify document upload enforces configurations",
+          "expected": "Document upload respects configured size and format rules"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Document upload respects configured size and format rules"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_006",
+      "title": "Verify title lookup list creation",
+      "category": "Master Configuration",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 10. Module: Master. Feature: Title Master. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open Title Master\n2. Add titles: Mr., Mrs., Dr.\n3. Save and open registration form",
+          "expected": "Configured titles appear in Title dropdown on registration screen"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Configured titles appear in Title dropdown on registration screen"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_007",
+      "title": "Verify gender lookup list",
+      "category": "Master Configuration",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 11. Module: Master. Feature: Gender Master. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open Gender Master\n2. Add: Male, Female, Transgender\n3. Verify in registration dropdown",
+          "expected": "Gender options are available as configured"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Gender options are available as configured"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_008",
+      "title": "Verify configurable duplicate check fields",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 12. Module: Master. Feature: Check Duplicate Master. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open Check Duplicate master\n2. Select fields (e.g., Name + DOB + Mobile)\n3. Register duplicate patient\n4. Verify alert appears",
+          "expected": "System alerts user when configured duplicate fields match an existing record"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System alerts user when configured duplicate fields match an existing record"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_009",
+      "title": "Verify registration charge business rules",
+      "category": "Master Configuration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 13. Module: Master. Feature: Registration Charges. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Configure registration charge = Yes\n2. Set validity = Life Long\n3. Register new patient\n4. Verify charge is applied\n5. Re-register same patient and verify no charge",
+          "expected": "Registration charge applied only per configured business rule"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Registration charge applied only per configured business rule"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_010",
+      "title": "Verify default settings based on registration type",
+      "category": "Master Configuration",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 14. Module: Master. Feature: Default Settings. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Configure default settings for each registration type\n2. Select each type during registration\n3. Verify defaults auto-populate",
+          "expected": "Correct defaults load for each registration type"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Correct defaults load for each registration type"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_011",
+      "title": "Verify language translation in registration",
+      "category": "General Functionality",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 16. Module: General. Feature: Language Translation. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select a language from dropdown (e.g., Hindi)\n2. Type patient name\n3. Verify auto-translation",
+          "expected": "Text is translated/entered in the selected language"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Text is translated/entered in the selected language"
+      },
+      "automationBlocker": "Language/transliteration workflow and an agreed input/expected translation fixture are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_012",
+      "title": "Verify facility change by authorized user",
+      "category": "General Functionality",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 17. Module: General. Feature: Change Facility. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Log in as authorized user\n2. Go to registration screen\n3. Change facility from dropdown\n4. Verify data scope changes",
+          "expected": "Facility changed successfully; unauthorized users cannot change"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Facility changed successfully; unauthorized users cannot change"
+      },
+      "automationBlocker": "Requires separately configured authorized/restricted role profiles and cross-role assertions. Only the current login profile is available to this registration adapter.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_013",
+      "title": "Verify facility change blocked for unauthorized user",
+      "category": "General Functionality",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 18. Module: General. Feature: Change Facility. Test type: Security. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Log in as non-authorized user\n2. Attempt to change facility",
+          "expected": "System prevents facility change and displays access denied message"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System prevents facility change and displays access denied message"
+      },
+      "automationBlocker": "Requires separately configured authorized/restricted role profiles and cross-role assertions. Only the current login profile is available to this registration adapter.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_014",
+      "title": "Verify tab navigation across mandatory fields",
+      "category": "General Functionality",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 19. Module: General. Feature: Tab Movement. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open registration form\n2. Press Tab key from Title field\n3. Navigate through all mandatory fields",
+          "expected": "Tab moves sequentially through all configured mandatory fields"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "mandatory-tab-traversal"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Tab moves sequentially through all configured mandatory fields"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_015",
+      "title": "Verify keyboard navigation in dropdowns",
+      "category": "General Functionality",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 20. Module: General. Feature: Tab Movement. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Focus on a dropdown field (e.g., Marital Status)\n2. Press Down/Up arrow keys",
+          "expected": "Arrow keys navigate dropdown options correctly"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "dropdown-keyboard"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Arrow keys navigate dropdown options correctly"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_016",
+      "title": "Verify keyboard shortcut to save registration",
+      "category": "General Functionality",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 21. Module: General. Feature: Shortcuts. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Fill all mandatory fields\n2. Press configured shortcut key (e.g., Ctrl+S or Enter)\n3. Verify registration is saved",
+          "expected": "Registration saved via keyboard shortcut without mouse click"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Registration saved via keyboard shortcut without mouse click"
+      },
+      "automationBlocker": "Requires the configured registration save shortcut and its save assertion. A mouse Save cannot satisfy a keyboard-only procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_017",
+      "title": "Verify Help icon availability and functionality",
+      "category": "General Functionality",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 22. Module: General. Feature: Help Icon. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open registration module\n2. Click Help icon in top-right corner\n3. Verify manual/video/FAQ loads",
+          "expected": "Help content (manuals, videos, FAQs) loads correctly"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Help content (manuals, videos, FAQs) loads correctly"
+      },
+      "automationBlocker": "Help content navigation and manual/video/FAQ assertions are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_018",
+      "title": "Search patient by UHID",
+      "category": "Patient Search",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 24. Module: Search. Feature: UHID Search. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter valid UHID in search field\n2. Press Enter or click UHID label\n3. Verify patient details populate",
+          "expected": "Patient details auto-fill on valid UHID entry"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "search-identity"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Patient details auto-fill on valid UHID entry"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_019",
+      "title": "Search patient by pre-registration number",
+      "category": "Patient Search",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 25. Module: Search. Feature: Pre-Registration Search. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Click Pre-Reg. No. search link\n2. Enter valid pre-reg number\n3. Select patient from results\n4. Complete remaining details and generate UHID",
+          "expected": "Patient found; UHID generated; pre-reg number invalidated post-registration"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Patient found; UHID generated; pre-reg number invalidated post-registration"
+      },
+      "automationBlocker": "Requires a synthetic pre-registration fixture and verification that registration consumes/inactivates its number.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_020",
+      "title": "Verify magic search by multiple criteria",
+      "category": "Patient Search",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 26. Module: Search. Feature: Magic Search. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter patient mobile number in magic search\n2. Search by patient name\n3. Search by Aadhar card number\n4. Verify results for each",
+          "expected": "Relevant patient records returned for all search criteria"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Relevant patient records returned for all search criteria"
+      },
+      "automationBlocker": "Requires an identity-number search fixture and patient identity checks for every search criterion; name/mobile outcome checks alone are insufficient.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_021",
+      "title": "Magic search with partial name",
+      "category": "Patient Search",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 27. Module: Search. Feature: Magic Search. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter first 3 characters of patient name\n2. Verify suggestion list appears",
+          "expected": "Matching patient records displayed as suggestions"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "partial-name-suggestions",
+        "peer": "{{regId@REG-WB-022}}"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Matching patient records displayed as suggestions"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_022",
+      "title": "Verify new patient registration with all mandatory fields",
+      "category": "Patient Details",
+      "priority": "P0",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 29. Module: Registration. Feature: New Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Click New\n2. Select Registration Type\n3. Fill Title, First Name, Gender, DOB/Age, Mobile\n4. Click Save\n5. Verify UHID generated",
+          "expected": "UHID generated successfully; patient record created"
+        }
+      ],
+      "action": "save",
+      "input": {},
+      "expected": {
+        "outcome": "created",
+        "toastContains": "Registration Number",
+        "persisted": {
+          "first_name": "Agent",
+          "last_name": "User{{seqWord}}",
+          "mobile": "{{phone}}",
+          "state": "DELHI"
+        },
+        "note": "UHID generated successfully; patient record created"
+      },
+      "base": "valid",
+      "registrationType": "New Registration",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_023",
+      "title": "Verify UHID not generated without mandatory fields",
+      "category": "Patient Details",
+      "priority": "P0",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 30. Module: Registration. Feature: New Registration. Test type: Validation. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Click New\n2. Leave mandatory fields blank\n3. Click Save",
+          "expected": "System displays validation errors; UHID not generated"
+        }
+      ],
+      "action": "save",
+      "input": {},
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "required field",
+        "note": "System displays validation errors; UHID not generated"
+      },
+      "registrationType": "New Registration",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_024",
+      "title": "Verify UHID format is alphanumeric as configured",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 31. Module: Registration. Feature: UHID Format. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Configure UHID prefix in master\n2. Register new patient\n3. Check generated UHID format",
+          "expected": "UHID follows configured format (prefix + numeric sequence)"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "UHID follows configured format (prefix + numeric sequence)"
+      },
+      "automationBlocker": "Master-configuration automation is not implemented. Requires a resettable test tenant, expected configuration fixtures and create/verify/restore master workflows; registration field checks cannot verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_025",
+      "title": "Verify auto-gender selection on title change",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 32. Module: Registration. Feature: Title-Gender Linking. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Title = 'Mr.'\n2. Check Gender field\n3. Change Title to 'Mrs.'\n4. Check Gender field",
+          "expected": "Gender auto-populates based on selected title (Mr.=Male, Mrs.=Female)"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "title-gender"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Gender auto-populates based on selected title (Mr.=Male, Mrs.=Female)"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_026",
+      "title": "Verify age auto-calculation from DOB",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 33. Module: Registration. Feature: DOB/Age. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Date of Birth\n2. Verify Age field auto-calculates\n3. Verify day-wise accuracy",
+          "expected": "Age is calculated correctly based on DOB"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "dob-age"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Age is calculated correctly based on DOB"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_027",
+      "title": "Verify age entry when DOB is unknown",
+      "category": "Patient Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 34. Module: Registration. Feature: DOB/Age. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Leave DOB blank\n2. Enter age manually\n3. Save registration",
+          "expected": "Registration saved with manually entered age; no DOB error"
+        }
+      ],
+      "action": "save",
+      "input": {
+        "dob": "",
+        "age": "30"
+      },
+      "expected": {
+        "outcome": "created",
+        "values": {
+          "age": "30Y 0M 0D",
+          "dob": "*"
+        },
+        "note": "Registration saved with manually entered age; no DOB error"
+      },
+      "base": "valid",
+      "registrationType": "New Registration",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_028",
+      "title": "Verify manual patient photo upload",
+      "category": "Patient Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 35. Module: Registration. Feature: Picture Upload. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Click Upload button\n2. Browse and select image\n3. Save registration\n4. Verify photo saved",
+          "expected": "Patient photo uploaded and displayed in registration record"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "photo-upload"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Patient photo uploaded and displayed in registration record"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_029",
+      "title": "Verify newborn registration tagged with mother UHID",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 36. Module: Registration. Feature: New Born Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Registration Type = New Born\n2. Enter mother UHID\n3. Fill newborn details\n4. Save\n5. Verify tagging",
+          "expected": "Newborn UHID created and linked to mother's UHID"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Newborn UHID created and linked to mother's UHID"
+      },
+      "automationBlocker": "Requires a synthetic mother fixture and newborn-to-mother relationship verification. Entering a mother UHID alone does not establish the link.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_030",
+      "title": "Verify staff registration with employee ID",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 37. Module: Registration. Feature: Staff Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Registration Type = Staff\n2. Enter Employee ID\n3. Verify details auto-fetch from HR module\n4. Save",
+          "expected": "Staff details fetched from HR; registration created with employee ID"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Staff details fetched from HR; registration created with employee ID"
+      },
+      "automationBlocker": "Requires synthetic employee/dependant HR fixtures and an HR lookup/link verification workflow. Staff control visibility alone does not verify HR integration.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_031",
+      "title": "Verify mandatory fields for international patient",
+      "category": "Patient Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 38. Module: Registration. Feature: International Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Registration Type = International\n2. Verify additional mandatory fields appear\n3. Try saving without them",
+          "expected": "International-specific fields become mandatory; saving blocked without them"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "International-specific fields become mandatory; saving blocked without them"
+      },
+      "automationBlocker": "Requires the agreed international-specific mandatory-field configuration and per-field blocking assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_032",
+      "title": "Verify staff dependent registration",
+      "category": "Patient Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 39. Module: Registration. Feature: Staff Dependent Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Registration Type = Staff Dependent\n2. Enter employee ID\n3. Verify employee details auto-fetch\n4. Enter dependent details",
+          "expected": "Dependent registered and linked to staff employee ID"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Dependent registered and linked to staff employee ID"
+      },
+      "automationBlocker": "Requires synthetic employee/dependant HR fixtures and an HR lookup/link verification workflow. Staff control visibility alone does not verify HR integration.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_033",
+      "title": "Verify duplicate mobile number alert",
+      "category": "Contact Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 41. Module: Registration. Feature: Contact - Mobile Number. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter a mobile number already registered\n2. Verify duplicate alert pop-up appears\n3. Select existing patient from list",
+          "expected": "Duplicate alert shown; user can select existing patient"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "duplicate-mobile-alert"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Duplicate alert shown; user can select existing patient"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_034",
+      "title": "Verify mobile number length validation by country",
+      "category": "Contact Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 42. Module: Registration. Feature: Contact - Mobile Length. Test type: Validation. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Country = India\n2. Enter mobile number with incorrect digits\n3. Verify validation error",
+          "expected": "System validates mobile number length per selected country"
+        }
+      ],
+      "action": "save",
+      "input": {
+        "mobile": "987654321"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "mobile": "valid 10-digit"
+        },
+        "note": "System validates mobile number length per selected country"
+      },
+      "base": "valid",
+      "registrationType": "New Registration",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_035",
+      "title": "Verify mobile country code auto-selects with country",
+      "category": "Contact Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 43. Module: Registration. Feature: Contact - Country-Mobile Linking. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Country from dropdown\n2. Verify mobile code auto-populates",
+          "expected": "Country code auto-fills in mobile number field"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "country-mobile-code"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Country code auto-fills in mobile number field"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_036",
+      "title": "Verify pin code auto-fills address fields",
+      "category": "Contact Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 44. Module: Registration. Feature: Contact - Pin Code. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter a valid pin code\n2. Verify Country, State, City, Area auto-populate",
+          "expected": "Address fields auto-fill correctly based on pin code"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "pin-autofill"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Address fields auto-fill correctly based on pin code"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_037",
+      "title": "Verify present address copies to permanent address",
+      "category": "Contact Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 45. Module: Registration. Feature: Copy Present Address. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Fill Present Address fields\n2. Check 'Permanent address same as present address'\n3. Verify Permanent Address populated",
+          "expected": "Permanent address fields are auto-filled from present address"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "address-copy"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Permanent address fields are auto-filled from present address"
+      },
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_038",
+      "title": "Verify multiple emergency contacts can be added",
+      "category": "Contact Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 46. Module: Registration. Feature: Emergency Contact. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Fill emergency contact 1 details\n2. Click Add Person\n3. Add contact 2 details\n4. Save and verify",
+          "expected": "Multiple emergency contacts saved against patient record"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Multiple emergency contacts saved against patient record"
+      },
+      "automationBlocker": "Repeated emergency-contact row creation and save/reopen assertions are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_039",
+      "title": "Verify WhatsApp availability check on mobile number",
+      "category": "Contact Details",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 47. Module: Registration. Feature: WhatsApp Verification. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Enter mobile number in WhatsApp field\n2. Verify system checks if number is on WhatsApp\n3. Check alert if not available",
+          "expected": "System confirms or alerts WhatsApp availability for entered number"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System confirms or alerts WhatsApp availability for entered number"
+      },
+      "automationBlocker": "Requires synthetic WhatsApp/message recipients and delivery/availability evidence. Message integration assertions are not implemented; local controls or a QR download do not prove delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_040",
+      "title": "Verify identity type linked to identity number field",
+      "category": "Patient Identity",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 49. Module: Registration. Feature: Identity Type. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Identity Type = Aadhar Card\n2. Verify Aadhar number field appears\n3. Enter number with validation",
+          "expected": "Correct identity number field shown and validated per selected type"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Correct identity number field shown and validated per selected type"
+      },
+      "automationBlocker": "Requires configured Aadhaar/Emirates identity options and nationality-specific number validation. Current configured options differ from the source procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_041",
+      "title": "Verify nationality-based identity options",
+      "category": "Patient Identity",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 50. Module: Registration. Feature: Identity - Country-wise. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Nationality = India\n2. Verify Aadhar available\n3. Select Nationality = UAE\n4. Verify Emirates ID available",
+          "expected": "Identity types change based on selected nationality"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Identity types change based on selected nationality"
+      },
+      "automationBlocker": "Requires configured Aadhaar/Emirates identity options and nationality-specific number validation. Current configured options differ from the source procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_042",
+      "title": "Verify self-pay payer type selection",
+      "category": "Payer Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 52. Module: Registration. Feature: Payer - Self Pay. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Payer Type = Direct Patient/Self Pay\n2. Verify no additional payer fields required\n3. Save registration",
+          "expected": "Registration saved without corporate/insurance fields"
+        }
+      ],
+      "action": "save",
+      "input": {
+        "payer_type": "Self-Paid"
+      },
+      "expected": {
+        "outcome": "created",
+        "values": {
+          "payer": "Cash",
+          "sponsor": "Cash"
+        },
+        "persisted": {
+          "payer_type": "Self-Paid",
+          "payer": "Cash",
+          "sponsor": "Cash"
+        },
+        "note": "Registration saved without corporate/insurance fields"
+      },
+      "base": "valid",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_043",
+      "title": "Verify corporate payer selection",
+      "category": "Payer Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 53. Module: Registration. Feature: Payer - Corporate. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Payer Type = Company/Corporate\n2. Select Payer from dropdown\n3. Verify Sponsor auto-selects if same as payer\n4. Select Plan",
+          "expected": "Corporate payer details captured; sponsor auto-selects when applicable"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Corporate payer details captured; sponsor auto-selects when applicable"
+      },
+      "automationBlocker": "Requires corporate payer/plan fixtures and sponsor auto-selection assertions before any explicit sponsor fill.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_044",
+      "title": "Verify insurance payer details capture",
+      "category": "Payer Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 54. Module: Registration. Feature: Payer - Insurance. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Payer Type = Insurance\n2. Select TPA/Payer\n3. Select Insurance company\n4. Enter Policy No, Member ID, Valid From/To\n5. Save",
+          "expected": "Insurance details saved correctly against patient registration"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Insurance details saved correctly against patient registration"
+      },
+      "automationBlocker": "Requires insurer/TPA sandbox profiles, policy/plan fixtures and eligibility or billing assertions. This insurance integration workflow is not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_045",
+      "title": "Verify system blocks transactions after insurance expiry",
+      "category": "Payer Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 55. Module: Registration. Feature: Insurance Validity. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Set insurance validity end date to yesterday\n2. Attempt to create OPD bill\n3. Verify system blocks transaction",
+          "expected": "System prevents billing with expired insurance; alert displayed"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System prevents billing with expired insurance; alert displayed"
+      },
+      "automationBlocker": "Requires insurer/TPA sandbox profiles, policy/plan fixtures and eligibility or billing assertions. This insurance integration workflow is not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_046",
+      "title": "Verify insurance eligibility check",
+      "category": "Payer Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 56. Module: Registration. Feature: Insurance Eligibility. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Insurance payer\n2. Click Check Eligibility button\n3. Verify eligibility status returned",
+          "expected": "Eligibility status fetched and displayed; remarks can be saved"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Eligibility status fetched and displayed; remarks can be saved"
+      },
+      "automationBlocker": "Requires insurer/TPA sandbox profiles, policy/plan fixtures and eligibility or billing assertions. This insurance integration workflow is not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_047",
+      "title": "Verify referral doctor and specialization auto-link",
+      "category": "Referral Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 58. Module: Registration. Feature: Referral - Doctor. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select a doctor from Primary Care Provider dropdown\n2. Verify Specialization auto-fills\n3. Select Specialization first and verify doctor list filters",
+          "expected": "Specialization and doctor auto-link bidirectionally"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Specialization and doctor auto-link bidirectionally"
+      },
+      "automationBlocker": "Requires a known doctor/specialization pairing and ordered bidirectional filtering assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_048",
+      "title": "Verify referred type options and sub-fields",
+      "category": "Referral Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 59. Module: Registration. Feature: Referral - Referred Type. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select Referred Type = External Provider\n2. Verify Add External Provider link appears\n3. Select Camp and verify camp details field",
+          "expected": "Correct sub-fields appear per selected referred type"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Correct sub-fields appear per selected referred type"
+      },
+      "automationBlocker": "External-provider link and camp conditional-field workflows are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_049",
+      "title": "Verify lead source capture and narration",
+      "category": "Referral Details",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 60. Module: Registration. Feature: Lead Source. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select a Lead Source from dropdown\n2. Enter narration in Lead Source Narration field\n3. Save registration",
+          "expected": "Lead source and narration saved against patient record"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Lead source and narration saved against patient record"
+      },
+      "automationBlocker": "Lead-source/narration control mapping and saved-value assertions are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_050",
+      "title": "Verify VIP patient color coding in other modules",
+      "category": "Other Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 62. Module: Registration. Feature: VIP Marking. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Check VIP checkbox for a patient\n2. Enter VIP narration\n3. Open patient in another module\n4. Verify color coding",
+          "expected": "VIP patient displayed with distinct color in all configured modules"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "VIP patient displayed with distinct color in all configured modules"
+      },
+      "automationBlocker": "Requires department/downstream profiles and cross-module flag or alert assertions. Saving a flag alone does not verify downstream visibility or delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_051",
+      "title": "Verify confidential patient name and address masking",
+      "category": "Other Details",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 63. Module: Registration. Feature: Name Masking. Test type: Security. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Check Confidential/Name Masking checkbox\n2. Log in as user without special rights\n3. Search the patient\n4. Verify name/address masked",
+          "expected": "Name and address masked for unauthorized users; visible to privileged users only"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Name and address masked for unauthorized users; visible to privileged users only"
+      },
+      "automationBlocker": "Requires separately configured authorized/restricted role profiles and cross-role assertions. Only the current login profile is available to this registration adapter.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_052",
+      "title": "Verify handle with care flag visible across modules",
+      "category": "Other Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 64. Module: Registration. Feature: Handle with Care. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Check Handle with Care for a patient\n2. Enter narration\n3. Access patient in other modules\n4. Verify flag/alert displayed",
+          "expected": "Handle with Care alert visible to all relevant departments"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Handle with Care alert visible to all relevant departments"
+      },
+      "automationBlocker": "Requires department/downstream profiles and cross-module flag or alert assertions. Saving a flag alone does not verify downstream visibility or delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_053",
+      "title": "Verify vulnerable patient alert to concerned department",
+      "category": "Other Details",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 65. Module: Registration. Feature: Vulnerable Marking. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Check Vulnerable checkbox\n2. Enter narration\n3. Save\n4. Verify alert sent to concerned department",
+          "expected": "Vulnerable alert generated and visible in concerned departments"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Vulnerable alert generated and visible in concerned departments"
+      },
+      "automationBlocker": "Requires department/downstream profiles and cross-module flag or alert assertions. Saving a flag alone does not verify downstream visibility or delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_054",
+      "title": "Verify promotional consent checkbox saves preference",
+      "category": "Other Details",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 66. Module: Registration. Feature: Promotional Consent. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Check 'Send Promotional Msg/Alert/Email'\n2. Save registration\n3. Verify patient receives promotional content",
+          "expected": "Promotional messages sent only when consent checkbox is checked"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Promotional messages sent only when consent checkbox is checked"
+      },
+      "automationBlocker": "Requires synthetic WhatsApp/message recipients and delivery/availability evidence. Message integration assertions are not implemented; local controls or a QR download do not prove delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_055",
+      "title": "Verify registration card print",
+      "category": "Print & Options",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 68. Module: Print. Feature: Registration Card. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Complete patient registration\n2. Click Print > Registration Card\n3. Verify card prints with patient details",
+          "expected": "Registration card prints with correct patient information"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "print-card"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Registration card prints with correct patient information"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_056",
+      "title": "Verify registration form print",
+      "category": "Print & Options",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 69. Module: Print. Feature: Registration Form. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Complete patient registration\n2. Click Print > Registration Form\n3. Verify form layout and content",
+          "expected": "Registration form prints with all captured patient details"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "print-form-complete"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Registration form prints with all captured patient details"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_057",
+      "title": "Verify outpatient wristband print",
+      "category": "Print & Options",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 70. Module: Print. Feature: Wristband Print. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Complete OPD registration\n2. Click Print Wrist Band\n3. Verify wristband prints with barcode/patient info",
+          "expected": "Wristband prints with correct patient identification details"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Wristband prints with correct patient identification details"
+      },
+      "automationBlocker": "Wristband or original/duplicate print authorization workflows are not implemented; card/form identity checks cannot verify them.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_058",
+      "title": "Verify duplicate printout marked accordingly",
+      "category": "Print & Options",
+      "priority": "P3",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 71. Module: Print. Feature: Duplicate Printout. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Print registration form (first time = original)\n2. Print again (second time = duplicate)\n3. Verify 'Duplicate' appears on printout",
+          "expected": "Subsequent prints marked as Duplicate; original reprint requires authorization"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Subsequent prints marked as Duplicate; original reprint requires authorization"
+      },
+      "automationBlocker": "Wristband or original/duplicate print authorization workflows are not implemented; card/form identity checks cannot verify them.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_059",
+      "title": "Verify post-save redirect options",
+      "category": "Save & Update",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 73. Module: Registration. Feature: Save - Redirect Options. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Fill mandatory fields and click Save\n2. Verify pop-up with: Appointment / Create OP Visit / Admission / OP Bill / Attach Documents / Cancel\n3. Click each option and verify redirect",
+          "expected": "Each redirect option navigates to correct screen"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Each redirect option navigates to correct screen"
+      },
+      "automationBlocker": "The source requires six post-save popup destinations. Current automation covers three Quick Actions routes only; the complete popup/destination workflow is not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_060",
+      "title": "Verify QR code generation on save",
+      "category": "Save & Update",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 74. Module: Registration. Feature: Save - QR Code. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Save new patient registration\n2. Verify QR code generated\n3. Verify QR code sent via WhatsApp",
+          "expected": "QR code generated and sent to patient via WhatsApp"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "QR code generated and sent to patient via WhatsApp"
+      },
+      "automationBlocker": "Requires synthetic WhatsApp/message recipients and delivery/availability evidence. Message integration assertions are not implemented; local controls or a QR download do not prove delivery.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_061",
+      "title": "Verify patient record update with mandatory remarks",
+      "category": "Save & Update",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 75. Module: Registration. Feature: Update Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open existing patient registration\n2. Modify a field\n3. Try to save without remarks\n4. Enter remarks and save",
+          "expected": "System requires remarks to save updates; record updated with audit trail"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System requires remarks to save updates; record updated with audit trail"
+      },
+      "automationBlocker": "Requires audit-history access and actor/timestamp/old/new-value assertions. Current update workflows do not verify a complete audit trail.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_062",
+      "title": "Verify document upload against patient UHID",
+      "category": "Attach Documents",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 77. Module: Registration. Feature: Document Upload. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open registration > Attach Documents\n2. Select Category\n3. Browse and upload file\n4. Enter file name and remarks\n5. Click Upload",
+          "expected": "Document saved and linked to patient UHID"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "document-upload"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "Document saved and linked to patient UHID"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_063",
+      "title": "Verify invalid document format rejected",
+      "category": "Attach Documents",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 78. Module: Registration. Feature: Document - Format Validation. Test type: Validation. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Attempt to upload a file in unsupported format\n2. Verify error message",
+          "expected": "System rejects file and displays supported format error"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "document-format"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "System rejects file and displays supported format error"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready"
+    },
+    {
+      "id": "TC_REG_064",
+      "title": "Verify mandatory documents enforced per registration type",
+      "category": "Attach Documents",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 79. Module: Registration. Feature: Document - Mandatory. Test type: Validation. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select a registration type with mandatory documents configured\n2. Attempt to save without uploading required documents\n3. Verify alert",
+          "expected": "System prevents saving until all mandatory documents are uploaded"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "System prevents saving until all mandatory documents are uploaded"
+      },
+      "automationBlocker": "Requires a registration type with an agreed mandatory-document policy and save-blocking assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_065",
+      "title": "Verify duplicate registration detection",
+      "category": "Duplicate Check",
+      "priority": "P0",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 81. Module: Registration. Feature: Check Duplicate. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. Connected to executable browser assertions; a definition is not a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Register Patient A with Name + DOB + Mobile\n2. Attempt to register Patient B with same details\n3. Click Check Duplicate",
+          "expected": "System identifies duplicate and prompts user before proceeding"
+        }
+      ],
+      "action": "workflow",
+      "input": {
+        "workflow": "duplicate-use-existing"
+      },
+      "expected": {
+        "outcome": "verified",
+        "note": "System identifies duplicate and prompts user before proceeding"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "ready",
+      "executionAdaptation": "This build checks duplicates during Save. Execute Save, verify the matching-patient prompt before any extra create request, and select the existing UHID. This replaces the obsolete Check Duplicate button step without dropping duplicate detection or patient-identity assertions."
+    },
+    {
+      "id": "TC_REG_066",
+      "title": "Verify merging duplicate registrations",
+      "category": "Duplicate Check",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 82. Module: Registration. Feature: Merge Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Identify two duplicate UHIDs\n2. Initiate merge\n3. Select primary UHID\n4. Confirm merge\n5. Verify secondary UHID blocked",
+          "expected": "Records merged into primary UHID; secondary UHID deactivated"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Records merged into primary UHID; secondary UHID deactivated"
+      },
+      "automationBlocker": "Merge workflow is not implemented in the registration adapter; the local product source has a placeholder add-on. Requires two disposable UHIDs, primary/secondary merge assertions and secondary inactivation verification.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_067",
+      "title": "Verify quick registration with minimal fields",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 84. Module: Add-on. Feature: Quick Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open Quick Registration screen\n2. Fill configured minimal mandatory fields\n3. Save\n4. Verify UHID generated",
+          "expected": "UHID generated via quick registration with minimal data"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "UHID generated via quick registration with minimal data"
+      },
+      "automationBlocker": "Dedicated Quick Registration navigation, configured minimal fields and save assertions are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_068",
+      "title": "Verify family linking and family ID creation",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 85. Module: Add-on. Feature: Family Tagging. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Register head of family\n2. Register family member and link to head UHID\n3. Verify Family ID created",
+          "expected": "Family ID created; members linked under head of family"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Family ID created; members linked under head of family"
+      },
+      "automationBlocker": "Family-head/member linking and Family ID assertions are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_069",
+      "title": "Verify ABHA ID creation and linking",
+      "category": "Add-on Features",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 86. Module: Add-on. Feature: ABHA Integration. Test type: Integration. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open registration\n2. Click Generate ABHA\n3. Complete ABHA linking\n4. Verify ABHA ID saved against patient",
+          "expected": "ABHA ID generated and linked to patient; historical records accessible"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "ABHA ID generated and linked to patient; historical records accessible"
+      },
+      "automationBlocker": "Requires an ABHA sandbox, approved OTP/identity fixtures and link/delink/history-access assertions. Opening the ABHA dialog does not verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_070",
+      "title": "Verify UHID inactivation for deceased patient",
+      "category": "Add-on Features",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 87. Module: Add-on. Feature: UHID Inactivation. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Search patient\n2. Mark as inactive (deceased)\n3. Attempt a transaction on that UHID\n4. Verify alert generated",
+          "expected": "Transactions blocked on inactive UHID; alert displayed; re-activation with authorization"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Transactions blocked on inactive UHID; alert displayed; re-activation with authorization"
+      },
+      "automationBlocker": "Requires inactive/deceased synthetic fixtures, transaction blocking and authorized reactivation checks. Canceling the status dialog is not equivalent.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_071",
+      "title": "Verify bulk registration via Excel upload",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 88. Module: Add-on. Feature: Bulk Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Download bulk registration format\n2. Fill patient data in Excel\n3. Upload file\n4. Verify registrations created",
+          "expected": "Multiple patients registered from Excel file; errors reported for invalid rows"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Multiple patients registered from Excel file; errors reported for invalid rows"
+      },
+      "automationBlocker": "Bulk/group/digital-consent business workflows are not implemented in the adapter; the local product source exposes placeholder add-ons. Requires completed target functionality and full save/reopen assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_072",
+      "title": "Verify group registration with auto-fill",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 89. Module: Add-on. Feature: Group Registration. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Create group registration\n2. Add group number to dependent registration\n3. Verify details auto-fill except name/age/sex/DOB",
+          "expected": "Common details auto-populate for dependent registrations in group"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Common details auto-populate for dependent registrations in group"
+      },
+      "automationBlocker": "Bulk/group/digital-consent business workflows are not implemented in the adapter; the local product source exposes placeholder add-ons. Requires completed target functionality and full save/reopen assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_073",
+      "title": "Verify digital consent form creation and e-signature",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 90. Module: Add-on. Feature: Consent Forms. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Open Consent Forms during registration\n2. Select applicable consent template\n3. Capture digital signature\n4. Save",
+          "expected": "Consent form saved with digital signature against patient registration"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Consent form saved with digital signature against patient registration"
+      },
+      "automationBlocker": "Bulk/group/digital-consent business workflows are not implemented in the adapter; the local product source exposes placeholder add-ons. Requires completed target functionality and full save/reopen assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_074",
+      "title": "Verify token number generation and queue display",
+      "category": "Add-on Features",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 91. Module: Add-on. Feature: Token Generation. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Register or search existing patient\n2. Verify token number generated on registration slip\n3. Verify token shown on display board",
+          "expected": "Token number auto-generated; barcode printed on slip; visible on OPD display"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Token number auto-generated; barcode printed on slip; visible on OPD display"
+      },
+      "automationBlocker": "Requires token/barcode and OPD display-board integration fixtures and assertions.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_075",
+      "title": "Verify insurance eligibility integration",
+      "category": "Add-on Features",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 92. Module: Add-on. Feature: Insurance Eligibility Check. Test type: Integration. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Select insurance payer in registration\n2. Click Check Eligibility\n3. Verify inclusions/exclusions returned\n4. Save eligibility remarks",
+          "expected": "Eligibility result fetched from insurer; inclusions/exclusions visible and remarks saved"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Eligibility result fetched from insurer; inclusions/exclusions visible and remarks saved"
+      },
+      "automationBlocker": "Requires insurer/TPA sandbox profiles, policy/plan fixtures and eligibility or billing assertions. This insurance integration workflow is not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_076",
+      "title": "Verify audit fields auto-populate on registration",
+      "category": "Audit Trail",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 94. Module: Audit. Feature: Audit Details. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Register new patient\n2. Verify Reg. By (username), Reg. Date auto-populate\n3. Update record and verify Update By, Update On",
+          "expected": "All audit fields accurately reflect user and timestamp of actions"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "All audit fields accurately reflect user and timestamp of actions"
+      },
+      "automationBlocker": "Requires audit-history access and actor/timestamp/old/new-value assertions. Current update workflows do not verify a complete audit trail.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_077",
+      "title": "Verify complete audit trail of field changes",
+      "category": "Audit Trail",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 95. Module: Audit. Feature: Audit Trail - Changes. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Update patient address\n2. Update patient mobile\n3. Check audit log for both changes",
+          "expected": "Audit log captures old value, new value, changed by, and changed on for all modifications"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Audit log captures old value, new value, changed by, and changed on for all modifications"
+      },
+      "automationBlocker": "Requires audit-history access and actor/timestamp/old/new-value assertions. Current update workflows do not verify a complete audit trail.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_078",
+      "title": "Verify dynamic registration report",
+      "category": "Reports",
+      "priority": "P2",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 97. Module: Reports. Feature: Registration Report. Test type: Functional. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Navigate to Reports > Registration Report\n2. Apply filters (date range, registration type)\n3. Generate report",
+          "expected": "Report generated with correct data matching applied filters"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "Report generated with correct data matching applied filters"
+      },
+      "automationBlocker": "Registration report navigation, filter fixtures and output reconciliation are not implemented.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_079",
+      "title": "Verify ABHA link and delink functionality",
+      "category": "Integration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 99. Module: Integration. Feature: ABHA - Delink. Test type: Integration. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. Link ABHA to patient UHID\n2. Verify ABHA data visible\n3. Delink ABHA\n4. Verify ABHA data no longer associated",
+          "expected": "ABHA linked and delinked successfully; historical data access controlled accordingly"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "ABHA linked and delinked successfully; historical data access controlled accordingly"
+      },
+      "automationBlocker": "Requires an ABHA sandbox, approved OTP/identity fixtures and link/delink/history-access assertions. Opening the ABHA dialog does not verify this procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    },
+    {
+      "id": "TC_REG_080",
+      "title": "Verify redirect from registration to OPD invoice",
+      "category": "Integration",
+      "priority": "P1",
+      "mode": "automated",
+      "enabled": true,
+      "notes": "Source: Registration_Test_Cases 1.xlsx, Registration Test Cases, row 100. Module: Integration. Feature: Redirect to OPD Invoice. Test type: Integration. Source status: Not Run. \nOriginal procedure and expected outcome are preserved below. NOT AUTOMATED: automatic runs report BLOCKED without application assertions; no manual result entry is requested.",
+      "preconditions": "",
+      "requirement": "",
+      "steps": [
+        {
+          "action": "1. After saving registration, click 'OP Bill' from pop-up\n2. Verify OPD billing screen opens with patient details pre-filled",
+          "expected": "OPD billing screen opens with registered patient data pre-populated"
+        }
+      ],
+      "action": "unavailable",
+      "input": {},
+      "expected": {
+        "outcome": "automation-blocked",
+        "note": "OPD billing screen opens with registered patient data pre-populated"
+      },
+      "automationBlocker": "Requires OP Bill popup navigation and verification of prefilled billing patient details. The existing redirect URL check alone does not satisfy the source procedure.",
+      "sourceWorkbook": "Registration_Test_Cases 1.xlsx",
+      "automationReadiness": "blocked"
+    }
+  ]
+}

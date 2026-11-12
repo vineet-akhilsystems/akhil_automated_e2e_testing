@@ -1,0 +1,882 @@
+{
+  "admin DELETE /api/modules/alpha/cases/AL-001": {
+    "key": "DELETE /api/modules/alpha/cases/AL-001",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "deleted"
+    ]
+  },
+  "admin DELETE /api/modules/registration/templates/snap_base": {
+    "key": "DELETE /api/modules/registration/templates/snap_base",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "adapter",
+      "area",
+      "config",
+      "createdAt",
+      "description",
+      "id",
+      "name",
+      "prefix",
+      "productId",
+      "settings",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "admin DELETE /api/teams/:id": {
+    "key": "DELETE /api/teams/:id",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "deleted"
+    ]
+  },
+  "admin DELETE /api/teams/:id/members/:id": {
+    "key": "DELETE /api/teams/:id/members/:id",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "createdBy",
+      "description",
+      "id",
+      "memberCount",
+      "members",
+      "name"
+    ]
+  },
+  "admin GET /api/access/roles": {
+    "key": "GET /api/access/roles",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "permissions",
+      "roles"
+    ]
+  },
+  "admin GET /api/agent/status": {
+    "key": "GET /api/agent/status",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "agents",
+      "busy"
+    ]
+  },
+  "admin GET /api/api-does-not-exist": {
+    "key": "GET /api/api-does-not-exist",
+    "who": "admin",
+    "status": 404,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "admin GET /api/audit": {
+    "key": "GET /api/audit",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:3",
+      "action",
+      "actor",
+      "at",
+      "detail",
+      "scopeId",
+      "scopeType",
+      "subject"
+    ]
+  },
+  "admin GET /api/bootstrap": {
+    "key": "GET /api/bootstrap",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "adapters",
+      "aiPresets",
+      "capabilities",
+      "environments",
+      "modules",
+      "product",
+      "products",
+      "project",
+      "roles",
+      "runs",
+      "user"
+    ]
+  },
+  "admin GET /api/directory": {
+    "key": "GET /api/directory",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:3",
+      "displayName",
+      "id",
+      "username"
+    ]
+  },
+  "admin GET /api/health": {
+    "key": "GET /api/health",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "status",
+      "uptimeSeconds",
+      "version"
+    ]
+  },
+  "admin GET /api/me/access": {
+    "key": "GET /api/me/access",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "admin",
+      "modules",
+      "products"
+    ]
+  },
+  "admin GET /api/modules/alpha/agent/jobs": {
+    "key": "GET /api/modules/alpha/agent/jobs",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:0"
+    ]
+  },
+  "admin GET /api/modules/alpha/cases": {
+    "key": "GET /api/modules/alpha/cases",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:0"
+    ]
+  },
+  "admin GET /api/modules/alpha/cases #2": {
+    "key": "GET /api/modules/alpha/cases",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:1",
+      "category",
+      "contentBy",
+      "createdAt",
+      "createdBy",
+      "enabled",
+      "id",
+      "input",
+      "mode",
+      "notes",
+      "preconditions",
+      "priority",
+      "requirement",
+      "reviewStatus",
+      "reviewedBy",
+      "steps",
+      "title",
+      "updatedAt",
+      "updatedBy",
+      "version"
+    ]
+  },
+  "admin GET /api/modules/alpha/coverage": {
+    "key": "GET /api/modules/alpha/coverage",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "actions",
+      "cases",
+      "counts",
+      "environmentId",
+      "fields",
+      "moduleId",
+      "requirements",
+      "scopeNote",
+      "variants"
+    ]
+  },
+  "admin GET /api/modules/alpha/export": {
+    "key": "GET /api/modules/alpha/export",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "bases",
+      "cases",
+      "module",
+      "requirements"
+    ]
+  },
+  "admin GET /api/modules/alpha/insights": {
+    "key": "GET /api/modules/alpha/insights",
+    "who": "admin",
+    "status": 404,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "admin GET /api/modules/alpha/insights #2": {
+    "key": "GET /api/modules/alpha/insights",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "basedOn",
+      "changeSummary",
+      "coveredSources",
+      "createdAt",
+      "createdBy",
+      "draftAutomated",
+      "draftCaseIds",
+      "draftDuplicates",
+      "draftSkipped",
+      "edgeCases",
+      "fields",
+      "flows",
+      "id",
+      "mode",
+      "moduleId",
+      "openQuestions",
+      "productId",
+      "productName",
+      "rules",
+      "sources",
+      "status",
+      "summary",
+      "version"
+    ]
+  },
+  "admin GET /api/modules/alpha/insights/history": {
+    "key": "GET /api/modules/alpha/insights/history",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:1",
+      "basedOn",
+      "changeSummary",
+      "counts",
+      "createdAt",
+      "createdBy",
+      "id",
+      "mode",
+      "version"
+    ]
+  },
+  "admin GET /api/modules/alpha/intake": {
+    "key": "GET /api/modules/alpha/intake",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "files",
+      "insights",
+      "maxMb",
+      "mode"
+    ]
+  },
+  "admin GET /api/modules/alpha/members": {
+    "key": "GET /api/modules/alpha/members",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:1",
+      "createdAt",
+      "createdBy",
+      "effective",
+      "expiresAt",
+      "id",
+      "noLead",
+      "overrides",
+      "role",
+      "subject"
+    ]
+  },
+  "admin GET /api/modules/alpha/readiness": {
+    "key": "GET /api/modules/alpha/readiness",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "blockers",
+      "canGenerateAi",
+      "canProposeAutomation",
+      "proposalBlockers",
+      "stages",
+      "warnings"
+    ]
+  },
+  "admin GET /api/modules/alpha/setup": {
+    "key": "GET /api/modules/alpha/setup",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "setup",
+      "suggestedSetup"
+    ]
+  },
+  "admin GET /api/modules/nope/readiness": {
+    "key": "GET /api/modules/nope/readiness",
+    "who": "admin",
+    "status": 404,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "admin GET /api/modules/registration/cases": {
+    "key": "GET /api/modules/registration/cases",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:132",
+      "action",
+      "base",
+      "category",
+      "createdAt",
+      "expected",
+      "id",
+      "input",
+      "mode",
+      "preconditions",
+      "priority",
+      "registrationType",
+      "requirement",
+      "steps",
+      "title",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "admin GET /api/products": {
+    "key": "GET /api/products",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:2",
+      "description",
+      "environmentCount",
+      "id",
+      "lastRunAt",
+      "moduleCount",
+      "name",
+      "runCount"
+    ]
+  },
+  "admin GET /api/runs": {
+    "key": "GET /api/runs",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:0"
+    ]
+  },
+  "admin GET /api/runs/:id": {
+    "key": "GET /api/runs/:id",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "addedDependencies",
+      "cases",
+      "createdAt",
+      "createdBy",
+      "environmentId",
+      "environmentName",
+      "environmentUrl",
+      "id",
+      "kind",
+      "mode",
+      "module",
+      "name",
+      "productId",
+      "productName",
+      "requestedCount",
+      "results",
+      "scope",
+      "status",
+      "total"
+    ]
+  },
+  "admin GET /api/runs/does-not-exist": {
+    "key": "GET /api/runs/does-not-exist",
+    "who": "admin",
+    "status": 404,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "admin GET /api/session": {
+    "key": "GET /api/session",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "authRequired",
+      "authenticated",
+      "brand",
+      "mode",
+      "mustChangePassword",
+      "user"
+    ]
+  },
+  "admin GET /api/teams": {
+    "key": "GET /api/teams",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:1",
+      "createdBy",
+      "description",
+      "id",
+      "memberCount",
+      "members",
+      "name"
+    ]
+  },
+  "admin GET /api/users": {
+    "key": "GET /api/users",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:1",
+      "createdAt",
+      "disabled",
+      "displayName",
+      "id",
+      "lastLoginAt",
+      "mustChangePassword",
+      "role",
+      "username"
+    ]
+  },
+  "admin PATCH /api/teams/:id": {
+    "key": "PATCH /api/teams/:id",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "createdBy",
+      "description",
+      "id",
+      "memberCount",
+      "members",
+      "name"
+    ]
+  },
+  "admin PATCH /api/users/:id": {
+    "key": "PATCH /api/users/:id",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "createdAt",
+      "disabled",
+      "displayName",
+      "id",
+      "lastLoginAt",
+      "mustChangePassword",
+      "role",
+      "username"
+    ]
+  },
+  "admin POST /api/modules": {
+    "key": "POST /api/modules",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "adapter",
+      "area",
+      "config",
+      "createdAt",
+      "description",
+      "id",
+      "name",
+      "prefix",
+      "productId",
+      "settings",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "admin POST /api/modules #2": {
+    "key": "POST /api/modules",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "adapter",
+      "area",
+      "config",
+      "createdAt",
+      "description",
+      "id",
+      "name",
+      "prefix",
+      "productId",
+      "settings",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "admin POST /api/modules/alpha/cases": {
+    "key": "POST /api/modules/alpha/cases",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "category",
+      "contentBy",
+      "createdAt",
+      "createdBy",
+      "enabled",
+      "id",
+      "input",
+      "mode",
+      "notes",
+      "preconditions",
+      "priority",
+      "requirement",
+      "reviewStatus",
+      "reviewedBy",
+      "steps",
+      "title",
+      "updatedAt",
+      "updatedBy",
+      "version"
+    ]
+  },
+  "admin POST /api/modules/alpha/cases #2": {
+    "key": "POST /api/modules/alpha/cases",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "category",
+      "contentBy",
+      "createdAt",
+      "createdBy",
+      "enabled",
+      "id",
+      "input",
+      "mode",
+      "notes",
+      "preconditions",
+      "priority",
+      "requirement",
+      "reviewStatus",
+      "reviewedBy",
+      "steps",
+      "title",
+      "updatedAt",
+      "updatedBy",
+      "version"
+    ]
+  },
+  "admin POST /api/modules/alpha/cases/bulk": {
+    "key": "POST /api/modules/alpha/cases/bulk",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "action",
+      "updated"
+    ]
+  },
+  "admin POST /api/modules/alpha/cases/review": {
+    "key": "POST /api/modules/alpha/cases/review",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "decision",
+      "updated"
+    ]
+  },
+  "admin POST /api/modules/alpha/import": {
+    "key": "POST /api/modules/alpha/import",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "imported"
+    ]
+  },
+  "admin POST /api/modules/alpha/members": {
+    "key": "POST /api/modules/alpha/members",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "createdAt",
+      "createdBy",
+      "effective",
+      "expiresAt",
+      "id",
+      "overrides",
+      "role",
+      "subject"
+    ]
+  },
+  "admin POST /api/products": {
+    "key": "POST /api/products",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "description",
+      "id",
+      "name"
+    ]
+  },
+  "admin POST /api/runs": {
+    "key": "POST /api/runs",
+    "who": "admin",
+    "status": 400,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "admin POST /api/runs #2": {
+    "key": "POST /api/runs",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "addedDependencies",
+      "createdAt",
+      "createdBy",
+      "environmentId",
+      "environmentName",
+      "environmentUrl",
+      "id",
+      "kind",
+      "mode",
+      "module",
+      "name",
+      "productId",
+      "productName",
+      "requestedCount",
+      "results",
+      "scope",
+      "status",
+      "total"
+    ]
+  },
+  "admin POST /api/teams": {
+    "key": "POST /api/teams",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "createdBy",
+      "description",
+      "id",
+      "memberCount",
+      "members",
+      "name"
+    ]
+  },
+  "admin POST /api/teams/:id/members": {
+    "key": "POST /api/teams/:id/members",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "createdBy",
+      "description",
+      "id",
+      "memberCount",
+      "members",
+      "name"
+    ]
+  },
+  "admin PUT /api/modules/alpha/cases/AL-001": {
+    "key": "PUT /api/modules/alpha/cases/AL-001",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "category",
+      "contentBy",
+      "createdAt",
+      "createdBy",
+      "enabled",
+      "id",
+      "input",
+      "mode",
+      "notes",
+      "preconditions",
+      "priority",
+      "requirement",
+      "reviewStatus",
+      "reviewedBy",
+      "steps",
+      "title",
+      "updatedAt",
+      "updatedBy",
+      "version"
+    ]
+  },
+  "admin PUT /api/modules/alpha/insights": {
+    "key": "PUT /api/modules/alpha/insights",
+    "who": "admin",
+    "status": 201,
+    "topLevelKeys": [
+      "automatedDrafts",
+      "changeSummary",
+      "draftCases",
+      "draftIds",
+      "duplicates",
+      "id",
+      "mode",
+      "skipped",
+      "version"
+    ]
+  },
+  "admin PUT /api/modules/alpha/requirements": {
+    "key": "PUT /api/modules/alpha/requirements",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "adapter",
+      "area",
+      "config",
+      "createdAt",
+      "description",
+      "id",
+      "name",
+      "prefix",
+      "productId",
+      "settings",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "admin PUT /api/modules/registration/templates": {
+    "key": "PUT /api/modules/registration/templates",
+    "who": "admin",
+    "status": 200,
+    "topLevelKeys": [
+      "adapter",
+      "area",
+      "config",
+      "createdAt",
+      "description",
+      "id",
+      "name",
+      "prefix",
+      "productId",
+      "resetCases",
+      "settings",
+      "updatedAt",
+      "version"
+    ]
+  },
+  "ann GET /api/modules/alpha/cases": {
+    "key": "GET /api/modules/alpha/cases",
+    "who": "ann",
+    "status": 200,
+    "topLevelKeys": [
+      "[array]",
+      "len:2",
+      "category",
+      "contentBy",
+      "createdAt",
+      "createdBy",
+      "enabled",
+      "id",
+      "input",
+      "mode",
+      "notes",
+      "preconditions",
+      "priority",
+      "requirement",
+      "reviewStatus",
+      "reviewedBy",
+      "steps",
+      "title",
+      "updatedAt",
+      "updatedBy",
+      "version"
+    ]
+  },
+  "ann GET /api/modules/gamma/cases": {
+    "key": "GET /api/modules/gamma/cases",
+    "who": "ann",
+    "status": 404,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "ann GET /api/users": {
+    "key": "GET /api/users",
+    "who": "ann",
+    "status": 403,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "ann POST /api/modules/alpha/members": {
+    "key": "POST /api/modules/alpha/members",
+    "who": "ann",
+    "status": 403,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "anon GET /api/bootstrap": {
+    "key": "GET /api/bootstrap",
+    "who": "anon",
+    "status": 401,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "anon GET /api/health": {
+    "key": "GET /api/health",
+    "who": "anon",
+    "status": 200,
+    "topLevelKeys": [
+      "status",
+      "uptimeSeconds",
+      "version"
+    ]
+  },
+  "anon GET /api/session": {
+    "key": "GET /api/session",
+    "who": "anon",
+    "status": 200,
+    "topLevelKeys": [
+      "authRequired",
+      "authenticated",
+      "brand",
+      "mode"
+    ]
+  },
+  "anon POST /api/login": {
+    "key": "POST /api/login",
+    "who": "anon",
+    "status": 401,
+    "topLevelKeys": [
+      "error"
+    ]
+  },
+  "ben POST /api/login": {
+    "key": "POST /api/login",
+    "who": "ben",
+    "status": 200,
+    "topLevelKeys": [
+      "authenticated",
+      "mustChangePassword",
+      "user"
+    ]
+  },
+  "ben POST /api/logout": {
+    "key": "POST /api/logout",
+    "who": "ben",
+    "status": 200,
+    "topLevelKeys": [
+      "ok"
+    ]
+  },
+  "ben POST /api/me/password": {
+    "key": "POST /api/me/password",
+    "who": "ben",
+    "status": 200,
+    "topLevelKeys": [
+      "ok"
+    ]
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "new-reset": {
+    "name": "New clears unsaved registration fields",
+    "sourceCases": [],
+    "savedRecord": false
+  },
+  "keyboard-fields": {
+    "name": "Tab and arrow keys navigate registration controls",
+    "sourceCases": [
+      "TC_REG_014",
+      "TC_REG_015"
+    ],
+    "savedRecord": false
+  },
+  "title-gender": {
+    "name": "Mr. and Mrs. synchronize gender in order",
+    "sourceCases": [
+      "TC_REG_025"
+    ],
+    "savedRecord": false
+  },
+  "dob-age": {
+    "name": "DOB calculates exact age including leap-day boundaries",
+    "sourceCases": [
+      "TC_REG_026"
+    ],
+    "savedRecord": false
+  },
+  "address-copy": {
+    "name": "Current address copies all mapped values to Permanent",
+    "sourceCases": [
+      "TC_REG_037"
+    ],
+    "savedRecord": false
+  },
+  "address-independent": {
+    "name": "Separate permanent address retains independent values",
+    "sourceCases": [],
+    "savedRecord": false
+  },
+  "payer-reset": {
+    "name": "Corporate to Self-Paid resets payer and sponsor",
+    "sourceCases": [
+      "TC_REG_042"
+    ],
+    "savedRecord": false
+  },
+  "newborn-fields": {
+    "name": "Newborn delivery controls accept values",
+    "sourceCases": [
+      "TC_REG_029"
+    ],
+    "savedRecord": false,
+    "partial": true
+  },
+  "staff-fields": {
+    "name": "Staff registration exposes employee lookup and dependants",
+    "sourceCases": [
+      "TC_REG_030",
+      "TC_REG_032"
+    ],
+    "savedRecord": false,
+    "partial": true
+  },
+  "document-gate": {
+    "name": "Unsaved patient documents require registration first",
+    "sourceCases": [
+      "TC_REG_062"
+    ],
+    "savedRecord": false,
+    "partial": true
+  },
+  "notes-gate": {
+    "name": "Unsaved patient notes require registration first",
+    "sourceCases": [],
+    "savedRecord": false
+  },
+  "addon-shells": {
+    "name": "All seven add-on buttons open and close their drawer",
+    "sourceCases": [],
+    "savedRecord": false,
+    "partial": true
+  },
+  "search-identity": {
+    "name": "UHID search opens the correct patient and values",
+    "sourceCases": [
+      "TC_REG_018"
+    ],
+    "savedRecord": true
+  },
+  "update-remarks": {
+    "name": "Blank remarks block submission; cancel preserves saved data",
+    "sourceCases": [
+      "TC_REG_061"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "update-persist": {
+    "name": "Remarks submit updates and persists synthetic patient's email",
+    "sourceCases": [
+      "TC_REG_061"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "active-cancel": {
+    "name": "Active status remarks require text; Close preserves status",
+    "sourceCases": [
+      "TC_REG_070"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "print-card": {
+    "name": "Print Card opens output containing correct patient identity",
+    "sourceCases": [
+      "TC_REG_055"
+    ],
+    "savedRecord": true
+  },
+  "print-form": {
+    "name": "Print Form opens output containing correct patient identity",
+    "sourceCases": [
+      "TC_REG_056"
+    ],
+    "savedRecord": true
+  },
+  "qr-download": {
+    "name": "QR dialog identifies patient and downloads a valid PNG",
+    "sourceCases": [
+      "TC_REG_060"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "quick-actions": {
+    "name": "Saved patient exposes Appointment, OP Invoice and Admission",
+    "sourceCases": [
+      "TC_REG_059"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "document-upload": {
+    "name": "Synthetic PDF uploads and remains linked after reopening the patient",
+    "sourceCases": [
+      "TC_REG_062"
+    ],
+    "savedRecord": true
+  },
+  "document-format": {
+    "name": "Unsupported document format is rejected before upload",
+    "sourceCases": [
+      "TC_REG_063"
+    ],
+    "savedRecord": true
+  },
+  "document-clear": {
+    "name": "Clear removes unsaved document inputs and disables Upload",
+    "sourceCases": [],
+    "savedRecord": true
+  },
+  "abha-dialog": {
+    "name": "ABHA verification opens and closes without submitting identity data",
+    "sourceCases": [
+      "TC_REG_069"
+    ],
+    "savedRecord": false,
+    "partial": true
+  },
+  "redirect-billing": {
+    "name": "OP Invoice redirects with the synthetic patient UHID",
+    "sourceCases": [
+      "TC_REG_080"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "redirect-admission": {
+    "name": "Admission redirects with the synthetic patient UHID",
+    "sourceCases": [
+      "TC_REG_059"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "redirect-appointment": {
+    "name": "Appointment opens with the synthetic patient name",
+    "sourceCases": [
+      "TC_REG_059"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "insurance-payer-reset": {
+    "name": "Insurance to Self-Paid resets payer and sponsor to locked Cash defaults",
+    "sourceCases": [
+      "TC_REG_042"
+    ],
+    "savedRecord": false
+  },
+  "pin-clear": {
+    "name": "Clearing a populated PIN clears State, District and City",
+    "sourceCases": [
+      "TC_REG_036"
+    ],
+    "savedRecord": false,
+    "partial": true
+  },
+  "new-reset-address": {
+    "name": "New clears unsaved current and permanent address data and stale validation",
+    "sourceCases": [],
+    "savedRecord": false
+  },
+  "duplicate-use-existing": {
+    "name": "Save matching synthetic patient details prompts duplicates; Use Existing reopens the correct UHID without creating another",
+    "sourceCases": [
+      "TC_REG_033",
+      "TC_REG_065"
+    ],
+    "savedRecord": true,
+    "partial": true
+  },
+  "dropdown-keyboard": {
+    "name": "Down and Up navigate dropdown options; Enter selects the focused option",
+    "sourceCases": [
+      "TC_REG_015"
+    ],
+    "savedRecord": false
+  },
+  "pin-autofill": {
+    "name": "PIN lookup auto-populates Country, State, City and Area as required by workbook",
+    "sourceCases": [
+      "TC_REG_036"
+    ],
+    "savedRecord": false
+  },
+  "duplicate-mobile-alert": {
+    "name": "Existing mobile entry raises a duplicate alert before Save and opens the selected patient",
+    "sourceCases": [
+      "TC_REG_033"
+    ],
+    "savedRecord": true
+  },
+  "duplicate-explicit-check": {
+    "name": "Explicit Check Duplicate action identifies matching synthetic patient before proceeding",
+    "sourceCases": [
+      "TC_REG_065"
+    ],
+    "savedRecord": true
+  },
+  "country-mobile-code": {
+    "name": "Australia and India select the correct mobile dialing code",
+    "sourceCases": [
+      "TC_REG_035"
+    ],
+    "savedRecord": false
+  },
+  "partial-name-suggestions": {
+    "name": "Three-character patient name shows matching suggestions without pressing Enter",
+    "sourceCases": [
+      "TC_REG_021"
+    ],
+    "savedRecord": true
+  },
+  "photo-upload": {
+    "name": "Synthetic patient photo uploads, saves and remains visible after reopening",
+    "sourceCases": [
+      "TC_REG_028"
+    ],
+    "savedRecord": true
+  },
+  "mandatory-tab-traversal": {
+    "name": "Tab from Title reaches all visible enabled mandatory fields in form order",
+    "sourceCases": [
+      "TC_REG_014"
+    ],
+    "savedRecord": false
+  },
+  "print-form-complete": {
+    "name": "Registration form invokes print and includes all captured synthetic fixture fields",
+    "sourceCases": [
+      "TC_REG_056"
+    ],
+    "savedRecord": true
+  }
+}

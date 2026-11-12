@@ -1,0 +1,10 @@
+import { $, esc, icon, opts } from './dom.js';
+
+export function toast(message, error = false) { const node = document.createElement('div'); node.className = `toast${error ? ' error' : ''}`; node.textContent = message; $('#toasts').append(node); while ($('#toasts').children.length > 3) $('#toasts').firstElementChild.remove(); setTimeout(() => node.remove(), error ? 8000 : 4500); }
+export function empty(title, message, action = '') { return `<div class="empty">${icon('layers')}<h3>${esc(title)}</h3><p>${esc(message)}</p>${action}</div>`; }
+export function heading(eyebrow, title, subtitle, actions = '') { return `<div class="page-heading"><div><div class="eyebrow">${esc(eyebrow)}</div><h1>${esc(title)}</h1><p class="subtitle">${esc(subtitle)}</p></div><div class="heading-actions">${actions}</div></div>`; }
+export function searchBox(placeholder, value, type) { return `<div class="search">${icon('search')}<input aria-label="${esc(placeholder)}" placeholder="${esc(placeholder)}" value="${esc(value)}" data-filter="${type}"></div>`; }
+export function stats(items) { return `<div class="stats">${items.map(([label, value, note, name, cls]) => `<div class="stat"><div class="stat-top">${esc(label)}<span class="stat-icon ${cls ?? ''}">${icon(name)}</span></div><div class="stat-number">${esc(value)}</div><div class="stat-note">${esc(note)}</div></div>`).join('')}</div>`; }
+export const field = (label, name, value = '', extra = '', help = '') => `<div class="form-field"><label for="${name}">${esc(label)}</label><input id="${name}" name="${name}" value="${esc(value)}" ${extra}>${help ? `<small>${help}</small>` : ''}</div>`;
+export const selectField = (label, name, values, selected, extra = '') => `<div class="form-field"><label for="${name}">${esc(label)}</label><select id="${name}" name="${name}" ${extra}>${opts(values, selected)}</select></div>`;
+export const textArea = (label, name, value = '', extra = '') => `<div class="form-field wide"><label for="${name}">${esc(label)}</label><textarea id="${name}" name="${name}" ${extra}>${esc(value)}</textarea></div>`;

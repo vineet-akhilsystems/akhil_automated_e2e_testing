@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npx playwright test *)",
+      "Bash(npm test *)",
+      "Bash(node qa/tools/mongo-read.js *)"
+    ],
+    "ask": [
+      "Bash(npm run auth*)",
+      "Bash(npm run pipeline*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./login.txt)",
+      "Read(./.auth/**)",
+      "Edit(./.env)",
+      "Edit(./login.txt)",
+      "Edit(./.auth/**)",
+      "Bash(mongosh *)",
+      "Bash(mongo *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/db-readonly-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

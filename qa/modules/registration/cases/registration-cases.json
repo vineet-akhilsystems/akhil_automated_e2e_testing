@@ -1,0 +1,2459 @@
+{
+  "module": "registration",
+  "version": 1,
+  "notes": [
+    "Source of truth for registration edge cases. BA team can edit the Excel export (qa/tools/cases-io.js) and run it directly.",
+    "base: 'valid' merges the 'bases.valid' patient below, then 'input' overrides it. Use \"\" in input to clear a base field.",
+    "Tokens: {{seq}} agent test number (digits), {{seqWord}} the same number spelled out for name fields (digits are stripped there), {{phone}} unique valid mobile, {{phone2}} second unique mobile, {{today}} DD/MM/YYYY, {{first}} first dropdown option, {{regId@CASE}} / {{phone@CASE}} values from an earlier case.",
+    "expected.values / persisted: '*' = any non-empty, '' = empty, '~text' = contains, otherwise case-insensitive equality.",
+    "expected.assumed = true marks expectations that are NOT defined in code/config (requirement gap). Failures there are reported as 'FAIL (assumed requirement)'.",
+    "Outcomes: created | blocked | rejected | duplicate-warning | field-state | no-errors | found | not-found | no-error | updated | observe"
+  ],
+  "bases": {
+    "valid": {
+      "title": "Mr.",
+      "first_name": "Agent",
+      "middle_name": "Testing",
+      "last_name": "User{{seqWord}}",
+      "gender": "Male",
+      "dob": "15/08/1990",
+      "mobile": "{{phone}}",
+      "pin_code": "110001",
+      "area": "{{first}}",
+      "address": "Agent test address, Lane {{seq}}",
+      "mark_permanent": true
+    }
+  },
+  "cases": [
+    {
+      "id": "REG-001",
+      "category": "happy",
+      "priority": "P1",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created",
+        "toastContains": "Registration Number",
+        "persisted": {
+          "first_name": "Agent",
+          "last_name": "User{{seqWord}}",
+          "mobile": "{{phone}}",
+          "state": "DELHI"
+        }
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-002",
+      "category": "happy",
+      "priority": "P1",
+      "title": "New Registration with every optional field filled is created and persisted",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "email": "agent.testing{{seq}}@example.com",
+        "whatsapp": "{{phone2}}",
+        "legal_guardian": "Agent Testing Guardian",
+        "marital_status": "{{first}}",
+        "department": "{{first}}",
+        "consultant": "{{first}}",
+        "id_number": "AGT{{seq}}",
+        "emergency_name": "Agent Testing Contact",
+        "emergency_relationship": "{{first}}",
+        "emergency_mobile": "{{phone2}}",
+        "consent": true
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "email": "agent.testing{{seq}}@example.com",
+          "legal_guardian": "Agent Testing Guardian",
+          "emergency_name": "Agent Testing Contact"
+        }
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-003",
+      "category": "happy",
+      "priority": "P2",
+      "title": "Female patient with title Mrs. is created with gender Female",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "title": "Mrs.",
+        "gender": "Female"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "gender": "Female",
+          "title": "Mrs."
+        }
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-004",
+      "category": "dob-age",
+      "priority": "P1",
+      "title": "Typing age 30 instead of DOB formats age and auto-calculates DOB",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "30"
+      },
+      "expected": {
+        "outcome": "created",
+        "values": {
+          "age": "30Y 0M 0D",
+          "dob": "*"
+        }
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-010",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Saving an empty form is blocked with a required-field message",
+      "registrationType": "New Registration",
+      "action": "save",
+      "input": {},
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "required field",
+        "note": "Deployed build (2.0.66) names one missing field at a time ('Please fill the required field: First Name'); repo code lists all."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-011",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing First Name blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "First Name"
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-012",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing Last Name blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "last_name": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Last Name"
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-013",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing DOB (and age) blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "DOB"
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-014",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing Mobile No blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Mobile"
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-015",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing Address (marked * on screen) blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "address": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "note": "Address shows a red * but save only checks First/Last/DOB/Gender/Mobile in code (RegistrationPreview.jsx:2874)."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-016",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Missing Pin Code (marked * on screen) blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "pin_code": "",
+        "area": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "note": "Pin Code shows a red * but is not in the hard-coded save check."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-017",
+      "category": "mandatory",
+      "priority": "P2",
+      "title": "First Name of only spaces is treated as empty",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "   "
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "First Name"
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-018",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Choosing 'None' for required Gender blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "gender": "None"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Gender",
+        "note": "Discovery: Gender dropdown offers a 'None' option although Gender is required."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-019",
+      "category": "mandatory",
+      "priority": "P2",
+      "title": "Choosing 'None' for required Title blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "title": "None"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Title is marked * but is not in the hard-coded save check."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-037",
+      "category": "name",
+      "priority": "P3",
+      "title": "Title 'Mrs.' with Gender 'Male' is flagged as inconsistent",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "title": "Mrs.",
+        "gender": "Male"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "No title/gender consistency rule found in code."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-020",
+      "category": "phone",
+      "priority": "P1",
+      "title": "9-digit mobile number shows an error and blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": "987654321"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "mobile": "valid 10-digit"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-021",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Typing 11 digits into mobile keeps only 10",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "mobile": "98765432109"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "mobile": "9876543210"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-022",
+      "category": "phone",
+      "priority": "P1",
+      "title": "Mobile starting with 5 (not a valid Indian mobile) is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": "5123456789"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "mobile": "valid"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-023",
+      "category": "phone",
+      "priority": "P3",
+      "title": "Mobile with a leading 0 is accepted after dropping the 0",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "mobile": "0{{phone}}"
+      },
+      "expected": {
+        "outcome": "observe",
+        "note": "phoneRules.js drops one leading 0, but maxLength may stop the 11th digit."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-024",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Letters typed into mobile are stripped",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "mobile": "98765abcde"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "mobile": "98765"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-025",
+      "category": "phone",
+      "priority": "P3",
+      "title": "All-same-digit mobile 9999999999 is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": "9999999999"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "libphonenumber treats it as valid; business rule not defined."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-026",
+      "category": "phone",
+      "priority": "P3",
+      "title": "5-digit WhatsApp number is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "whatsapp": "98765"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-027",
+      "category": "phone",
+      "priority": "P3",
+      "title": "3-digit emergency contact mobile is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "emergency_name": "Agent Testing Contact",
+        "emergency_mobile": "123"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-030",
+      "category": "name",
+      "priority": "P2",
+      "title": "Digits in First Name are rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "Agent123"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-031",
+      "category": "name",
+      "priority": "P2",
+      "title": "Special characters in First Name are rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "Ag@nt#"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-032",
+      "category": "name",
+      "priority": "P3",
+      "title": "120-character First Name is limited or rejected",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "first_name": "Agentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagentagent"
+      },
+      "expected": {
+        "outcome": "observe",
+        "note": "No max length known; record what is accepted."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-033",
+      "category": "name",
+      "priority": "P2",
+      "title": "Full name typed into First Name is split into middle and last name",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "first_name": "Agent Testing User{{seqWord}}"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "first_name": "Agent",
+          "middle_name": "Testing",
+          "last_name": "User{{seqWord}}"
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-034",
+      "category": "name",
+      "priority": "P3",
+      "title": "Hindi (Unicode) First Name is accepted",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "first_name": "अजय"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "first_name": "अजय"
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-035",
+      "category": "name",
+      "priority": "P2",
+      "title": "Leading/trailing spaces in names are trimmed when saved",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "  Agent  "
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "first_name": "Agent"
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-040",
+      "category": "dob-age",
+      "priority": "P1",
+      "title": "Future DOB is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "01/01/2030"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Depends on the DOB field's futureDates config."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-041",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "Impossible date 31/02/2000 is not accepted as typed",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "dob": "31/02/2000"
+      },
+      "expected": {
+        "outcome": "observe"
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-042",
+      "category": "dob-age",
+      "priority": "P3",
+      "title": "Day 45 is capped to 31 by the DOB mask",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "dob": "45/01/2000"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "dob": "~31/01/2000"
+        }
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-043",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "DOB today gives age 0Y 0M 0D",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "dob": "{{today}}"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "age": "0Y 0M 0D"
+        }
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-044",
+      "category": "dob-age",
+      "priority": "P3",
+      "title": "DOB in 1900 (age 126) is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "01/01/1900"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-045",
+      "category": "dob-age",
+      "priority": "P3",
+      "title": "Age 150 is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "150"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-050",
+      "category": "email",
+      "priority": "P2",
+      "title": "Invalid email 'agent@' is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "email": "agent@"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "No email rule in registration code; only bulk import validates email."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-060",
+      "category": "address",
+      "priority": "P1",
+      "title": "PIN 110001 fills State/District/City and asks to choose an Area",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "110001"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "country": "India",
+          "state": "DELHI",
+          "district": "NEW DELHI",
+          "city": "NEW DELHI"
+        },
+        "hints": {
+          "pin_code": "Several areas share"
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-061",
+      "category": "address",
+      "priority": "P1",
+      "title": "Unknown PIN 000000 shows 'not recognized'",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "000000"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "hints": {
+          "pin_code": "not recognized"
+        },
+        "values": {
+          "state": ""
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-062",
+      "category": "address",
+      "priority": "P2",
+      "title": "5-digit PIN does not trigger a lookup",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "11000"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "state": ""
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-063",
+      "category": "address",
+      "priority": "P2",
+      "title": "Letters typed into PIN are stripped",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "11a00b1"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "pin_code": "11001"
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-064",
+      "category": "address",
+      "priority": "P1",
+      "title": "Choosing State, District and Area without a PIN fills the PIN (reverse lookup)",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "state": "DELHI",
+        "district": "NEW DELHI",
+        "area": "{{first}}"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "pin_code": "*"
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-065",
+      "category": "address",
+      "priority": "P2",
+      "title": "PIN 246149 fills UTTARAKHAND / PAURI GARHWAL",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "246149"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "state": "UTTARAKHAND",
+          "district": "PAURI GARHWAL"
+        }
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-066",
+      "category": "address",
+      "priority": "P2",
+      "title": "Changing State after a typed PIN clears District/City, keeps the typed PIN and warns of the mismatch",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "pin_code": "110001",
+        "state": "UTTARAKHAND"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "district": "",
+          "city": "",
+          "pin_code": "110001"
+        },
+        "hints": {
+          "pin_code": "don't match"
+        },
+        "note": "PinCodeField.jsx:145-188 clears only a system-filled PIN; a user-typed PIN stays, so 110001 (Delhi) + UTTARAKHAND should show the mismatch hint."
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-067",
+      "category": "address",
+      "priority": "P2",
+      "title": "'Mark current address as permanent' patient is created",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mark_permanent": true
+      },
+      "expected": {
+        "outcome": "created"
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-069",
+      "category": "address",
+      "priority": "P1",
+      "title": "Filling only Current Address (Permanent tab untouched) blocks save on Permanent Pin Code",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mark_permanent": false
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Permanent Address",
+        "note": "Observed on demo 2.0.66. The Permanent tab is hidden behind a tab and not auto-filled; UX risk for receptionists."
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-068",
+      "category": "address",
+      "priority": "P3",
+      "title": "Very long (600 char) address is accepted or limited",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "address": "Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address block, Agent test address bl"
+      },
+      "expected": {
+        "outcome": "observe"
+      },
+      "requirement": "REG-REQ-005"
+    },
+    {
+      "id": "REG-070",
+      "category": "payer",
+      "priority": "P2",
+      "title": "Default payer is Self-Paid with Payer and Sponsor = Cash",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {},
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "payer_type": "Self-Paid",
+          "payer": "Cash",
+          "sponsor": "Cash"
+        }
+      },
+      "requirement": "REG-REQ-006"
+    },
+    {
+      "id": "REG-080",
+      "category": "registration-type",
+      "priority": "P1",
+      "title": "New Born Registration without Mother UHID (marked *) is blocked",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "blocked"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-081",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "International Registration with mandatory fields is created",
+      "registrationType": "International Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-082",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "Outside Registration with mandatory fields is created",
+      "registrationType": "Outside Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-083",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "Diagnostic Registration with mandatory fields is created",
+      "registrationType": "Diagnostic Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-084",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "Staff Registration without Staff Details (marked *) is blocked",
+      "registrationType": "Staff Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "blocked"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-085",
+      "category": "ui",
+      "priority": "P3",
+      "title": "Switching registration type does not show 'required' errors before Save",
+      "registrationType": "International Registration",
+      "action": "fill",
+      "input": {},
+      "expected": {
+        "outcome": "no-errors",
+        "note": "Seen in the walkthrough video: First/Last Name show 'This field is required.' right after switching type."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-090",
+      "category": "duplicate",
+      "priority": "P1",
+      "title": "Registering the exact same patient twice is not reported as a success",
+      "registrationType": "New Registration",
+      "action": "saveTwice",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "duplicate-warning",
+        "note": "Backend returns {statusCode:409} with HTTP 200; frontend treats any non-400 body as success (api.js:2416)."
+      },
+      "requirement": "REG-REQ-009"
+    },
+    {
+      "id": "REG-100",
+      "category": "search",
+      "priority": "P1",
+      "title": "Search 'Agent Testing' finds the agent-created patients",
+      "action": "search",
+      "input": {
+        "search": "Agent Testing"
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-101",
+      "category": "search",
+      "priority": "P1",
+      "title": "Search 'Vineet' finds the existing patient Vineet",
+      "action": "search",
+      "input": {
+        "search": "Vineet"
+      },
+      "expected": {
+        "outcome": "found",
+        "note": "Walkthrough video showed '0 records found' for 'vineet'."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-102",
+      "category": "search",
+      "priority": "P1",
+      "title": "Search 'Vivek' finds the existing patient Vivek",
+      "action": "search",
+      "input": {
+        "search": "Vivek"
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-103",
+      "category": "search",
+      "priority": "P2",
+      "title": "Search by the mobile number of REG-001 finds it",
+      "action": "search",
+      "input": {
+        "search": "{{phone@REG-001}}"
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-104",
+      "category": "search",
+      "priority": "P2",
+      "title": "Search with a regex character '(' does not error",
+      "action": "search",
+      "input": {
+        "search": "Agent("
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "Search text is not regex-escaped on the server (controller.ts:4901)."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-105",
+      "category": "search",
+      "priority": "P3",
+      "title": "Search for a nonsense name returns 0 records",
+      "action": "search",
+      "input": {
+        "search": "zzqxjv agent"
+      },
+      "expected": {
+        "outcome": "not-found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-110",
+      "category": "update",
+      "priority": "P1",
+      "title": "Update button stays disabled until something changes",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {},
+      "expected": {
+        "outcome": "field-state",
+        "saveDisabled": true
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-111",
+      "category": "update",
+      "priority": "P1",
+      "title": "Editing the email of REG-001 and submitting remarks updates the record",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "email": "agent.updated{{seq}}@example.com"
+      },
+      "expected": {
+        "outcome": "updated",
+        "persisted": {
+          "email": "agent.updated{{seq}}@example.com"
+        }
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-130",
+      "category": "real-names",
+      "priority": "P1",
+      "title": "Apostrophe surname D'Souza is saved exactly",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "last_name": "D'SouzaUser{{seqWord}}"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "last_name": "D'SouzaUser{{seqWord}}"
+        },
+        "note": "Real Indian surnames contain apostrophes; stripping them corrupts identity."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-131",
+      "category": "real-names",
+      "priority": "P1",
+      "title": "Hyphenated first name Anne-Marie is saved exactly",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "Anne-Marie"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "first_name": "Anne-Marie"
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-132",
+      "category": "real-names",
+      "priority": "P2",
+      "title": "Initial with a dot 'S.' as first name is saved exactly",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "S."
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "first_name": "S."
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-133",
+      "category": "real-names",
+      "priority": "P2",
+      "title": "Single-letter first name 'A' is accepted",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "A"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "first_name": "A"
+        }
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-134",
+      "category": "real-names",
+      "priority": "P2",
+      "title": "What 'Agent123' is actually saved as (digit stripping)",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "Agent123"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "first_name": "Agent"
+        },
+        "note": "Confirms digits are stripped rather than rejected."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-140",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "Leap day 29/02/2000 is accepted",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "dob": "29/02/2000"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "dob": "29/02/2000",
+          "age": "*"
+        }
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-141",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "29/02/2001 (not a leap year) is not accepted as typed",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "dob": "29/02/2001"
+      },
+      "expected": {
+        "outcome": "observe"
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-142",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "Typing age then DOB recalculates age from DOB",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "age": "30",
+        "dob": "15/08/1990"
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "age": "~36Y"
+        },
+        "note": "FILL_ORDER enters DOB before age; this checks the final state is consistent."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-150",
+      "category": "email",
+      "priority": "P3",
+      "title": "Email with plus-addressing is accepted and saved",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "email": "agent+{{seq}}@example.com"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "email": "agent+{{seq}}@example.com"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-151",
+      "category": "email",
+      "priority": "P3",
+      "title": "Email with spaces is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "email": "agent testing@example.com"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-160",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Emergency contact mobile equal to patient mobile is flagged",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "emergency_name": "Agent Testing Contact",
+        "emergency_mobile": "{{phone}}"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "An emergency contact that is the patient's own number is useless in an emergency."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-161",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Country Australia re-validates a 10-digit Indian mobile",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "country": "Australia",
+        "pin_code": "",
+        "area": ""
+      },
+      "expected": {
+        "outcome": "observe",
+        "note": "phoneRules.js picks rules from the current-address country. Earlier run was blocked on 'Pin Code (Current Address)' before the phone was re-checked, so this case cannot yet prove the phone rule; needs a non-India address flow (PIN field only takes 6 digits)."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-170",
+      "category": "payer",
+      "priority": "P1",
+      "title": "Payer Type Corporate without choosing a Payer blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "payer_type": "Corporate"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Payer"
+      },
+      "requirement": "REG-REQ-006"
+    },
+    {
+      "id": "REG-171",
+      "category": "payer",
+      "priority": "P1",
+      "title": "Payer Type Insurance without choosing a Payer blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "payer_type": "Insurance"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Payer"
+      },
+      "requirement": "REG-REQ-006"
+    },
+    {
+      "id": "REG-172",
+      "category": "payer",
+      "priority": "P2",
+      "title": "Corporate payer with first Payer and Sponsor is created",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "payer_type": "Corporate",
+        "payer": "{{first}}",
+        "sponsor": "{{first}}"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "payer_type": "Corporate"
+        }
+      },
+      "requirement": "REG-REQ-006"
+    },
+    {
+      "id": "REG-180",
+      "category": "identity",
+      "priority": "P2",
+      "title": "Id Type Foreigner without an Id Number is blocked",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "id_type": "Foreigner"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "A foreigner registration with no passport/ID number cannot be verified."
+      },
+      "requirement": "REG-REQ-008"
+    },
+    {
+      "id": "REG-190",
+      "category": "registration-type",
+      "priority": "P1",
+      "title": "New Born with Mother UHID of an existing patient is created",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "{{regId@REG-001}}",
+        "title": "Baby Of"
+      },
+      "expected": {
+        "outcome": "created"
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-191",
+      "category": "registration-type",
+      "priority": "P1",
+      "title": "New Born with a Mother UHID that does not exist is rejected",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "ASNR9999999999",
+        "title": "Baby Of"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-192",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "New Born with DOB 30 years ago is rejected",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "{{regId@REG-001}}",
+        "title": "Baby Of",
+        "dob": "15/08/1996"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "A newborn registration for a 30-year-old is a data-entry error."
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-200",
+      "category": "data-integrity",
+      "priority": "P1",
+      "title": "Double-clicking Save creates exactly one patient",
+      "registrationType": "New Registration",
+      "action": "saveDoubleClick",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created-once"
+      },
+      "requirement": "REG-REQ-009"
+    },
+    {
+      "id": "REG-210",
+      "category": "search",
+      "priority": "P2",
+      "title": "Search by the UHID of REG-001 opens it",
+      "action": "search",
+      "input": {
+        "search": "{{regId@REG-001}}"
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-211",
+      "category": "search",
+      "priority": "P3",
+      "title": "Search in lower case 'agent testing' finds agent patients",
+      "action": "search",
+      "input": {
+        "search": "agent testing"
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-212",
+      "category": "search",
+      "priority": "P3",
+      "title": "Search with surrounding spaces '  Agent  ' still finds patients",
+      "action": "search",
+      "input": {
+        "search": "  Agent  "
+      },
+      "expected": {
+        "outcome": "found"
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-220",
+      "category": "update",
+      "priority": "P1",
+      "title": "Changing the mobile of REG-001 to 9 digits blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "mobile": "987654321"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "note": "Invalid phone must not be saved through the edit path either."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-221",
+      "category": "ui",
+      "priority": "P1",
+      "title": "Switching to New Born Registration does not show premature required errors before Save",
+      "registrationType": "New Born Registration",
+      "action": "fill",
+      "input": {},
+      "expected": {
+        "outcome": "no-errors",
+        "note": "Switching registration type tabs should start with a clean form state without premature red validation errors."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-222",
+      "category": "ui",
+      "priority": "P1",
+      "title": "Switching to Staff Registration does not show premature required errors before Save",
+      "registrationType": "Staff Registration",
+      "action": "fill",
+      "input": {},
+      "expected": {
+        "outcome": "no-errors",
+        "note": "Switching registration type tabs should not trigger blur/submit errors before user interaction."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-223",
+      "category": "ui",
+      "priority": "P1",
+      "title": "Selecting Title 'Mrs.' auto-aligns Gender to 'Female' in the UI",
+      "registrationType": "New Registration",
+      "action": "fill",
+      "input": {
+        "title": "Mrs."
+      },
+      "expected": {
+        "outcome": "field-state",
+        "values": {
+          "gender": "Female"
+        },
+        "assumed": true,
+        "note": "Gendered titles (Mr./Mrs./Ms.) should auto-populate or synchronize with Gender to prevent demographic mismatches."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-224",
+      "category": "ui",
+      "priority": "P1",
+      "title": "Changing Country to United States on an Indian patient clears stale Indian State, District and City",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "country": "United States"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "values": {
+          "state": "",
+          "district": "",
+          "city": ""
+        },
+        "assumed": true,
+        "note": "When Country changes away from India, previously auto-filled Indian State/District/City must reset."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-225",
+      "category": "ui",
+      "priority": "P2",
+      "title": "Clearing DOB on an existing patient during Update also clears the calculated Age",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "dob": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "values": {
+          "age": ""
+        },
+        "assumed": true,
+        "note": "Clearing DOB must clear the derived Age field so stale Age cannot bypass mandatory DOB validation."
+      },
+      "requirement": "REG-REQ-012"
+    },
+    {
+      "id": "REG-226",
+      "category": "registration-type",
+      "priority": "P0",
+      "title": "New Born Registration linked to a Male patient's Mother UHID is rejected",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "{{regId@REG-001}}",
+        "title": "Baby Of",
+        "mother_name": "Agent Mother",
+        "father_name": "Agent Father"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "REG-001 is a Male patient (Mr. Agent). Mother UHID must validate that the referenced patient is Female."
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-227",
+      "category": "registration-type",
+      "priority": "P1",
+      "title": "New Born with female Mother UHID (REG-003) persists Mother UHID, Mother's Name and Father's Name",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "{{regId@REG-003}}",
+        "title": "Baby Of",
+        "dob": "{{today}}",
+        "mother_name": "Mrs Agent Mother",
+        "father_name": "Mr Agent Father"
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "mother_uhid": "{{regId@REG-003}}",
+          "mother_name": "Mrs Agent Mother",
+          "father_name": "Mr Agent Father"
+        }
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-228",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Minor patient (DOB today, age 0) without Legal Guardian blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "{{today}}",
+        "legal_guardian": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Medico-legal rule: patients under 18 years old require a Legal Guardian to be recorded."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-229",
+      "category": "dob-age",
+      "priority": "P1",
+      "title": "Negative age '-5' with empty DOB is rejected on save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "-5"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Negative age must never be accepted or converted into a future DOB."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-230",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "Zero age '0' with empty DOB is rejected on adult New Registration",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "0"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Age 0Y 0M 0D without an explicit DOB should be blocked on standard New Registration."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-231",
+      "category": "dob-age",
+      "priority": "P2",
+      "title": "Non-numeric age 'twenty' with empty DOB blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "twenty"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "note": "Alphabetic text in Age must not satisfy mandatory DOB/Age validation."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-232",
+      "category": "phone",
+      "priority": "P1",
+      "title": "WhatsApp number starting with invalid prefix '1' (1234567890) is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "whatsapp": "1234567890"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "whatsapp": "valid"
+        },
+        "assumed": true,
+        "note": "WhatsApp Mobile should enforce the same 10-digit (6-9 prefix) rule as Mobile No."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-233",
+      "category": "phone",
+      "priority": "P1",
+      "title": "All-zero mobile number '0000000000' is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": "0000000000"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "mobile": "valid"
+        }
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-234",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Emergency Alternate Number equal to Emergency Mobile Number is flagged",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "emergency_name": "Agent Emergency Contact",
+        "emergency_relationship": "{{first}}",
+        "emergency_mobile": "{{phone2}}",
+        "emergency_alternate": "{{phone2}}"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "An alternate emergency phone identical to the primary emergency phone provides no fallback."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-235",
+      "category": "phone",
+      "priority": "P2",
+      "title": "Emergency Mobile filled without Emergency Contact Name blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "emergency_name": "",
+        "emergency_mobile": "{{phone2}}"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Entering an emergency mobile number without the contact person's name leaves an incomplete emergency record."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-236",
+      "category": "identity",
+      "priority": "P1",
+      "title": "Selecting an Id Type without entering an Id Number blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "id_type": "{{first}}",
+        "id_number": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Choosing an ID Type must make ID Number conditionally mandatory."
+      },
+      "requirement": "REG-REQ-008"
+    },
+    {
+      "id": "REG-237",
+      "category": "identity",
+      "priority": "P2",
+      "title": "Entering an Id Number without selecting an Id Type blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "id_number": "ABCDE1234F"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "An ID number without a corresponding ID Type cannot be verified."
+      },
+      "requirement": "REG-REQ-008"
+    },
+    {
+      "id": "REG-238",
+      "category": "identity",
+      "priority": "P1",
+      "title": "Whitespace-only Id Number with Id Type selected is rejected",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "id_type": "{{first}}",
+        "id_number": "     "
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true
+      },
+      "requirement": "REG-REQ-008"
+    },
+    {
+      "id": "REG-239",
+      "category": "happy",
+      "priority": "P1",
+      "title": "Full profile persists Marital Status, WhatsApp, Address, Visit, Identity, Emergency and Consent fields",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "marital_status": "{{first}}",
+        "whatsapp": "{{phone2}}",
+        "department": "{{first}}",
+        "consultant": "{{first}}",
+        "referred_type": "{{first}}",
+        "id_type": "{{first}}",
+        "id_number": "ID{{seq}}",
+        "emergency_name": "Agent Kin",
+        "emergency_relationship": "{{first}}",
+        "emergency_mobile": "{{phone2}}",
+        "emergency_alternate": "9876501234",
+        "consent": true
+      },
+      "expected": {
+        "outcome": "created",
+        "persisted": {
+          "marital_status": "*",
+          "whatsapp": "{{phone2}}",
+          "area": "*",
+          "address": "Agent test address, Lane {{seq}}",
+          "mark_permanent": "true",
+          "department": "*",
+          "consultant": "*",
+          "referred_type": "*",
+          "id_type": "*",
+          "id_number": "ID{{seq}}",
+          "emergency_relationship": "*",
+          "emergency_mobile": "{{phone2}}",
+          "emergency_alternate": "9876501234",
+          "consent": "true"
+        }
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-240",
+      "category": "name",
+      "priority": "P0",
+      "title": "HTML/XSS script tag in First Name '<script>alert(1)</script>' is blocked",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "<script>alert(1)</script>"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Script tags or stripped 'scriptalertscript' strings must be rejected rather than saved as a patient name."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-241",
+      "category": "search",
+      "priority": "P1",
+      "title": "Search with unclosed regex bracket 'Agent[a-' does not return a server error",
+      "action": "search",
+      "input": {
+        "search": "Agent[a-"
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "Unescaped '[' in MongoDB $regex throws a regular expression SyntaxError."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-242",
+      "category": "search",
+      "priority": "P1",
+      "title": "Search with trailing backslash 'Agent\\' does not return a server error",
+      "action": "search",
+      "input": {
+        "search": "Agent\\"
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "Trailing backslash in unescaped $regex throws an invalid escape error."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-243",
+      "category": "update",
+      "priority": "P1",
+      "title": "Clearing mandatory First Name during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "first_name": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "First Name",
+        "note": "Update path must enforce required-field validation when a mandatory field is cleared."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-244",
+      "category": "update",
+      "priority": "P1",
+      "title": "Clearing mandatory Address during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "address": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Update path must not allow clearing mandatory Address."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-245",
+      "category": "update",
+      "priority": "P1",
+      "title": "Updating an existing patient's DOB to a future date (01/01/2030) is blocked",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "dob": "01/01/2030"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Edit workflow must block future DOBs just like new registration."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-246",
+      "category": "payer",
+      "priority": "P1",
+      "title": "Switching a Corporate patient (REG-172) back to Self-Paid resets Payer and Sponsor to Cash",
+      "action": "update",
+      "target": "{{regId@REG-172}}",
+      "input": {
+        "payer_type": "Self-Paid"
+      },
+      "expected": {
+        "outcome": "updated",
+        "values": {
+          "payer": "Cash",
+          "sponsor": "Cash"
+        },
+        "persisted": {
+          "payer_type": "Self-Paid",
+          "payer": "Cash",
+          "sponsor": "Cash"
+        },
+        "note": "Changing Payer Type from Corporate back to Self-Paid must not leave stale corporate Payer/Sponsor values attached."
+      },
+      "requirement": "REG-REQ-006"
+    },
+    {
+      "id": "REG-247",
+      "category": "duplicate",
+      "priority": "P1",
+      "title": "Family member with different First Name sharing REG-001's Mobile No is allowed or shows a clear duplicate warning",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "first_name": "Spouse",
+        "title": "Mrs.",
+        "gender": "Female",
+        "mobile": "{{phone@REG-001}}"
+      },
+      "expected": {
+        "outcome": "created",
+        "assumed": true,
+        "note": "In hospital reception workflows, spouses/children/parents frequently share one mobile number; different first name + gender on the same mobile should not corrupt or hard-block registration."
+      },
+      "requirement": "REG-REQ-009"
+    },
+    {
+      "id": "REG-248",
+      "category": "search",
+      "priority": "P0",
+      "title": "Searching a phone number with country code '+919876543210' does not crash with regex 'Nothing to repeat'",
+      "action": "search",
+      "input": {
+        "search": "+919876543210"
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "A leading '+' in unescaped new RegExp('+91...') throws SyntaxError: Nothing to repeat (HTTP 500) when operators paste a phone number with +91."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-249",
+      "category": "update",
+      "priority": "P1",
+      "title": "Changing Payer Type to Corporate during Update without choosing a Payer blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "payer_type": "Corporate"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Payer",
+        "note": "Edit path must enforce Corporate Payer selection just like Create (REG-170)."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-250",
+      "category": "update",
+      "priority": "P1",
+      "title": "Clearing mandatory Pin Code during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "pin_code": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Update path must not allow clearing mandatory Pin Code."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-251",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Choosing 'None' for required Country (marked *) blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "country": "None"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Discovery: Country is marked * required, yet its dropdown offers 'None'."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-252",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Choosing 'None' for required Id Type (marked *) blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "id_type": "None"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Discovery: Id Type is marked * required (defaults to Localite), yet offers 'None' in the dropdown."
+      },
+      "requirement": "REG-REQ-001"
+    },
+    {
+      "id": "REG-253",
+      "category": "name",
+      "priority": "P2",
+      "title": "Title 'Baby Of' on a 36-year-old adult (DOB 15/08/1990) is flagged as inconsistent",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "title": "Baby Of",
+        "dob": "15/08/1990"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "'Baby Of' title should be restricted to infants/newborns, not 36-year-old adults."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-254",
+      "category": "name",
+      "priority": "P2",
+      "title": "Title 'Mr.' with Gender 'Female' is flagged as inconsistent on save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "title": "Mr.",
+        "gender": "Female"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Selecting Gender = Female after Title = Mr. creates a contradictory Mr./Female patient record."
+      },
+      "requirement": "REG-REQ-003"
+    },
+    {
+      "id": "REG-255",
+      "category": "phone",
+      "priority": "P1",
+      "title": "Emergency Contact with Relationship 'Self' is blocked",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "emergency_name": "Agent Self Contact",
+        "emergency_relationship": "Self",
+        "emergency_mobile": "{{phone2}}"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Discovery: Emergency Info -> Relationship dropdown includes 'Self', which is invalid for an emergency contact."
+      },
+      "requirement": "REG-REQ-002"
+    },
+    {
+      "id": "REG-256",
+      "category": "dob-age",
+      "priority": "P1",
+      "title": "Newborn / infant (DOB today, age 0) with Marital Status 'Married' is blocked",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "{{today}}",
+        "legal_guardian": "Agent Parent",
+        "marital_status": "Married"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "An infant born today (0Y 0M 0D) cannot have Marital Status = Married."
+      },
+      "requirement": "REG-REQ-004"
+    },
+    {
+      "id": "REG-257",
+      "category": "registration-type",
+      "priority": "P1",
+      "title": "International Registration with Country 'India' and Id Type 'Localite' is blocked",
+      "registrationType": "International Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "country": "India",
+        "id_type": "Localite"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Discovery: Switching to International Registration leaves Country = India and Id Type = Localite by default."
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-258",
+      "category": "registration-type",
+      "priority": "P2",
+      "title": "New Born Registration with Marital Status 'Widow' is blocked",
+      "registrationType": "New Born Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mother_uhid": "{{regId@REG-003}}",
+        "title": "Baby Of",
+        "dob": "{{today}}",
+        "marital_status": "Widow"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "New Born Registration should lock or hide Marital Status (or force Single/None)."
+      },
+      "requirement": "REG-REQ-007"
+    },
+    {
+      "id": "REG-259",
+      "category": "update",
+      "priority": "P1",
+      "title": "Choosing 'None' for required Gender during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "gender": "None"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Gender",
+        "note": "Update path must reject setting required Gender to 'None'."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-260",
+      "category": "update",
+      "priority": "P1",
+      "title": "Clearing mandatory Last Name during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "last_name": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Last Name",
+        "note": "Update path must block clearing mandatory Last Name."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-261",
+      "category": "update",
+      "priority": "P1",
+      "title": "Clearing mandatory Mobile No during patient Update blocks the update",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "mobile": ""
+      },
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "Mobile",
+        "note": "Update path must block clearing mandatory Mobile No."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-262",
+      "category": "update",
+      "priority": "P2",
+      "title": "Updating an existing patient's Email to invalid 'broken@' is blocked",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "email": "broken@"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Update path must not persist malformed email addresses."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-263",
+      "category": "update",
+      "priority": "P2",
+      "title": "Updating an existing patient's WhatsApp Mobile to 4 digits ('1234') is blocked",
+      "action": "update",
+      "target": "{{regId@REG-001}}",
+      "input": {
+        "whatsapp": "1234"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "assumed": true,
+        "note": "Update path must validate WhatsApp Mobile length and prefix."
+      },
+      "requirement": "REG-REQ-011"
+    },
+    {
+      "id": "REG-264",
+      "category": "search",
+      "priority": "P1",
+      "title": "Searching with leading wildcard '*Agent' does not crash with regex 'Nothing to repeat'",
+      "action": "search",
+      "input": {
+        "search": "*Agent"
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "Users frequently type '*name' as a wildcard; unescaped new RegExp('*Agent') throws SyntaxError: Nothing to repeat (HTTP 500)."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-265",
+      "category": "search",
+      "priority": "P1",
+      "title": "Searching with leading question mark '?Agent' does not crash with regex 'Nothing to repeat'",
+      "action": "search",
+      "input": {
+        "search": "?Agent"
+      },
+      "expected": {
+        "outcome": "no-error",
+        "note": "Leading '?' in unescaped new RegExp('?Agent') throws SyntaxError: Nothing to repeat (HTTP 500)."
+      },
+      "requirement": "REG-REQ-010"
+    },
+    {
+      "id": "REG-120",
+      "category": "identity",
+      "priority": "P2",
+      "title": "Upload ID proof PDF attaches it to the patient",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "enabled": false,
+      "input": {
+        "id_proof_file": "qa/modules/registration/data/agent-test-id-proof.pdf"
+      },
+      "expected": {
+        "outcome": "created"
+      },
+      "notes": "Pending: Upload ID Proof modal locators (run discovery first).",
+      "requirement": "REG-REQ-008"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REG-REQ-001",
+      "title": "Mandatory demographic & contact fields are enforced and persisted accurately on registration"
+    },
+    {
+      "id": "REG-REQ-002",
+      "title": "Mobile, WhatsApp, Emergency phone numbers and Email addresses validate format, country rules and cross-field uniqueness"
+    },
+    {
+      "id": "REG-REQ-003",
+      "title": "Patient names and titles preserve valid real-world punctuation, block invalid symbols/scripts and align with gender"
+    },
+    {
+      "id": "REG-REQ-004",
+      "title": "Date of Birth and Age synchronize bidirectionally, support leap years and reject future or impossible human ages"
+    },
+    {
+      "id": "REG-REQ-005",
+      "title": "PIN code forward/reverse lookup, state/district/city/area cascade and permanent address rules stay consistent"
+    },
+    {
+      "id": "REG-REQ-006",
+      "title": "Payer Type, Payer and Sponsor enforce Self-Paid defaults and require explicit selection for Corporate and Insurance"
+    },
+    {
+      "id": "REG-REQ-007",
+      "title": "Registration variants (New Born, International, Outside, Staff, Diagnostic) enforce variant-specific clinical and mandatory fields"
+    },
+    {
+      "id": "REG-REQ-008",
+      "title": "Identity Type and Identity Number enforce conditional completeness and valid document attachment"
+    },
+    {
+      "id": "REG-REQ-009",
+      "title": "Duplicate registrations and rapid double-submits are prevented without false success notifications"
+    },
+    {
+      "id": "REG-REQ-010",
+      "title": "Global patient search locates records by UHID, Name and Mobile while safely escaping special regex characters"
+    },
+    {
+      "id": "REG-REQ-011",
+      "title": "Existing patient updates track dirty state accurately, require remarks and enforce all mandatory and format validations"
+    },
+    {
+      "id": "REG-REQ-012",
+      "title": "UI form transitions, type switches and field cascades reset stale values without premature validation errors"
+    }
+  ]
+}

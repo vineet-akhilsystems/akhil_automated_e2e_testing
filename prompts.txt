@@ -1,0 +1,112 @@
+==================================================================
+PROMPT 1 - THIS PROJECT (augastam_e2e_testing)
+==================================================================
+
+You're working in this repo with model routing and project skills already set up. Follow these rules for the whole session.
+
+## 1. Model routing (save tokens)
+- The session uses `opusplan`: plan mode = Opus, execution = Sonnet. Do all design, architecture and ambiguous decisions in plan mode, and get the plan approved before writing code.
+- Search, lookups and reading config/results → the `explorer` agent (Haiku). Don't read 10+ files yourself to find one thing.
+- Implementation of a planned step → do it inline if the plan is ≤3 steps. Otherwise use one `implementer` agent (Sonnet) per independent step, run in parallel.
+- Final check on multi-step work → the `reviewer` agent (Opus, high effort), once, with the plan and the list of changed files.
+- Built-in agents (`general-purpose`, `Explore`, `Plan`) must always get an explicit `model`: haiku to read, sonnet to do, opus to judge.
+- Don't spawn an agent for a one-file edit or a question you can answer from context.
+- Follow the `routing-work-to-models` skill for details.
+
+## 2. Use skills first
+- Before starting any task, check the skill list and load every skill that matches. For registration work, start at `registration-testing`.
+- Follow a loaded skill's steps and output formats exactly. If a skill turns out wrong for the situation, say so instead of silently ignoring it.
+- Never act on memory of "how projects like this usually work" when a skill or a repo file says otherwise.
+
+## 3. Create skills properly
+- When I ask for a new skill or agent, or you notice a workflow repeated 2+ times, use the `creating-project-skills` skill:
+  1. Check for overlap; extend an existing skill rather than adding a sibling.
+  2. Mine the codebase with parallel `explorer` calls.
+  3. Include only facts backed by `path:line` evidence.
+  4. Keep it under 500 words.
+  5. Write a description that lists triggers only ("Use when..."), never the workflow.
+- Verify every new or edited skill with:
+  `node .claude/skills/auditing-project-skills/audit-skills.mjs <skill-name>`
+  Zero ERRORs before calling it done.
+
+## 4. Learn from the project as you work
+At the end of every non-trivial task, add a short "Learned" section to your reply:
+- Non-obvious facts you found that no skill states, such as a gotcha, a command's real behaviour, a field rule, a flaky selector or an env quirk. Give each one with `path:line` evidence.
+- Places where a skill told you something wrong or out of date.
+- For each item, name the skill (or new skill) it belongs in, and the exact line you'd add or change.
+
+Propose these edits, apply them only after I approve, then re-run the audit script. If a skill misled you, run the fact pass from `auditing-project-skills` on that skill.
+
+## 5. Ground rules
+- Report results honestly. If you skipped a check or a test failed, say so with the output.
+- Respect the `.claude/settings.json` deny list and hooks. No skill or step may tell you to do a denied action.
+- Keep replies short: the result first, details after.
+
+
+==================================================================
+PROMPT 2 - GENERIC (any codebase: model routing + skills + auto-learning)
+==================================================================
+
+You are working in a codebase I want to set up for efficient, skill-driven work with Claude Code. Follow these rules for the whole session.
+
+## 0. Bootstrap (first time in this repo only)
+Inspect `.claude/` (settings, agents, skills), `CLAUDE.md` / `AGENTS.md`, and the package manifest. Report what already exists. Then propose creating whatever is missing, and create it only after I approve:
+- `.claude/settings.local.json` with `"model": "opusplan"` and `"env": {"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"}`.
+- `.claude/agents/explorer.md`: `model: haiku`, `effort: low`, tools `Read, Grep, Glob`. A read-only lookup agent. It replies with: answer, then evidence as `path:line` snippets, then "not found" items. Under 300 words.
+- `.claude/agents/implementer.md`: `model: sonnet`, `effort: medium`. Implements one already-planned step and runs the narrowest check. It replies with: Status DONE/BLOCKED, then Changed files, then Verified command and result, then Open issues.
+- `.claude/agents/reviewer.md`: `model: opus`, `effort: high`, tools `Read, Grep, Glob, Bash`, no edits. Checks plan compliance, correctness and verification. It replies with: APPROVE / CHANGES NEEDED, then findings as `path:line - problem - fix`.
+Don't overwrite existing agents, skills or settings. Merge, or ask.
+
+## 1. Model routing (save tokens)
+- Design, architecture and ambiguous requirements → plan mode (Opus). Get the plan approved before writing code.
+- Search, lookups and reading files/config/logs → `explorer` (Haiku). Don't read 10+ files yourself to find one thing.
+- Implementation → do it inline (Sonnet) for plans of ≤3 steps. Otherwise use one `implementer` per independent step, run in parallel.
+- Final check on multi-step work → `reviewer` (Opus), once, with the plan and the list of changed files.
+- Built-in agents (`general-purpose`, `Explore`, `Plan`) always get an explicit `model`: haiku to read, sonnet to do, opus to judge.
+- No agent for one-file edits or questions you can answer from context. A cold agent re-reads everything and costs more.
+
+## 2. Use skills first
+- Before any task, check the available skills and load every one that matches. Follow its steps and output formats exactly.
+- If a skill is wrong or out of date for the situation, say so explicitly. Don't silently ignore it.
+- Repo files and skills beat general knowledge of "how projects like this usually work".
+
+## 3. Creating a skill (when I ask, or when a workflow repeats 2+ times)
+1. Overlap: read the descriptions of all existing skills and agents. Extend an existing one rather than adding a sibling.
+2. Scope: write 3 real prompts the skill must handle and 1 it must not, plus what goes wrong today without it. Ask me if unclear.
+3. Mine the codebase with parallel `explorer` calls, one question each, each needing `path:line` evidence:
+   - Commands: package manifest scripts, Makefile/justfile, CI config. What do they run and write?
+   - Data and formats: where inputs and outputs live. Read one real example of each format.
+   - Reuse: helpers, base classes, page objects, fixtures and utilities the skill must point to, not reinvent.
+   - Source of truth: README, docs/, specs, rules files, existing CLAUDE.md.
+   - Gotchas: TODO/FIXME/HACK comments, bug notes, recent `git log` hot spots, failing-test history.
+   - Forbidden: `.claude/settings.json` deny list and hooks. The skill must never instruct a denied action.
+   Keep the findings in a scratch knowledge file (fact → `path:line`). Only evidenced facts go into the skill.
+4. Write `.claude/skills/<name>/SKILL.md`:
+   - `name` = folder name, lowercase-hyphen, verb-first (e.g. `triaging-test-failures`).
+   - `description` starts "Use when…", lists triggers and keywords only, never the workflow (Claude follows a summarised workflow and skips the body). Third person, ≤1024 chars.
+   - Set `model` / `effort` frontmatter only with a reason.
+   - Body under 500 words: core principle (1-2 sentences), then a quick-reference table of real commands and repo-relative paths, then numbered steps for the judgment parts, then a common-mistakes table built from the gotchas.
+   - Move reference material over ~100 lines into a supporting file. Reference other skills by name, never with `@` links. Turn anything regex-checkable into a script instead of prose.
+5. Verify, and report the result honestly:
+   - Every backtick path exists, every script/command named exists in the manifest, every link resolves, every skill/agent named exists, and frontmatter values are valid.
+   - Each factual claim is re-checked against code by `explorer`.
+   - Offer, because it costs subagents: run the 3 scoped prompts against a fresh subagent and check it follows the skill.
+
+## 4. Auditing skills (when I ask, after big code changes, or when a skill misled you)
+For each skill, run four passes, then report a table (severity | finding | evidence `path:line` | proposed fix) and a verdict (healthy / needs fixes / rewrite). Edit only after I approve.
+1. Mechanical: the reference and frontmatter checks from step 3.5. If the repo has an audit script, run it.
+2. Facts: list checkable claims (commands, names, enums, formats, numbers), verify each with `explorer`, and mark it correct / stale / wrong / unverifiable.
+3. Coverage: files changed since the skill was last edited (`find <src dirs> -newer <SKILL.md>` or `git log --since`), plus new scripts, fields or recurring failures the skill doesn't mention.
+4. Triggers: 3 realistic prompts per skill. Exactly one description should match each. Two matches means overlap; none means weak triggers.
+
+## 5. Learn from the project as you work
+At the end of every non-trivial task, add a short "Learned" section:
+- Non-obvious facts you found that no skill states, such as a gotcha, a command's real behaviour, a config quirk, a flaky test cause or a required order of steps. Give each with `path:line` evidence.
+- Places where a skill or CLAUDE.md was wrong or stale.
+- For each item, name the target (an existing skill, a new skill, or CLAUDE.md) and the exact line to add or change.
+Apply these only after I approve, then re-verify the edited skill (step 3.5).
+
+## 6. Ground rules
+- Report results honestly. If you skipped a check or a test failed, show the output. Never claim something is verified when it isn't.
+- Never overwrite existing config, skills or agents without looking at them first and asking.
+- Keep replies short: result first, details after.

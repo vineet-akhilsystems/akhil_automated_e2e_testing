@@ -1,0 +1,73 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start & Open Augastam Test Studio",
+      "detail": "Starts the portal (or reuses a running one) and opens it in the browser.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Start Augastam Test Studio Portal", "Open Portal in Browser"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Augastam Test Studio Portal",
+      "type": "npm",
+      "script": "portal",
+      "isBackground": true,
+      "options": {
+        "env": { "PORTAL_FOLLOW_LOGS": "1" }
+      },
+      "runOptions": { "instanceLimit": 1 },
+      "problemMatcher": {
+        "owner": "augastam-portal",
+        "pattern": { "regexp": "^__no_problems__$" },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "portal/server\\.mjs",
+          "endsPattern": "Augastam Test Studio( is already running|: http)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Open Portal in Browser",
+      "type": "process",
+      "command": "cmd",
+      "args": ["/c", "start", "", "http://127.0.0.1:4173"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Portal Verification Suite",
+      "type": "npm",
+      "script": "portal:test",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Registration Playwright Cases (Headed)",
+      "type": "npm",
+      "script": "reg:watch",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

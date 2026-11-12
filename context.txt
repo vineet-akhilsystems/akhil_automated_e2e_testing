@@ -1,0 +1,27 @@
+https://demo.augastam.com/registration 
+check each and everything in the page 
+
+If you know the address details, for example, the PIN code, the state, district, city, and area will come automatically and you can also type the address. If you don't know the PIN code you can write the state, district, city, and area. The PIN code will come automatically. This is the one catch 
+
+I will share one MongoDB collection. What I want to do is create an API, get users from it, and see how the current data is being filled over there. Based on pair information, there are some dropdowns. Visit details also have some dropdowns and identity information has an upload. Create one PDF so we can upload it over there. 
+
+Additional details you can also fill: just see what all the things are there on the page. Understand the DOM architecture of this page. From the HTML see what all the buttons are there. Try to fill the form first then we'll try to automate the test cases.
+
+Firstly do this and start creating a new registration. Create some demo test cases. Start with Vineet testing one. The testing credential and the testing person name will always be , always the name will be regarding agent testing: user 1, user 2. In that manner it will be saving so I can understand that the agent is testing right now and you can save the details.
+
+I'm also sharing with you the endpoint of the page where you have to do all this testing. Your focus for now will be only on the registration page. You can search for an existing patient. Take Vivek, patient 1. Take Vineet, user 1, for testing. They already exist so try to make some changes and try to find out any blockage, any bugs, or any hindrance you can see over there. Try to do an end-to-end test for this and we'll try to write edge cases after that.
+
+Firstly try to understand the piece architecture. I am providing you some skills. What are these skills? These skills include having information about how the registration page has been written and what rules were there when it was written. If it is not there try to make it in our E2E testing repo, okay?
+
+What I want is clear, actionable, and insightful information from you, like how it is being tested. Whatever I want is this: this will be my one-time effort. After that whenever I run the application, it should automate the running. Whether it is Selenium or Playwright, I think we are using Playwright from Microsoft. In one run it will run a whole pipeline, right?
+
+Please make sure there are a lot of times when there can be a delay in fetching data or information from the database because it's slow. You have to wait for certain actions. For example you are entering the PIN code. When you enter the PIN code the address might take time. Address means the city, district, and each thing can take time. We have to pause for that time. Sleep time is very important here for testing these applications. Have an idea of how to save and change the already saved registration types. Firstly just get into the context of what this page is all about and how we can fill it. Give me the pipeline and I'll try to insightfully check it. I will also suggest some tools to you for testing those criteria and we'll try to make a UI place where I can write test cases so the other BA team can also add the test cases. They can upload an Excel file and they can upload any type of files. The agent will infer from it, make the test case, and run it in our system for the module first, that is, registration. 
+
+
+"C:\Users\HP\Desktop\akhil_system\Augastam EMR"
+
+Here in the custom form builder, you will find the code which is written for it. You can also infer from and use the existing data validation placed on the registration page from the database, from the system backend. Skills are already there. Just check those out.
+
+If it is not there you can add the skills and try to make skills for testing the registration page. Create agents for testing and we'll try to use Playwright. It will automatically scroll with the mouse and try to test. I can see the testing in front of my eyes too. That setup should be like that.
+
+I've already shared your video. You can just do frame-by-frame inference on it and get an idea. Or we can test, tick all the boxes, and do one test in front of me and then we can automate this process. I have already shared with you the tools we are going to use. From this markdown of tools you can just have an idea and all the criteria of it are also mentioned in that skill. 

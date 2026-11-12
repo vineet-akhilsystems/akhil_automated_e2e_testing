@@ -1,0 +1,43 @@
+{
+  "name": "augastam-e2e-testing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright E2E pipeline for Augastam EMR, starting with the Registration module",
+  "scripts": {
+    "portal": "node portal/server.mjs",
+    "portal:test": "node --test portal/test/*.test.mjs && playwright test --config portal/test/runner.config.ts",
+    "portal:check": "node qa/tools/check-syntax.mjs",
+    "auth": "playwright test --project=setup --headed",
+    "test": "playwright test --project=chromium",
+    "test:headed": "playwright test --project=chromium --headed",
+    "reg:discover": "playwright test --project=chromium tests/modules/registration/discovery.spec.ts --headed",
+    "reg:cases": "playwright test --project=chromium tests/modules/registration/cases.spec.ts",
+    "reg:automation:install": "node qa/tools/install-registration-automation.mjs --import",
+    "reg:inventory": "playwright test --project=chromium tests/modules/registration/controls.spec.ts",
+    "reg:e2e": "node qa/tools/run-registration-e2e.mjs",
+    "reg:pipeline": "node qa/tools/run-registration-e2e.mjs --portal",
+    "reg:workbook:connect": "node qa/tools/connect-registration-workbook.mjs --import",
+    "reg:watch": "cross-env SLOWMO=400 playwright test --project=chromium tests/modules/registration/cases.spec.ts --headed",
+    "reg:failures": "cross-env PAUSE_ON_FAIL=1 SLOWMO=300 playwright test --project=chromium tests/modules/registration/cases.spec.ts --headed --timeout=0",
+    "reg:report": "node tests/modules/registration/rebuild-report.ts",
+    "reg:excel": "node qa/tools/cases-io.js to-xlsx qa/modules/registration/cases/registration-cases.json qa/modules/registration/cases/registration-cases.xlsx",
+    "module:discover": "playwright test --project=discovery tests/discovery/module-discovery.spec.ts --headed",
+    "module:scaffold": "node qa/tools/scaffold-module-fields.mjs",
+    "module:adapter:install": "node qa/tools/install-module-adapter.mjs",
+    "pipeline": "playwright test --project=setup && playwright test --project=chromium",
+    "report": "playwright show-report"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@playwright/cli": "^0.1.22",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6",
+    "cross-env": "^10.1.0",
+    "dotenv": "^18.0.9",
+    "exceljs": "^4.4.0",
+    "mongodb": "^7.7.0",
+    "typescript": "^7.0.2"
+  }
+}

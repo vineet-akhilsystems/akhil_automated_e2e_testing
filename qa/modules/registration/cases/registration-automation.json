@@ -1,0 +1,952 @@
+{
+  "module": "registration",
+  "bases": {
+    "valid": {
+      "title": "Mr.",
+      "first_name": "Agent",
+      "middle_name": "Testing",
+      "last_name": "User{{seqWord}}",
+      "gender": "Male",
+      "dob": "15/08/1990",
+      "mobile": "{{phone}}",
+      "pin_code": "110001",
+      "area": "{{first}}",
+      "address": "Agent test address, Lane {{seq}}",
+      "mark_permanent": true
+    }
+  },
+  "cases": [
+    {
+      "id": "REG-E2E-BASE",
+      "category": "happy",
+      "priority": "P1",
+      "title": "Create synthetic Agent Testing patient for registration workflow checks",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created",
+        "toastContains": "Registration Number",
+        "persisted": {
+          "first_name": "Agent",
+          "last_name": "User{{seqWord}}",
+          "mobile": "{{phone}}",
+          "state": "DELHI"
+        }
+      },
+      "requirement": "",
+      "mode": "automated",
+      "notes": "",
+      "preconditions": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-NEW-RESET",
+      "title": "New clears unsaved registration fields",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "new-reset"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-KEYBOARD-FIELDS",
+      "title": "Tab and arrow keys navigate registration controls",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "keyboard-fields"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_014, TC_REG_015. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-TITLE-GENDER",
+      "title": "Mr. and Mrs. synchronize gender in order",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "title-gender"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_025. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DOB-AGE",
+      "title": "DOB calculates exact age including leap-day boundaries",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "dob-age"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_026. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-ADDRESS-COPY",
+      "title": "Current address copies all mapped values to Permanent",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "address-copy"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_037. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-ADDRESS-INDEPENDENT",
+      "title": "Separate permanent address retains independent values",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "address-independent"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PAYER-RESET",
+      "title": "Corporate to Self-Paid resets payer and sponsor",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "payer-reset"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_042. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-NEWBORN-FIELDS",
+      "title": "Newborn delivery controls accept values",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "newborn-fields"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_029. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-STAFF-FIELDS",
+      "title": "Staff registration exposes employee lookup and dependants",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "staff-fields"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_030, TC_REG_032. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DOCUMENT-GATE",
+      "title": "Unsaved patient documents require registration first",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "document-gate"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_062. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-NOTES-GATE",
+      "title": "Unsaved patient notes require registration first",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "notes-gate"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-ADDON-SHELLS",
+      "title": "All seven add-on buttons open and close their drawer",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "addon-shells"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-SEARCH-IDENTITY",
+      "title": "UHID search opens the correct patient and values",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "search-identity"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_018. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-UPDATE-REMARKS",
+      "title": "Blank remarks block submission; cancel preserves saved data",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "update-remarks"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_061. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-UPDATE-PERSIST",
+      "title": "Remarks submit updates and persists synthetic patient's email",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "update-persist"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_061. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-ACTIVE-CANCEL",
+      "title": "Active status remarks require text; Close preserves status",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "active-cancel"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_070. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PRINT-CARD",
+      "title": "Print Card opens output containing correct patient identity",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "print-card"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_055. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PRINT-FORM",
+      "title": "Print Form opens output containing correct patient identity",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "print-form"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_056. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-QR-DOWNLOAD",
+      "title": "QR dialog identifies patient and downloads a valid PNG",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "qr-download"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_060. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-QUICK-ACTIONS",
+      "title": "Saved patient exposes Appointment, OP Invoice and Admission",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "quick-actions"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_059. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DOCUMENT-UPLOAD",
+      "title": "Synthetic PDF uploads and remains linked after reopening the patient",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "document-upload"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_062. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DOCUMENT-FORMAT",
+      "title": "Unsupported document format is rejected before upload",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "document-format"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_063. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DOCUMENT-CLEAR",
+      "title": "Clear removes unsaved document inputs and disables Upload",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "document-clear"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-ABHA-DIALOG",
+      "title": "ABHA verification opens and closes without submitting identity data",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "abha-dialog"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_069. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-REDIRECT-BILLING",
+      "title": "OP Invoice redirects with the synthetic patient UHID",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "redirect-billing"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_080. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-REDIRECT-ADMISSION",
+      "title": "Admission redirects with the synthetic patient UHID",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "redirect-admission"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_059. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-REDIRECT-APPOINTMENT",
+      "title": "Appointment opens with the synthetic patient name",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "redirect-appointment"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_059. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-INSURANCE-PAYER-RESET",
+      "title": "Insurance to Self-Paid resets payer and sponsor to locked Cash defaults",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "insurance-payer-reset"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_042. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PIN-CLEAR",
+      "title": "Clearing a populated PIN clears State, District and City",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "pin-clear"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_036. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-NEW-RESET-ADDRESS",
+      "title": "New clears unsaved current and permanent address data and stale validation",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "new-reset-address"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: Registration UI source. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DUPLICATE-USE-EXISTING",
+      "title": "Save matching synthetic patient details prompts duplicates; Use Existing reopens the correct UHID without creating another",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "duplicate-use-existing"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_033, TC_REG_065. Partial business coverage: this test verifies only the behavior stated in its title. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DROPDOWN-KEYBOARD",
+      "title": "Down and Up navigate dropdown options; Enter selects the focused option",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "dropdown-keyboard"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_015. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PIN-AUTOFILL",
+      "title": "PIN lookup auto-populates Country, State, City and Area as required by workbook",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "pin-autofill"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_036. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DUPLICATE-MOBILE-ALERT",
+      "title": "Existing mobile entry raises a duplicate alert before Save and opens the selected patient",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "duplicate-mobile-alert"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_033. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-DUPLICATE-EXPLICIT-CHECK",
+      "title": "Explicit Check Duplicate action identifies matching synthetic patient before proceeding",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "duplicate-explicit-check"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_065. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-COUNTRY-MOBILE-CODE",
+      "title": "Australia and India select the correct mobile dialing code",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "country-mobile-code"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_035. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PARTIAL-NAME-SUGGESTIONS",
+      "title": "Three-character patient name shows matching suggestions without pressing Enter",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "partial-name-suggestions",
+        "peer": "{{regId@REG-WB-022}}"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_021. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PHOTO-UPLOAD",
+      "title": "Synthetic patient photo uploads, saves and remains visible after reopening",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "photo-upload"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_028. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-MANDATORY-TAB-TRAVERSAL",
+      "title": "Tab from Title reaches all visible enabled mandatory fields in form order",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "mandatory-tab-traversal"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "notes": "Source scenarios: TC_REG_014. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-FLOW-PRINT-FORM-COMPLETE",
+      "title": "Registration form invokes print and includes all captured synthetic fixture fields",
+      "category": "Registration workflows",
+      "mode": "automated",
+      "priority": "P1",
+      "action": "workflow",
+      "input": {
+        "workflow": "print-form-complete"
+      },
+      "expected": {
+        "outcome": "verified"
+      },
+      "target": "{{regId@REG-E2E-BASE}}",
+      "notes": "Source scenarios: TC_REG_056. See workflow implementation for explicit checks. Check portal runs for live verification; a definition does not establish a passing result.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-WB-022",
+      "category": "happy",
+      "priority": "P1",
+      "title": "New Registration with only mandatory fields is created and persisted",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {},
+      "expected": {
+        "outcome": "created",
+        "toastContains": "Registration Number",
+        "persisted": {
+          "first_name": "Agent",
+          "last_name": "User{{seqWord}}",
+          "mobile": "{{phone}}",
+          "state": "DELHI"
+        }
+      },
+      "requirement": "",
+      "mode": "automated",
+      "notes": "Automated definition for TC_REG_022; source manual procedure retained. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-WB-023",
+      "category": "mandatory",
+      "priority": "P1",
+      "title": "Saving an empty form is blocked with a required-field message",
+      "registrationType": "New Registration",
+      "action": "save",
+      "input": {},
+      "expected": {
+        "outcome": "blocked",
+        "toastContains": "required field",
+        "note": "Deployed build (2.0.66) names one missing field at a time ('Please fill the required field: First Name'); repo code lists all."
+      },
+      "requirement": "",
+      "mode": "automated",
+      "notes": "Automated definition for TC_REG_023; source manual procedure retained. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-WB-027",
+      "category": "dob-age",
+      "priority": "P1",
+      "title": "Typing age 30 instead of DOB formats age and auto-calculates DOB",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "dob": "",
+        "age": "30"
+      },
+      "expected": {
+        "outcome": "created",
+        "values": {
+          "age": "30Y 0M 0D",
+          "dob": "*"
+        }
+      },
+      "requirement": "",
+      "mode": "automated",
+      "notes": "Automated definition for TC_REG_027; source manual procedure retained. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-WB-034",
+      "category": "phone",
+      "priority": "P1",
+      "title": "9-digit mobile number shows an error and blocks save",
+      "registrationType": "New Registration",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "mobile": "987654321"
+      },
+      "expected": {
+        "outcome": "blocked",
+        "fieldErrors": {
+          "mobile": "valid 10-digit"
+        }
+      },
+      "requirement": "",
+      "mode": "automated",
+      "notes": "Automated definition for TC_REG_034; source manual procedure retained. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "enabled": true,
+      "steps": []
+    },
+    {
+      "id": "REG-WB-042",
+      "title": "Self-pay registration saves without insurance or corporate details",
+      "category": "Workbook automation",
+      "priority": "P1",
+      "mode": "automated",
+      "action": "save",
+      "base": "valid",
+      "input": {
+        "payer_type": "Self-Paid"
+      },
+      "expected": {
+        "outcome": "created",
+        "values": {
+          "payer": "Cash",
+          "sponsor": "Cash"
+        },
+        "persisted": {
+          "payer_type": "Self-Paid",
+          "payer": "Cash",
+          "sponsor": "Cash"
+        }
+      },
+      "notes": "TC_REG_042. Live verification pending refreshed application login.",
+      "preconditions": "",
+      "requirement": "",
+      "enabled": true,
+      "steps": []
+    }
+  ]
+}
