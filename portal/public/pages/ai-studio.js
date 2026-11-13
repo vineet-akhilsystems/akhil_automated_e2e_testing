@@ -17,7 +17,7 @@ export function aiStudioPage() {
   const variantOptions = [['', 'Any variant'], ...(a?.variants ?? []).map(v => [v, v])];
   const selectedDraftCount = state.aiDrafts.filter((_, idx) => state.aiSelected.has(idx)).length;
   return `<a class="back-link" href="#/modules/${m.id}">${icon('back')} ${esc(m.name)} cases</a>`
-    + heading(m.area, `Create test cases with AI · ${m.name}`, 'Tell AI what kind of edge cases you want in plain English. AI thinks out of the box, builds ready-to-run test cases for our dynamic script, and lets you review and accept them.', `<a class="back-link" href="#/modules/${m.id}">Back to ${m.caseCount} cases</a>`)
+    + heading(m.area, `Create test cases with AI · ${m.name}`, 'Tell AI what kind of edge cases you want in plain English. AI thinks out of the box, builds ready-to-run test cases for our dynamic script, and lets you review and accept them.', `<a class="button-link" href="#/modules/${m.id}">Back to ${m.caseCount} cases</a>`)
     + moduleTabs(m, 'ai')
     + `<div id="ai-gate">${aiGateInner(m)}</div>`
     + `<section class="panel ai-studio-panel"><div class="panel-heading"><div><h2>1. Choose your testing goal & prompt</h2><span class="tiny muted">Click a smart preset below or describe any scenario in your own words — minimal effort, maximum coverage.</span></div>${badge(a ? 'Dynamic browser automation ready' : 'Manual test step generator', a ? 'green' : 'purple')}</div>

@@ -343,3 +343,22 @@ html{scrollbar-gutter:stable}
 .docs-empty{text-align:center;color:var(--muted);padding:30px}
 @media(max-width:1000px){.docs{grid-template-columns:1fr}.docs-toc{position:static;max-height:none;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.doc-section{padding:20px}}
 .docs-toc button{justify-content:flex-start;text-align:left;width:100%}
+
+/* ---- Visual fixes (after review of every page) ----
+   - the reserved scrollbar strip must match the page, not show as a white band
+   - descriptions may use two lines (no more cut-off sentences); the heading keeps ONE fixed height so nothing jumps
+   - a heading whose buttons crowd the title grows only on that page (class 'tall', set by script), the title never moves
+   - info boxes breathe; card buttons line up */
+html{background:#f6f7fb}
+.subtitle{max-width:none}
+.page-heading{height:108px}
+.page-heading .subtitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.page-heading.tall{height:auto;min-height:108px;flex-wrap:wrap;overflow:visible}
+.page-heading.tall>div:first-child{flex:1 1 360px}
+.page-heading.tall h1{white-space:normal}
+.page-heading.tall .heading-actions{flex-wrap:wrap}
+.info-strip{margin-bottom:18px}
+.card-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.heading-actions .button-link.quiet,.heading-actions a.button-link{white-space:nowrap}
+html{overflow-y:scroll}
+td.review-actions,td.user-actions{display:table-cell;text-align:right;white-space:nowrap}td.review-actions button,td.user-actions button{margin-left:6px}.members-table td.user-actions{text-align:left}.members-table td.user-actions button{margin:0 6px 0 0}
