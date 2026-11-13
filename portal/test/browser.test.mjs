@@ -137,7 +137,7 @@ test('BA browser workflow: add modules, write cases, execute manually and edit a
   await page.getByRole('button', { name: `Duplicate ${caseId}`, exact: true }).click();
   await expect(page.getByLabel('Case ID', { exact: true })).not.toHaveValue(caseId);
   await page.getByRole('button', { name: 'Close dialog' }).click();
-  await page.getByRole('button', { name: 'Generate with AI', exact: true }).click();
+  await page.getByRole('link', { name: 'Generate with AI', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Create test cases with AI · Registration', exact: true })).toBeVisible();
   await page.getByLabel('How many test cases?').selectOption('3');
   await page.getByRole('button', { name: 'Generate edge cases with AI', exact: true }).click();
@@ -149,7 +149,7 @@ test('BA browser workflow: add modules, write cases, execute manually and edit a
   await page.getByRole('button', { name: 'Edit template' }).click();
   await expect(page.getByLabel('Template name')).toHaveValue('valid');
   await page.getByRole('button', { name: 'Close dialog' }).click();
-  await page.getByRole('link', { name: 'Design & research' }).click();
+  await page.evaluate(() => { location.hash = '/research'; }); // reachable from the Help page, no longer in the menu
   await expect(page.getByRole('heading', { name: 'Familiar patterns. Your workflow.' })).toBeVisible();
   assert.equal(await page.locator('.research-card').count(), 6);
   await page.setViewportSize({ width: 390, height: 844 });

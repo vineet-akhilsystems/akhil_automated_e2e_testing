@@ -84,6 +84,6 @@ export function renderPage() {
   }
   $('#main').innerHTML = page;
   // If the buttons next to a title leave it too little room, let that heading grow instead of cutting the title off.
-  document.querySelectorAll('.page-heading').forEach(h => { const t = h.querySelector('h1'); h.classList.toggle('tall', Boolean(t && t.scrollWidth > t.clientWidth + 1)); });
+  document.querySelectorAll('.page-heading').forEach(h => { const t = h.querySelector('h1'), s = h.querySelector('.subtitle'); h.classList.toggle('tall', Boolean((t && t.scrollWidth > t.clientWidth + 1) || (s && s.scrollHeight > s.clientHeight + 1))); });
 }
 export async function reload() { state.data = await api(bootUrl()); state.product = state.data.product ?? state.product; await renderRoute(); }

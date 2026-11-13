@@ -170,6 +170,7 @@ export const SECTIONS = [
     <ul>
       <li><strong>It asks before anything is lost.</strong> Deleting cases, templates, requirements, uploads, users, modules or closing a run all need a confirmation.</li>
       <li><strong>Nothing is overwritten quietly.</strong> A new login profile or data template with a name that already exists is refused.</li>
+      <li><strong>Why it works this way.</strong> The design notes behind Test Studio are on the <a href="#/research">Design and research</a> page.</li>
       <li><strong>Everything is recorded.</strong> Changes to access, settings, modules and runs are written to an audit trail.</li>
       <li><strong>AI is supervised.</strong> It drafts; people approve. It works only on the files you give it and cannot reach your systems.</li>
       <li><strong>Team data is shared through the repository.</strong> Administrators export users, modules, cases, settings and login profiles with the snapshot tool so a new machine starts with the same data. The repository must stay private because the login passwords travel with it.</li>
