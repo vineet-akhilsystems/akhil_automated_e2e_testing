@@ -35,6 +35,24 @@ Built-in agents (`general-purpose`, `Explore`, `Plan`) have no pinned model. Alw
 - doing work → `model: "sonnet"`
 - needs deep judgement → `model: "opus"`
 
+## Portal runtime routing (Test Studio's own AI jobs)
+
+The portal spends AI when someone presses **Analyse** or **Generate automation proposal**. Non-technical users never pick a model: an administrator picks one of three presets in **Settings > AI usage**, and `portal/ai-policy.mjs` does the routing. Change routing there, not in `portal/agent.mjs`.
+
+| Job | Economy | Balanced (default) | Best quality |
+|---|---|---|---|
+| Analyse, small text-only files | Haiku | Sonnet | Sonnet |
+| Analyse with screenshots/video frames or a lot of text | Sonnet | Sonnet | Opus |
+| Automation proposal (writes test code) | Sonnet | Sonnet | Opus |
+| Step limit (analyse / automation) | 20 / 35 | 30 / 50 | 40 / 60 |
+| Reading cap per file / total | 40k / 100k chars | 120k / 300k | 300k / 800k |
+| Video frames per run | 12 | 24 | 40 |
+| Skip sources the previous insights already cover | yes | yes | no |
+
+Fixed for every job: a lean `claude` launch (five file tools only, no MCP servers, no skills, no auto-loaded memory: about 7k instead of 37k input tokens per turn), a Sonnet fallback when a non-Sonnet model is overloaded, an administrator-set daily job limit, and exact usage recorded per job (`<data dir>/ai-usage.jsonl`, shown in Settings). Codex keeps its own default model unless an administrator names one.
+
+Development-time routing (this file's table above) is separate: it governs your own Claude Code session, not the portal.
+
 ## Common mistakes
 
 | Mistake | Fix |

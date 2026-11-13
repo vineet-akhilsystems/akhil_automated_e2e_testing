@@ -6,6 +6,7 @@ import { onIntake, refreshIntake } from './intake.js';
 import { pipelineConflict, proposeGate, refreshReadiness } from './pipeline.js';
 import { bootUrl } from './workspace.js';
 import { can } from '../permissions.js';
+import { usageText } from './ai-settings.js';
 import { renderPage } from '../router.js';
 import { currentModule, state } from '../state.js';
 
@@ -92,8 +93,8 @@ function agentStatusLine(run, m) {
   if (job.status === 'error') return `<span class="agent-err">Failed: ${esc(job.message || 'The agent did not finish.')}</span>`;
   if (job.status === 'interrupted') return `Interrupted: the portal restarted or the job was stopped before it finished. Nothing from it was saved.${job.message ? ` ${esc(job.message)}` : ''} ${can('agent.run', m.id) ? `<button class="small" type="button" data-action="agent-retry" data-kind="${esc(job.kind ?? run.kind)}" data-id="${esc(job.id ?? run.jobId)}" data-fid="retry">Retry</button>` : ''}`;
   if (job.status !== 'done') return esc(job.message ?? '');
-  if (job.kind === 'automation') return `Finished with ${esc(agent)}. ${nFiles ?? 0} proposed file${nFiles === 1 ? '' : 's'}. Nothing was installed or run.`;
-  return `Finished with ${esc(agent)}. <button class="link-button" type="button" data-action="agent-insights" data-fid="insights">View the insights</button> · <a href="#/modules/${esc(m.id)}/review">Review queue</a>${draft != null ? ` (${Number(draft)} draft case${Number(draft) === 1 ? '' : 's'} waiting)` : ''}`;
+  if (job.kind === 'automation') return `Finished with ${esc(agent)}. ${nFiles ?? 0} proposed file${nFiles === 1 ? '' : 's'}. Nothing was installed or run.${usageText(job)}`;
+  return `Finished with ${esc(agent)}. <button class="link-button" type="button" data-action="agent-insights" data-fid="insights">View the insights</button> · <a href="#/modules/${esc(m.id)}/review">Review queue</a>${draft != null ? ` (${Number(draft)} draft case${Number(draft) === 1 ? '' : 's'} waiting)` : ''}${usageText(job)}`;
 }
 function agentPanelInner(m, kind) {
   const auto = kind === 'automation', run = state.agentRuns[runKey(m.id, kind)], job = run?.job, running = job?.status === 'running';

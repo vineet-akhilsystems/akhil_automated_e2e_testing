@@ -133,6 +133,10 @@ The live database (`.portal/`) is never committed. Instead `portal-data/snapshot
 - **Not shared:** login profiles and their key, runs and reports, the audit log and uploaded files. Create the profiles in Settings or with `qa/tools/seed-miracle-profile.mjs` and `qa/tools/seed-augastam-test-profile.mjs`; the passwords are passed for that one run and never stored in git.
 - The snapshot is one JSON file, so two people editing cases at once can still conflict in git. Export, commit and push often, and pull before you export.
 
+## AI cost and quality settings
+
+Administrators choose **Economy**, **Balanced** (default) or **Best quality** in Settings > AI usage, and an optional daily job limit. The portal then picks the lightest capable model for each job, caps how much it reads, limits the number of steps, and records the tokens used. Routing rules and numbers: `portal/ai-policy.mjs` and `.claude/skills/routing-work-to-models/SKILL.md`.
+
 ## Team access
 
 Local mode binds to `127.0.0.1`. For a trusted internal server, configure an access key and network binding before starting:

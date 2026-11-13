@@ -10,6 +10,7 @@ import './handlers/agent.js';
 import './handlers/drop.js';
 import './handlers/access.js';
 import './handlers/pipeline.js';
+import './handlers/ai.js';
 
 await start();
 let accessTick = 0;

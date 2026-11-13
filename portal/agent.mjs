@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { check, HttpError, adapters, ROOT } from './registry.mjs';
 import { pluginFor, plugins } from './modules/index.mjs';
 import { classifySource } from './readiness.mjs';
+import { createAiPolicy, friendlyModel, tokensOf } from './ai-policy.mjs';
 
 // Runs the user's own coding agent CLI (Claude Code or Codex) inside a locked-down workspace folder.
 // The agent never gets portal credentials or network access to the portal. It reads files we place in
@@ -14,13 +15,18 @@ import { classifySource } from './readiness.mjs';
 export const AGENTS = {
   claude: {
     label: 'Claude Code', bin: 'claude',
-    args: (_workspace, _images) => ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--no-session-persistence',
-      '--allowedTools', 'Read,Write,Edit,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch,Task'],
+    // Lean launch: only the five file tools, no MCP servers (mcp-none.json is written into the workspace), no skills, and no user/project
+    // memory (the brief is read once from INSTRUCTIONS.md, not also auto-loaded from CLAUDE.md). Measured: ~7k instead of ~37k input tokens per turn.
+    // `plan` (see ai-policy.mjs) adds the routed model and a step limit that stops a confused agent from looping.
+    args: (_workspace, _images, plan = {}) => ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--no-session-persistence',
+      '--allowedTools', 'Read,Write,Edit,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch,Task',
+      '--tools', 'Read,Write,Edit,Glob,Grep', '--strict-mcp-config', '--mcp-config', 'mcp-none.json', '--disable-slash-commands', '--setting-sources', 'local',
+      ...(plan.model ? ['--model', plan.model] : []), ...(plan.fallbackModel ? ['--fallback-model', plan.fallbackModel] : []), ...(plan.maxTurns ? ['--max-turns', String(plan.maxTurns)] : [])],
   },
   codex: {
     label: 'Codex', bin: 'codex',
     // Images are attached to the first prompt with -i (a variadic flag, so the prompt then comes from piped stdin, not a trailing "-").
-    args: (workspace, images = []) => ['exec', '--sandbox', 'workspace-write', '--skip-git-repo-check', '-C', workspace, ...(images.length ? ['-i', ...images] : ['-'])],
+    args: (workspace, images = [], plan = {}) => ['exec', '--sandbox', 'workspace-write', '--skip-git-repo-check', '-C', workspace, ...(plan.model ? ['-m', plan.model] : []), ...(images.length ? ['-i', ...images] : ['-'])],
   },
 };
 
@@ -92,7 +98,7 @@ input/previous-insights.json holds the insights saved as version ${version}. Eve
 - Sources marked "unchanged" need re-reading only to check a contradiction.
 `;
 
-export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion }) {
+export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion, skippedUnchanged = false }) {
   const common = `# Test Studio agent brief
 
 You are helping a QA team build automated tests for the **${module.name}** module (${module.area}) of Augastam EMR.
@@ -160,7 +166,7 @@ ${n[1]}. Write ONE file, output/insights.json, valid JSON in exactly this shape 
 
 ${schema}
 
-${hasPrevious ? `\n## ${mergeSection(previousVersion ?? 1)}\n` : ''}A lead confirms "suggestedSetup" later; it is never applied automatically, so leave it out when the material does not say.
+${hasPrevious ? `\n## ${mergeSection(previousVersion ?? 1)}${skippedUnchanged ? '- To save time and cost the text and images of "unchanged" sources are NOT included (their manifest entry says "omitted"). Treat the previous insights as the record of what they say; do not guess beyond it.\n' : ''}\n` : ''}A lead confirms "suggestedSetup" later; it is never applied automatically, so leave it out when the material does not say.
 
 Derive roughly 15-40 high-value cases across these buckets (prefer fewer good cases over many shallow ones, and say so in openQuestions if the material cannot support more):
 1. Happy path and persistence (P0): valid creation, values persisted after reopen.
@@ -194,7 +200,7 @@ export function copyDiscovery(src, dest, moduleId) {
   return files > 0;
 }
 
-export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger }) {
+export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir) }) {
   const root = path.join(dataDir, 'agent');
   const jobs = new Map();
   let detected = null, detectedAt = 0, closed = false;
@@ -243,6 +249,15 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     return '';
   };
 
+  // The CLI reports exact tokens, cost and why it stopped in its final "result" line.
+  const captureUsage = (job, line) => {
+    let m; try { m = JSON.parse(line); } catch { return; }
+    if (m.type === 'system' && m.subtype === 'init' && m.model) job.model = m.model;
+    if (m.type !== 'result') return;
+    const names = Object.keys(m.modelUsage ?? {});
+    job.usage = { model: friendlyModel(names[0] ?? job.model), turns: m.num_turns ?? null, inputTokens: tokensOf(m.usage), outputTokens: m.usage?.output_tokens ?? 0, costUsd: m.total_cost_usd ?? null, durationMs: m.duration_ms ?? null, endReason: m.subtype ?? null };
+  };
+
   async function prepare(job, module, kind, fileIds) {
     const ws = path.join(root, job.id);
     fs.mkdirSync(path.join(ws, 'input'), { recursive: true }); fs.mkdirSync(path.join(ws, 'output', kind === 'automation' ? 'automation' : ''), { recursive: true });
@@ -267,17 +282,33 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
       previous = store.insights?.(module.id) ?? null;
       if (previous) fs.writeFileSync(path.join(ws, 'input', 'previous-insights.json'), JSON.stringify(previous, null, 1));
       job.coveredFileIds = sources.filter(({ file }) => !waiting.some(w => w.id === file.id)).map(({ file }) => file.id);
+      // Token budget from the AI policy: a per-file and a total reading cap, a frame cap, and (when something new exists) skipping sources the
+      // previous insights already cover. The manifest tells the agent what was trimmed or left out.
+      const limits = policy.limits('analyze'), stateOf = file => classifySource(file, previous);
+      const isVisual = ({ file, content }) => (file.kind === 'video' && Array.isArray(content?.frames) && content.frames.length) || (file.kind === 'image' && IMAGE_EXT.test(file.name));
+      const hasNew = sources.some(x => stateOf(x.file) !== 'unchanged' && ((x.content?.text ?? '') || isVisual(x)));
+      job.skipUnchanged = Boolean(previous && limits.skipUnchanged && hasNew);
+      job.stats = { chars: 0, images: 0, files: 0, trimmed: 0, omitted: 0 };
+      let charBudget = limits.totalChars;
       sources.forEach(({ file, content }, i) => {
-        const entry = { fileId: file.id, name: file.name, kind: file.kind, extract: file.extract, note: file.extractNote ?? '', ...(file.sha256 ? { sha256: file.sha256 } : {}), state: classifySource(file, previous) };
+        const entry = { fileId: file.id, name: file.name, kind: file.kind, extract: file.extract, note: file.extractNote ?? '', ...(file.sha256 ? { sha256: file.sha256 } : {}), state: stateOf(file) };
         const text = content?.text ?? '';
-        if ((file.extract === 'ok' || file.extract === 'partial') && text) { const rel = `${String(i + 1).padStart(2, '0')}-${safeName(file.name).replace(/\.txt$/i, '')}.txt`; fs.writeFileSync(path.join(ws, 'input', rel), text.slice(0, MAX_FILE_CHARS)); entry.textFile = rel; entry.truncated = text.length > MAX_FILE_CHARS; }
+        if (job.skipUnchanged && entry.state === 'unchanged') { entry.omitted = 'unchanged since the previous insights; its content is already captured there'; job.stats.omitted++; }
+        else if ((file.extract === 'ok' || file.extract === 'partial') && text) {
+          const room = Math.max(0, Math.min(MAX_FILE_CHARS, limits.fileChars, charBudget)), body = text.slice(0, room);
+          if (body.length) { const rel = `${String(i + 1).padStart(2, '0')}-${safeName(file.name).replace(/\.txt$/i, '')}.txt`; fs.writeFileSync(path.join(ws, 'input', rel), body); entry.textFile = rel; charBudget -= body.length; job.stats.chars += body.length; job.stats.files++; }
+          entry.truncated = text.length > body.length; if (entry.truncated) job.stats.trimmed++;
+          if (!body.length) entry.note = `${entry.note} Left out: the reading budget for this run was used up by earlier files.`.trim();
+        }
         manifest.push(entry);
       });
       // Screenshots and walkthrough-video keyframes go to the agent as images (Claude opens the files, Codex gets them attached).
       job.images = [];
-      const visualSources = sources.filter(({ file, content }) => (file.kind === 'video' && Array.isArray(content?.frames) && content.frames.length) || (file.kind === 'image' && IMAGE_EXT.test(file.name)));
-      const perFile = Math.max(4, Math.floor(MAX_FRAMES / Math.max(1, visualSources.length)));
-      let budget = MAX_FRAMES;
+      // AGENT_MAX_FRAMES (an operator override) wins over the preset's frame cap.
+      const frameCap = process.env.AGENT_MAX_FRAMES ? MAX_FRAMES : limits.frames;
+      const visualSources = sources.filter(x => isVisual(x) && !(job.skipUnchanged && stateOf(x.file) === 'unchanged'));
+      const perFile = Math.max(4, Math.floor(frameCap / Math.max(1, visualSources.length)));
+      let budget = frameCap;
       visualSources.forEach(({ file, content }, vi) => {
         if (budget <= 0) return;
         const entry = manifest.find(m => m.fileId === file.id);
@@ -299,7 +330,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
         entry.frames = pickEven(frames, Math.min(perFile, budget)).map(f => take(path.join(dir, f.file), f.file, f.t));
       });
       const hasVisuals = manifest.some(m => m.frames?.length || m.images?.length);
-      job.hasVisuals = hasVisuals;
+      job.hasVisuals = hasVisuals; job.stats.images = job.images.length;
       check(manifest.some(m => m.textFile && m.extract !== 'partial') || hasVisuals,
         waiting.length ? 'The videos are still being processed. Try again in a minute.'
           : manifest.some(m => m.textFile) ? 'Only video keyframe indexes were extracted (no transcript or images), so there is nothing the agent can read reliably. Add a spreadsheet, document, PDF or a transcript as a text file.'
@@ -318,9 +349,10 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
       }
       hasDiscovery = copyDiscovery(path.join(discoveryRoot, String(module.id), 'discovery'), path.join(ws, 'input', 'discovery'), module.id);
     }
-    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version });
+    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged) });
     for (const f of ['INSTRUCTIONS.md', 'CLAUDE.md', 'AGENTS.md']) fs.writeFileSync(path.join(ws, f), brief);
     fs.writeFileSync(path.join(ws, 'input', 'MANIFEST.json'), JSON.stringify(manifest, null, 1));
+    fs.writeFileSync(path.join(ws, 'mcp-none.json'), '{"mcpServers":{}}');
     return ws;
   }
 
@@ -338,6 +370,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
   async function finish(job, ws, kind, user, code) {
     try {
       if (job.status === 'cancelled' || job.status === 'interrupted') return;
+      if (job.usage?.endReason === 'error_max_turns') { job.status = 'error'; job.message = `The agent used all ${job.plan?.maxTurns ?? ''} allowed steps before finishing, so nothing was saved. Try again with fewer files, or ask an administrator to switch to Best quality in Settings > AI usage.`; return; }
       if (code !== 0) { job.status = 'error'; job.message = job.timedOut ? 'The agent took too long and was stopped.' : `The agent stopped with an error (exit code ${code}). See the log; if it asks you to sign in, sign in to ${AGENTS[job.agent].label} on the portal server.`; return; }
       if (kind === 'analyze') {
         const file = path.join(ws, 'output', 'insights.json');
@@ -361,6 +394,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
       job.status = 'error'; job.message = e instanceof HttpError ? e.message : `Could not use the agent output (${String(e.message ?? e).slice(0, 160)}).`;
     } finally {
       job.finishedAt = new Date().toISOString(); job.child = null;
+      policy.record({ jobId: job.id, moduleId: job.moduleId, kind: job.kind, agent: job.agent, user: job.createdBy, status: job.status, startedAt: job.startedAt, preset: job.plan?.preset ?? null, modelLabel: job.usage?.model ?? job.plan?.model ?? null, turns: job.usage?.turns ?? null, inputTokens: job.usage?.inputTokens ?? 0, outputTokens: job.usage?.outputTokens ?? 0, costUsd: job.usage?.costUsd ?? null });
       push(job, job.message); persist(job);
     }
   }
@@ -393,6 +427,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     releaseStale();
     const running = [...jobs.values()].find(j => j.status === 'running');
     check(!running, `The coding agent is busy with another job (${running ? `${AGENTS[running.agent]?.label ?? 'agent'} ${running.kind === 'analyze' ? 'analysing files' : 'building an automation proposal'}, started ${Math.max(0, Math.round((Date.now() - Date.parse(running.startedAt)) / 60000))} min ago` : ''}). Wait for it to finish, or cancel it from its module's Intake tab.`, 409);
+    policy.checkQuota();
     const st = (await status()).agents.find(a => a.id === agent);
     check(st?.available, `${AGENTS[agent].label} is not installed on the portal server.`, 409);
     precheck(module, kind, fileIds, force);
@@ -417,12 +452,16 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     job.workspace = ws; job.message = `${AGENTS[agent].label} is working`; persist(job);
     push(job, `Started ${AGENTS[agent].label} (${kind === 'analyze' ? 'analyse files' : 'automation proposal'}).`);
     const def = AGENTS[agent];
-    const child = spawn(def.bin, shellArgs(def.args(ws, job.images ?? [])), { cwd: ws, env: agentEnv(env), shell: process.platform === 'win32', windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    // Model and step limit for THIS job, chosen from the preset and the real input size (see ai-policy.mjs).
+    const plan = policy.route(kind, job.stats ?? {}, agent);
+    job.plan = { preset: plan.presetLabel, model: plan.model ? friendlyModel(plan.model) : 'Default', maxTurns: plan.maxTurns, why: plan.why };
+    push(job, `Plan: ${plan.presetLabel} - ${job.plan.model}, up to ${plan.maxTurns} steps. ${plan.why}`);
+    const child = spawn(def.bin, shellArgs(def.args(ws, job.images ?? [], plan)), { cwd: ws, env: agentEnv(env), shell: process.platform === 'win32', windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     job.child = child;
     const prompt = kind === 'analyze' ? 'Read INSTRUCTIONS.md in this folder and do the task it describes. Write output/insights.json.' : 'Read INSTRUCTIONS.md in this folder and do the task it describes. Write the files into output/automation/.';
     child.stdin.on('error', () => {}); child.stdin.end(prompt);
     const lines = (stream, map) => { let buf = ''; stream.setEncoding('utf8'); stream.on('data', c => { buf += c; let i; while ((i = buf.indexOf('\n')) >= 0) { map(buf.slice(0, i)); buf = buf.slice(i + 1); } }); stream.on('end', () => buf && map(buf)); };
-    lines(child.stdout, l => push(job, agent === 'claude' ? describeClaude(l) : l));
+    lines(child.stdout, l => { if (agent === 'claude') captureUsage(job, l); push(job, agent === 'claude' ? describeClaude(l) : l); });
     lines(child.stderr, l => push(job, agent === 'claude' ? l : l));
     const timer = setTimeout(() => { job.timedOut = true; child.kill(); }, timeoutMs);
     let settled = false;
@@ -436,7 +475,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     return full ? { ...rest, log: log.slice(-300), logCount: log.length } : rest;
   };
   return {
-    status, start,
+    status, start, policy,
     list(moduleId) {
       const all = new Map();
       for (const j of store.agentJobs?.(moduleId, 50) ?? []) all.set(j.id, j);

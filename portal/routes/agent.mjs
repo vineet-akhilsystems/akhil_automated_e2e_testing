@@ -14,7 +14,20 @@ export default async function handle(ctx, rc) {
           // Which module the agent is busy on is only shown to people who can see that module.
           return json(res, 200, status.busy && !(busyModule && acc.canSee(busyModule)) ? { ...status, busy: { busy: true } } : status);
         }
-        const agentMatch = /^\/api\/modules\/([\w-]+)\/agent\/jobs(?:\/([\w-]+)(?:\/(cancel|files|retry))?)?$/.exec(route);
+        // AI quality, limits and usage (administrators only): the three presets, today's job count and a 7-day usage summary.
+        if (route === '/api/ai/policy') {
+          const policy = agent.policy;
+          check(policy, 'AI settings are not available on this server.', 404);
+          check(user.role === 'admin', 'Only an administrator can view or change AI settings.', 403);
+          if (req.method === 'GET') return json(res, 200, { ...policy.get(), presets: policy.presets(), usage: policy.usage(7) });
+          if (req.method === 'PUT') {
+            const body = await readJson(req), before = policy.get(), saved = policy.save(body);
+            store.audit({ actor: user.username, action: 'ai.policy', scopeType: 'system', scopeId: 'ai', subject: null, detail: { from: before, to: saved } });
+            return json(res, 200, { ...saved, presets: policy.presets(), usage: policy.usage(7) });
+          }
+          throw new HttpError(405, 'Method not allowed.');
+        }
+        const agentMatch =/^\/api\/modules\/([\w-]+)\/agent\/jobs(?:\/([\w-]+)(?:\/(cancel|files|retry))?)?$/.exec(route);
         if (agentMatch) {
           const [, mid, jid, sub] = agentMatch, module = getModule(mid);
           // An automation proposal without sources, insights, an approved case, a confirmed setup and discovery would be guesswork.
