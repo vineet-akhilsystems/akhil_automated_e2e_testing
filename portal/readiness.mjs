@@ -75,8 +75,8 @@ export function readiness({ module, product, sources = [], insights = null, case
   else if (!hasInsights) {
     const last = lastJob('analyze');
     if (reference && !sources.length) s2 = stage('insights', 'ready', 'Reference module (built in).');
-    else if (last && ['error', 'interrupted'].includes(last.status)) s2 = stage('insights', 'failed', last.message || 'The last analysis did not finish.', s1.status === 'ready' ? { id: 'analyse', label: 'Analyse sources' } : undefined);
-    else s2 = stage('insights', 'missing', s1.status === 'ready' ? 'No analysis yet. Analyse the sources to extract fields, rules and draft cases.' : 'Needs a usable source first.', s1.status === 'ready' ? { id: 'analyse', label: 'Analyse sources' } : undefined);
+    else if (last && ['error', 'interrupted'].includes(last.status)) s2 = stage('insights', 'failed', last.message || 'The last analysis did not finish.', s1.status === 'ready' ? { id: 'analyse', label: 'Analyse files' } : undefined);
+    else s2 = stage('insights', 'missing', s1.status === 'ready' ? 'No analysis yet. Analyse the sources to extract fields, rules and draft cases.' : 'Needs a usable source first.', s1.status === 'ready' ? { id: 'analyse', label: 'Analyse files' } : undefined);
   } else if (stale.length) s2 = stage('insights', 'stale', `Version ${insights.version ?? 1} does not cover ${stale.length} newer source(s): ${names(stale)}.`, { id: 'update-insights', label: 'Update insights' });
   else s2 = stage('insights', 'ready', `Version ${insights.version ?? 1} covers all current sources.`);
 

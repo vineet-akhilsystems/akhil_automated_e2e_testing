@@ -332,7 +332,7 @@ document.addEventListener('submit', async event => {
     }
     if (form.id === 'template-form') {
       await api(`/api/modules/${drafts.templateModule.id}/templates`, 'PUT', { name: f.get('template-name'), input: readInputs(form, adapterFor(drafts.templateModule)), version: drafts.templateModule.version, create: !drafts.templateEditing });
-      closeDialog(); await reload(); toast('Shared data template saved.');
+      closeDialog(); await reload(); toast('Shared test data template saved.');
     }
     if (form.id === 'import-form') {
       const file = f.get('file'); if (!file?.size || file.size > 6 * 1024 * 1024) throw new Error('Choose a JSON or Excel file up to 6 MB.');

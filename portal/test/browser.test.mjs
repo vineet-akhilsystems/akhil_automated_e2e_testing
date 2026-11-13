@@ -144,7 +144,7 @@ test('BA browser workflow: add modules, write cases, execute manually and edit a
   await expect(page.getByRole('heading', { name: '2. Review & accept AI-generated test cases (3 drafts)', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Accept & save selected (3)', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Registration', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Shared data', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Shared test data', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Shared test data', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Edit template' }).click();
   await expect(page.getByLabel('Template name')).toHaveValue('valid');
