@@ -1,6 +1,7 @@
 {
   "format": 1,
   "note": "Shared Test Studio data. Contains password hashes but no login-profile credentials. Regenerate with: node qa/tools/portal-snapshot.mjs export",
+  "settings": {},
   "tables": {
     "users": [
       {
@@ -32,7 +33,7 @@
           "disabled": false,
           "createdAt": "2026-11-09T06:05:27.413Z",
           "mustChangePassword": false,
-          "lastLoginAt": "2026-11-13T05:32:22.208Z",
+          "lastLoginAt": "2026-11-13T06:49:57.666Z",
           "passwordChangedAt": "2026-11-09T12:10:29.722Z",
           "managed": "admin"
         }

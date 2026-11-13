@@ -200,7 +200,7 @@ export function copyDiscovery(src, dest, moduleId) {
   return files > 0;
 }
 
-export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir) }) {
+export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir, { db: store.db }) }) {
   const root = path.join(dataDir, 'agent');
   const jobs = new Map();
   let detected = null, detectedAt = 0, closed = false;

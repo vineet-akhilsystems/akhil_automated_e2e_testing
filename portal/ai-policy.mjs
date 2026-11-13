@@ -47,9 +47,28 @@ export const tokensOf = input;
 export const friendlyModel = name => { const m = /(haiku|sonnet|opus|fable)/i.exec(String(name ?? '')); return m ? m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() : String(name ?? '') || 'Unknown'; };
 const localDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function createAiPolicy(dataDir, { now = () => new Date() } = {}) {
+export const SETTING_KEY = 'setting:ai-policy';
+
+// The policy is a shared setting, so it lives in the portal database (meta table) and travels with the team snapshot.
+// Without a database (unit tests, tools) it falls back to a JSON file. The usage ledger stays local: it is per-machine history.
+export function createAiPolicy(dataDir, { now = () => new Date(), db = null } = {}) {
   const file = path.join(dataDir, 'ai-policy.json'), ledger = path.join(dataDir, 'ai-usage.jsonl');
-  const get = () => { try { return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch { return { ...DEFAULTS }; } };
+  const load = () => {
+    try {
+      if (db) {
+        const row = db.prepare('SELECT value FROM meta WHERE key=?').get(SETTING_KEY);
+        if (row) return JSON.parse(row.value);
+        if (fs.existsSync(file)) { const old = JSON.parse(fs.readFileSync(file, 'utf8')); store(old); return old; } // one-time move from the old file
+        return {};
+      }
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch { return {}; }
+  };
+  const store = value => {
+    if (db) { db.prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(SETTING_KEY, JSON.stringify(value)); return; }
+    fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(file + '.tmp', JSON.stringify(value, null, 2)); fs.renameSync(file + '.tmp', file);
+  };
+  const get = () => ({ ...DEFAULTS, ...load() });
   const entries = () => { try { return fs.readFileSync(ledger, 'utf8').split('\n').filter(Boolean).flatMap(l => { try { return [JSON.parse(l)]; } catch { return []; } }); } catch { return []; } };
   const todayJobs = () => entries().filter(e => e.startedAt && localDay(new Date(e.startedAt)) === localDay(now())).length;
   return {
@@ -60,8 +79,7 @@ export function createAiPolicy(dataDir, { now = () => new Date() } = {}) {
       if (body.preset !== undefined) { check(Object.hasOwn(PRESETS, body.preset), 'Choose Economy, Balanced or Best quality.'); next.preset = body.preset; }
       if (body.dailyJobLimit !== undefined) { check(Number.isInteger(body.dailyJobLimit) && body.dailyJobLimit >= 0 && body.dailyJobLimit <= 1000, 'The daily job limit must be a whole number from 0 (no limit) to 1000.'); next.dailyJobLimit = body.dailyJobLimit; }
       if (body.codexModel !== undefined) { check(typeof body.codexModel === 'string' && /^[\w.:-]{0,60}$/.test(body.codexModel), 'The Codex model name can only contain letters, numbers and . _ : -'); next.codexModel = body.codexModel; }
-      fs.mkdirSync(dataDir, { recursive: true });
-      fs.writeFileSync(file + '.tmp', JSON.stringify(next, null, 2)); fs.renameSync(file + '.tmp', file);
+      store(next);
       return next;
     },
     // Reading and time limits for a kind of job under the current preset (applied while the workspace is prepared).

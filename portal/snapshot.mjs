@@ -17,13 +17,16 @@ export const SHARED_TABLES = [
 ];
 
 // Readable, diff-friendly: documents are stored as JSON objects and rows are sorted by primary key.
+// Shared settings kept in the meta table (key prefix "setting:"), e.g. the AI quality preset. Other meta rows are per-machine and stay out.
+const settingsOf = db => Object.fromEntries(db.prepare("SELECT key, value FROM meta WHERE key LIKE 'setting:%' ORDER BY key").all().map(r => [r.key, JSON.parse(r.value)]));
+
 export function exportSnapshot(db) {
   const tables = {};
   for (const t of SHARED_TABLES) {
     const rows = db.prepare(`SELECT * FROM ${t.name} ORDER BY ${t.key.join(', ')}`).all();
     tables[t.name] = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, t.json.includes(k) ? JSON.parse(v) : v])));
   }
-  return { format: 1, note: 'Shared Test Studio data. Contains password hashes but no login-profile credentials. Regenerate with: node qa/tools/portal-snapshot.mjs export', tables };
+  return { format: 1, note: 'Shared Test Studio data. Contains password hashes but no login-profile credentials. Regenerate with: node qa/tools/portal-snapshot.mjs export', settings: settingsOf(db), tables };
 }
 
 export function writeSnapshotFile(db, file) {
@@ -44,6 +47,10 @@ export function importSnapshot(db, snapshot) {
           .run(...cols.map(c => t.json.includes(c) ? JSON.stringify(row[c]) : row[c]));
       }
     }
+    if (snapshot.settings && typeof snapshot.settings === 'object') {
+      db.exec("DELETE FROM meta WHERE key LIKE 'setting:%'");
+      for (const [key, value] of Object.entries(snapshot.settings)) { if (/^setting:[\w.-]+$/.test(key)) db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(key, JSON.stringify(value)); }
+    }
     db.exec('COMMIT');
   } catch (error) { db.exec('ROLLBACK'); throw error; }
 }
@@ -55,6 +62,6 @@ export function importSnapshotIfFresh(db, file, log = () => {}) {
   if (count('users') || count('modules')) return false;
   const snapshot = JSON.parse(fs.readFileSync(file, 'utf8'));
   importSnapshot(db, snapshot);
-  log(`Loaded shared data from ${path.basename(file)}: ${Object.entries(snapshot.tables).map(([k, v]) => `${v.length} ${k}`).join(', ')}.`);
+  log(`Loaded shared data from ${path.basename(file)}: ${Object.entries(snapshot.tables).map(([k, v]) => `${v.length} ${k}`).join(', ')}${Object.keys(snapshot.settings ?? {}).length ? `, ${Object.keys(snapshot.settings).length} setting(s)` : ''}.`);
   return true;
 }
