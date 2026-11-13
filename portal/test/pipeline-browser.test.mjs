@@ -155,7 +155,7 @@ test('Pipeline UI: readiness checklist, gates, setup, duplicates, retry and hist
   await expect.poll(() => retried).toBe('job-1');
   await expect(page.locator('#toasts')).toContainText('The coding agent finished');
 
-  await agent.getByRole('button', { name: /^Analyze with Claude Code/ }).click();
+  await agent.getByRole('button', { name: /^Analyse with Claude Code/ }).click();
   await expect(agent.locator('.agent-info')).toContainText('Nothing new to analyse since version 3');
   await agent.getByRole('button', { name: 'Run anyway' }).click();
   await expect.poll(() => startBodies.length).toBe(2);

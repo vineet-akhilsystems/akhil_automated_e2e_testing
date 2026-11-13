@@ -103,7 +103,7 @@ export function readiness({ module, product, sources = [], insights = null, case
   else if (discoveryExists) s5 = stage('discovery', 'ready', 'Discovery output is newer than the target setup.');
   else if (discoveryStale) s5 = stage('discovery', 'stale', 'The target setup was confirmed after the last discovery. Run discovery again.');
   else if (s4.status !== 'ready') s5 = stage('discovery', 'missing', 'Confirm the target setup first; discovery scans the page it names.');
-  else s5 = stage('discovery', 'missing', 'Discovery has not been run. It must write qa/modules/<module>/discovery/fields-default.json.');
+  else s5 = stage('discovery', 'missing', 'Discovery has not been run yet. It scans the module page and lists its fields; a developer starts it from the command line.');
 
   const insightsOk = hasInsights || (reference && s2.status === 'ready');
   const canGenerateAi0 = s1.status === 'ready' && insightsOk;

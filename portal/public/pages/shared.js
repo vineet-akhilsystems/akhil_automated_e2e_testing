@@ -1,10 +1,13 @@
 import { badge, esc, icon, opts } from '../components/dom.js';
-import { heading } from '../components/widgets.js';
+import { empty, heading } from '../components/widgets.js';
 import { adapterFor, state } from '../state.js';
 
 
 export function sharedPage() {
-  const m = state.data.modules.find(m => m.id === state.route[1]) ?? state.data.modules.find(m => m.adapter), bases = m?.config?.bases ?? {};
+  const wanted = state.route[1], found = state.data.modules.find(m => m.id === wanted);
+  if (wanted && !found) return heading('Reusable foundations', 'Shared test data', 'Define valid starting data once.') + `<div class="panel">${empty('That module was not found', 'It may have been deleted or the address is wrong.', '<a class="button-link" href="#/shared">Open shared test data</a>')}</div>`;
+  if (found && !found.adapter) return heading('Reusable foundations', 'Shared test data', 'Define valid starting data once.') + `<div class="panel">${empty(`${found.name} has no shared test data`, 'Shared data templates give automated cases their starting values. This module is tested manually, so it has none. Connect automation in Module settings to use them.', '<a class="button-link" href="#/shared">See modules that have shared data</a>')}</div>`;
+  const m = found ?? state.data.modules.find(m => m.adapter), bases = m?.config?.bases ?? {};
   return heading('Reusable foundations', 'Shared test data', 'Define valid starting data once. Cases override only the fields they need to test.', m?.adapter ? `<button class="primary" data-action="new-template" data-id="${m.id}">${icon('plus')} Add data template</button>` : '')
     + `<div class="toolbar"><select class="module-select" aria-label="Module for shared data" data-change="shared-module">${opts(state.data.modules.filter(m => m.adapter).map(m => [m.id, m.name]), m?.id)}</select><span class="tiny muted">Templates are captured in every run snapshot</span></div><div class="module-grid">${Object.entries(bases).map(([name, values]) => `<article class="module-card"><div class="flex between"><div class="module-icon">${icon('layers')}</div>${badge(m.name)}</div><h2>${esc(name)}</h2><p class="tiny muted">${Object.keys(values).length} predefined fields</p><div class="template-values">${Object.entries(values).slice(0, 8).map(([k, v]) => `<span><strong>${esc(adapterFor(m)?.fields[k]?.label ?? k)}:</strong> ${esc(v)}</span>`).join('')}</div><div class="flex between"><button class="small" data-action="edit-template" data-id="${m.id}" data-name="${esc(name)}">Edit template ${icon('arrow')}</button><button class="small quiet" data-action="delete-template" data-id="${m.id}" data-name="${esc(name)}" title="Delete template ${esc(name)}">${icon('trash')}</button></div></article>`).join('')}</div><div class="info-strip">${icon('info')}<div><strong>Unique test data without repetitive editing</strong><p>Use {{phone}} for a generated mobile, {{today}} for today’s date, and {{seqWord}} for a name suffix. Cases can reuse a previous result with {{regId@CASE-ID}}.</p></div></div>`;
 }

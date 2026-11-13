@@ -70,7 +70,7 @@ export function afterRoute() {
   if (state.pendingScroll) { const el = $(state.pendingScroll); state.pendingScroll = ''; if (el) { el.scrollIntoView({ block: 'start' }); $('input,select', el)?.focus({ preventScroll: true }); } }
 }
 function stageActionHtml(m, s) {
-  const a = s.action; if (!a) return '';
+  const a = s.action; if (!a || !can('case.create', m.id)) return '';
   const label = typeof a === 'string' ? a : a.label ?? a.title ?? humanKey(a.id ?? 'open');
   const key = `${s.id} ${typeof a === 'string' ? '' : a.id ?? a.type ?? ''} ${label}`.toLowerCase();
   let href = typeof a === 'object' && /^#\//.test(a.href ?? '') ? a.href : '', scroll = '';

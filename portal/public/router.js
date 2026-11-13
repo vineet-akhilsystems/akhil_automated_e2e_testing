@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { $ } from './components/dom.js';
+import { empty, heading } from './components/widgets.js';
 import { loadAgent } from './pages/agent.js';
 import { aiStudioPage } from './pages/ai-studio.js';
 import { casesPage } from './pages/cases.js';
@@ -19,10 +20,24 @@ import { can, canManageAnywhere, canProduct, isAdmin } from './permissions.js';
 import { currentModule, state } from './state.js';
 
 
+export const notFoundPage = () => `${heading('Not found', 'We could not find that page', 'The address may be wrong, or the item may have been deleted.')}<div class="panel">${empty('Nothing here', 'Check the address, or go back to the Module library to find what you need.', '<a class="button-link" href="#/modules">Open Module library</a>')}</div>`;
+const MODULE_TABS = [undefined, '', 'cases', 'intake', 'review', 'ai', 'coverage', 'members'];
+
 export async function renderRoute() {
   if (!state.data) return;
   const generation = ++state.generation;
   state.route = (location.hash.replace(/^#\/?/, '').split('?')[0] || 'modules').split('/');
+  try { await loadRouteData(generation); }
+  catch (error) {
+    // A module or run that does not exist (deleted, mistyped, old link) gets a clear page instead of the previous screen plus a bare toast.
+    if (error?.status !== 404) throw error;
+    if (generation !== state.generation) return;
+    shell(); $('#main').innerHTML = notFoundPage(); afterRoute(); return;
+  }
+  if (generation !== state.generation) return;
+  shell(); renderPage(); afterRoute();
+}
+async function loadRouteData(generation) {
   if (state.route[0] === 'modules' && state.route[1]) state.cases = await api(`/api/modules/${state.route[1]}/cases`);
   if (state.route[0] === 'modules' && state.route[2] === 'coverage' && state.data.capabilities?.coverage) state.coverage = await api(`/api/modules/${state.route[1]}/coverage?environmentId=${encodeURIComponent(state.coverageEnvironment ?? state.data.environments[0]?.id ?? '')}`);
   if (state.route[0] === 'runs' && state.route[1]) state.runDetail = await api(`/api/runs/${state.route[1]}`);
@@ -33,8 +48,6 @@ export async function renderRoute() {
   if (state.route[0] === 'access' && canProduct('members.manage')) await loadMembers({ type: 'product', id: state.productId, name: productName() });
   if (state.route[0] === 'teams' && canManageAnywhere()) await loadTeams();
   if (state.route[0] === 'modules' && state.route[1]) await loadPipeline(state.route[1], state.route[2]);
-  if (generation !== state.generation) return;
-  shell(); renderPage(); afterRoute();
 }
 export function renderPage() {
   const key = state.route[0];
@@ -47,7 +60,8 @@ export function renderPage() {
            : sub === 'intake' ? intakePage()
            : sub === 'review' ? reviewPage()
            : sub === 'members' ? membersPage()
-           : casesPage();
+           : MODULE_TABS.includes(sub) ? casesPage()
+           : notFoundPage();
     } else {
       page = modulesPage();
     }
@@ -64,7 +78,7 @@ export function renderPage() {
       settings: settingsPage,
       research: researchPage
     };
-    page = pages[key]?.() ?? modulesPage();
+    page = pages[key]?.() ?? notFoundPage();
   }
   $('#main').innerHTML = page;
 }

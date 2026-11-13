@@ -411,7 +411,7 @@ test('Registration without discovery files still reports the discovery stage as 
 
 test('AI generation is gated with the checklist, then works; stale insights only warn', async t => {
   const { f, admin } = await world(t);
-  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Reg', prefix: 'REG', area: 'Front desk', adapter: 'registration' })).status, 201);
+  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Reg', prefix: 'RGT', area: 'Front desk', adapter: 'registration' })).status, 201);
   const gen = () => admin.request('/api/modules/reg/ai-generate', 'POST', { count: 2, mode: 'automated' });
   let blocked = await gen();
   assert.equal(blocked.status, 409); assert.match(blocked.value.error, /Sources/); assert.match(blocked.value.error, /Insights/);
@@ -424,7 +424,7 @@ test('AI generation is gated with the checklist, then works; stale insights only
   assert.equal((await up(admin, 'reg', 'new.txt', 'Another rule.\n')).status, 201); await ready(admin, 'reg');
   ok = await gen(); assert.equal(ok.status, 200); assert.equal(ok.value.warnings.length, 1); assert.match(ok.value.warnings[0], /older than 1 uploaded source/);
   // manual case creation, intake and analysis are never gated
-  assert.equal((await admin.request('/api/modules/reg/cases', 'POST', { id: 'REG-901', title: 'Manual', category: 'c', mode: 'manual', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
+  assert.equal((await admin.request('/api/modules/reg/cases', 'POST', { id: 'RGT-901', title: 'Manual', category: 'c', mode: 'manual', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
   assert.equal((await up(admin, 'reg', 'third.txt', 'Third.\n')).status, 201);
   void f;
 });

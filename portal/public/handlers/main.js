@@ -34,7 +34,7 @@ document.addEventListener('click', async event => {
       try {
         const response = await fetch(`/api/runs/${id}/export?format=pdf`);
         if (!response.ok) { const e = await response.json(); throw new Error(e.error); }
-        if (!response.headers.get('content-type')?.includes('application/pdf')) throw new Error('The server update is pending. Refresh after the active run finishes.');
+        if (!response.headers.get('content-type')?.includes('application/pdf')) throw new Error('The report is not ready yet. Close the run, wait a moment, and try again.');
         const url = URL.createObjectURL(await response.blob()), link = document.createElement('a');
         link.href = url; link.download = `${state.runDetail.module.id}-bug-report-${id.slice(0, 8)}.pdf`;
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
