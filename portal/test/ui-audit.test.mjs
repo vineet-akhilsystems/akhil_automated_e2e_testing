@@ -46,3 +46,23 @@ test('a blank display name falls back to the username', async t => {
   const made = await admin.request('/api/users', 'POST', { username: 'sam', password: 'a-long-password-1', role: 'member', displayName: '   ' });
   assert.equal(made.status, 201); assert.equal(made.value.displayName, 'sam');
 });
+
+test('an administrator can delete a module that has no runs; modules with runs, and other people, cannot', async t => {
+  const f = await boot(t, { bootstrap: ADMIN });
+  const admin = await signedIn(f, ADMIN.username, ADMIN.password);
+  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Oops', prefix: 'OOP', area: 'Setup' })).status, 201);
+  assert.equal((await admin.request('/api/modules/oops/cases', 'POST', { id: 'OOP-001', title: 'x', category: 'c', mode: 'manual', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
+  // someone who is not an administrator is refused even if they can edit the module
+  const { makeUser } = await import('./support.mjs');
+  const bob = await makeUser(admin, 'bob', 'ba'), b = await signedIn(f, 'bob', bob.password);
+  assert.ok([403, 404].includes((await b.request('/api/modules/oops', 'DELETE')).status));
+  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Has runs', prefix: 'HRN', area: 'Setup' })).status, 201);
+  assert.equal((await admin.request('/api/modules/has-runs/cases', 'POST', { id: 'HRN-001', title: 'x', category: 'c', mode: 'manual', steps: [{ action: 'a', expected: 'b' }], reviewStatus: 'approved' })).status, 201);
+  const run = await admin.request('/api/runs', 'POST', { name: 'r', moduleId: 'has-runs', environmentId: 'local', mode: 'manual', caseIds: ['HRN-001'] });
+  assert.equal(run.status, 201, JSON.stringify(run.value));
+  const refused = await admin.request('/api/modules/has-runs', 'DELETE'); assert.equal(refused.status, 409); assert.match(refused.value.error, /1 test run/);
+  const gone = await admin.request('/api/modules/oops', 'DELETE'); assert.equal(gone.status, 200);
+  assert.equal((await admin.request('/api/modules/oops')).status, 404);
+  assert.equal(f.store.cases('oops').length, 0);
+  assert.ok(f.store.db.prepare("SELECT 1 FROM audit_log WHERE scope_id='oops' AND json_extract(document,'$.action')='module.delete'").get(), 'the deletion is in the audit log');
+});

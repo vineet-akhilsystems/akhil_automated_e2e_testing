@@ -46,6 +46,12 @@ document.addEventListener('click', async event => {
     if (action === 'new-product') showProductDialog();
     if (action === 'new-module') showModuleDialog();
     if (action === 'edit-module') showModuleDialog(state.data.modules.find(m => m.id === id));
+    if (action === 'delete-module') {
+      const target = state.data.modules.find(m => m.id === id);
+      if (!confirm(`Delete the module "${target?.name ?? id}" with all of its ${target?.caseCount ?? ''} cases, insights and uploaded files? This cannot be undone.`)) return;
+      await api(`/api/modules/${id}`, 'DELETE');
+      closeDialog(); location.hash = '/modules'; await reload(); toast(`Module "${target?.name ?? id}" deleted.`);
+    }
     if (action === 'area') { state.area = value; renderPage(); }
     if (action === 'set-page-size') {
       state.casePageSize = Number(value);
@@ -192,7 +198,12 @@ document.addEventListener('change', async event => {
     if (el.dataset.change === 'coverage-environment') { state.coverageEnvironment = el.value; await renderRoute(); }
     if (el.dataset.change === 'case-mode') toggleCaseMode(el.value);
     if (el.dataset.change === 'shared-module') location.hash = `/shared/${el.value}`;
-    if (el.dataset.change === 'run-module') await showRunDialog(el.value);
+    if (el.dataset.change === 'run-module') {
+      // switching module rebuilds the dialog; keep a run name the person already typed
+      const typed = $('[name="run-name"]')?.value, suggested = $('[name="run-name"]')?.defaultValue;
+      await showRunDialog(el.value);
+      if (typed && typed !== suggested && $('[name="run-name"]')) $('[name="run-name"]').value = typed;
+    }
     if (el.dataset.change === 'run-mode') { drafts.runDraft.mode = el.value; drafts.runDraft.selected.clear(); renderRunSelection(); }
     if (el.matches('[data-filter]') && el.tagName === 'SELECT') { state[el.dataset.filter] = el.value; renderPage(); }
   } catch (error) { toast(error.message, true); }

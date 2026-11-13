@@ -44,7 +44,7 @@ export function createAccess({ store, users, environments }) {
   function modulePermission(method, rest) {
     const read = ['GET', 'HEAD'].includes(method);
     let m;
-    if (rest === '') return method === 'PUT' ? 'module.settings' : 'module.view';
+    if (rest === '') return ['PUT', 'DELETE'].includes(method) ? 'module.settings' : 'module.view';
     if (rest === '/members') return 'members.manage';
     if (rest.startsWith('/agent/jobs')) return method === 'POST' ? 'agent.run' : 'module.view';
     if (/^\/(intake|insights|pack)(\/|$)/.test(rest)) {

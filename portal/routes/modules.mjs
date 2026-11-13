@@ -103,6 +103,18 @@ export default async function handle(ctx, rc) {
             inModule(user, 'module.requirements', id, { count: requirements.length });
             return json(res, 200, saved);
           }
+          if (!resource && req.method === 'DELETE') {
+            check(user.role === 'admin', 'Only an administrator can delete a module.', 403);
+            const runs = store.runs().filter(r => r.module?.id === id);
+            check(!runs.length, `${module.name} has ${runs.length} test run${runs.length === 1 ? '' : 's'}. Deleting it would lose that history, so it cannot be deleted.`, 409);
+            const counts = { cases: store.cases(id).length, files: store.intakeFiles(id).length };
+            store.transaction(() => {
+              for (const sql of ['DELETE FROM cases WHERE module_id=?', 'DELETE FROM insights WHERE module_id=?', 'DELETE FROM intake_files WHERE module_id=?', 'DELETE FROM agent_jobs WHERE module_id=?', "DELETE FROM memberships WHERE scope_type='module' AND scope_id=?", 'DELETE FROM modules WHERE id=?']) store.db.prepare(sql).run(id);
+            });
+            try { fs.rmSync(path.join(dataDir, 'intake', id), { recursive: true, force: true }); } catch { /* uploaded files are best effort */ }
+            record(user, { action: 'module.delete', scopeType: 'module', scopeId: id, subject: null, detail: { name: module.name, ...counts } });
+            return json(res, 200, { deleted: id });
+          }
           if (!resource && req.method === 'PUT') {
             const body = await readJson(req);
             const adapter = body.adapter === undefined ? module.adapter : (body.adapter ? String(body.adapter) : null);

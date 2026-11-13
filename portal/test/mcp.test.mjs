@@ -71,7 +71,7 @@ test('MCP schema, coverage, AI suggestions and automated draft proposals', async
   const admin = await signedIn(f, ADMIN.username, ADMIN.password);
   const ba = await makeUser(admin, 'bea', 'ba');
   assert.equal((await admin.request('/api/modules', 'POST', { name: 'Billing', prefix: 'BIL', area: 'Finance' })).status, 201);
-  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Reg', prefix: 'REG', area: 'Front desk', adapter: 'registration' })).status, 201);
+  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Reg', prefix: 'RGT', area: 'Front desk', adapter: 'registration' })).status, 201);
   const m = mcpClient({ PORTAL_URL: f.base, PORTAL_MCP_USER: 'bea', PORTAL_MCP_PASSWORD: ba.password });
   t.after(() => m.close());
   await m.rpc('initialize', {});

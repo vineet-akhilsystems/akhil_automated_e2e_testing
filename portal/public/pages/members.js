@@ -70,8 +70,19 @@ function membersTable() {
 }
 function activityPanel() {
   const mm = state.members;
-  const items = mm.audit ?? [];
-  const line = e => `<li><span class="tiny muted">${esc(date(e.at))}</span> <strong>${esc(whoName(e.actor))}</strong> ${esc(humanKey(e.action ?? '').toLowerCase())}${e.subject ? ` <span>${esc(whoName(e.subject))}</span>` : ''}${e.detail ? ` <span class="tiny muted">${esc(typeof e.detail === 'string' ? e.detail : Object.entries(e.detail).map(([k, v]) => `${humanKey(k)}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', '))}</span>` : ''}</li>`;
+  // System housekeeping lines (repeated on every restart) are not activity a person did.
+  const items = (mm.audit ?? []).filter(e => !/^membership\.kept$/.test(e.action ?? ''));
+  const brief = d => {
+    if (!d) return '';
+    if (typeof d === 'string') return d;
+    const parts = [], role = r => humanKey(String(r ?? '')).toLowerCase();
+    if (d.name) parts.push(String(d.name));
+    if (d.role) parts.push(`role: ${role(d.role)}`);
+    if (d.from?.role || d.to?.role) parts.push(`${d.from?.role ? role(d.from.role) : 'none'} to ${d.to?.role ? role(d.to.role) : 'none'}`);
+    if (d.environment) parts.push(String(d.environment));
+    return parts.join(' · ');
+  };
+  const line = e => `<li><span class="tiny muted">${esc(date(e.at))}</span> <strong>${esc(whoName(e.actor))}</strong> ${esc(humanKey(e.action ?? '').toLowerCase())}${e.subject ? ` <span>${esc(whoName(e.subject))}</span>` : ''}${brief(e.detail) ? ` <span class="tiny muted">${esc(brief(e.detail))}</span>` : ''}</li>`;
   return `<section class="panel spaced-panel" aria-labelledby="activity-title"><div class="panel-heading"><div><h2 id="activity-title">Activity</h2><span class="tiny muted">Recent changes to access here</span></div></div>${mm.auditError ? `<div class="activity-empty tiny muted">Activity is not available: ${esc(mm.auditError)}</div>` : items.length ? `<ul class="activity-list" tabindex="0" aria-label="Recent access changes">${items.slice(0, 40).map(line).join('')}</ul>` : '<div class="activity-empty tiny muted">Nothing has changed yet.</div>'}</section>`;
 }
 function membersPanel() {
