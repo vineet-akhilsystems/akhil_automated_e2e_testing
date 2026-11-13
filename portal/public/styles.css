@@ -373,3 +373,17 @@ td.review-actions,td.user-actions{display:table-cell;text-align:right;white-spac
 .page-heading:has(+ .module-tabs){height:108px;overflow:hidden;margin-bottom:22px}
 
 .rd-step{padding:8px 0}.rd-steps{padding:2px 23px 6px}.readiness-panel{margin:0 0 18px}
+
+/* ---- Settings > AI usage and quality: the panel had no inner padding ---- */
+.ai-panel{padding:24px 28px;margin:18px 0}
+.ai-panel h2{margin:0 0 6px;font-size:17px}
+.ai-panel h3{margin:22px 0 8px;font-size:14px}
+.ai-panel>p{margin:6px 0}
+.ai-panel .form-help{margin:0 0 14px;font-size:12.5px;line-height:1.5}
+.ai-presets{margin:14px 0 6px}
+.ai-preset{padding:14px 16px}
+.ai-preset strong{display:block;margin-bottom:2px}
+.ai-limit{margin:16px 0 4px}
+.ai-models,.ai-recent{margin:6px 0 0}
+.ai-panel details{margin-top:10px}
+.ai-preset small{font-size:12.5px;line-height:1.5}.ai-limit .tiny{font-size:12px}
