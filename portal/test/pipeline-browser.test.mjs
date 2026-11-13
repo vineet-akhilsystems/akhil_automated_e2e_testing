@@ -89,6 +89,10 @@ test('Pipeline UI: readiness checklist, gates, setup, duplicates, retry and hist
   // 1. Readiness checklist on the cases tab: seven stages, statuses, actions, collapse remembered.
   const panel = page.locator('#readiness-panel');
   await expect(panel.getByRole('heading', { name: 'Readiness' })).toBeVisible();
+  // New default: collapsed, so the case list is not pushed off screen, with the next step named in the header.
+  await expect(panel).toContainText('Next:');
+  await expect(panel.getByRole('list')).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Show checklist' }).click();
   await expect(panel.getByRole('list', { name: 'Module pipeline stages' }).getByRole('listitem')).toHaveCount(7);
   await expect(panel.locator('[data-stage="cases"]')).toContainText('Missing');
   await expect(panel.locator('[data-stage="discovery"]')).toContainText('Blocked');

@@ -362,3 +362,14 @@ html{background:#f6f7fb}
 .heading-actions .button-link.quiet,.heading-actions a.button-link{white-space:nowrap}
 html{overflow-y:scroll}
 td.review-actions,td.user-actions{display:table-cell;text-align:right;white-space:nowrap}td.review-actions button,td.user-actions button{margin-left:6px}.members-table td.user-actions{text-align:left}.members-table td.user-actions button{margin:0 6px 0 0}
+
+/* ---- Tighter spacing: same fixed positions, less empty space ----
+   Title position is still identical on every page (back-link row is reserved, but slimmer); only module pages (which have a tab bar
+   right under the heading) keep a fixed two-line-high heading so the tabs never move; other pages let the heading fit its content. */
+.page{padding-top:20px}
+.back-link{height:16px;line-height:16px;margin-bottom:6px;font-size:11px}
+.page>.page-heading:first-child{margin-top:22px}
+.page-heading{height:auto;min-height:0;overflow:visible;margin-bottom:20px}
+.page-heading:has(+ .module-tabs){height:108px;overflow:hidden;margin-bottom:22px}
+
+.rd-step{padding:8px 0}.rd-steps{padding:2px 23px 6px}.readiness-panel{margin:0 0 18px}

@@ -14,7 +14,7 @@ import { currentModule, state } from '../state.js';
 // interrupted-job retry and insights history. Endpoints: docs/superpowers/specs/2026-11-09-module-knowledge-pipeline-design.md section 6.
 // Everything degrades quietly when the server does not have an endpoint yet.
 // ---------------------------------------------------------------------------
-export const rdStore = { get() { try { return localStorage.getItem('qa.readinessCollapsed') === '1'; } catch { return false; } }, set(v) { try { localStorage.setItem('qa.readinessCollapsed', v ? '1' : '0'); } catch { /* collapse state is just not remembered */ } } };
+export const rdStore = { get() { try { return localStorage.getItem('qa.readinessCollapsed') !== '0'; } catch { return true; } }, set(v) { try { localStorage.setItem('qa.readinessCollapsed', v ? '1' : '0'); } catch { /* collapse state is just not remembered */ } } };
 Object.assign(state, { readiness: {}, readinessOff: false, rdCollapsed: rdStore.get(), setup: {}, setupOff: false, setupDraft: {}, historyOf: {}, notices: [], agentInfo: {}, pendingScroll: '' });
 const RD_STATUS = { ready: ['Ready', 'green', '✓'], running: ['Running', 'running', '↻'], stale: ['Stale', 'orange', '!'], failed: ['Failed', 'fail', '✕'], missing: ['Missing', 'skipped', '○'], blocked: ['Blocked', 'blocked', '–'] };
 const RD_GATES = { ai: ['sources', 'insights', 'automation'], proposal: ['sources', 'insights', 'cases', 'setup', 'discovery'] };
@@ -85,7 +85,8 @@ function stageActionHtml(m, s) {
 export function readinessPanel(m) {
   const r = state.readiness[m.id]; if (state.readinessOff || !r || !Array.isArray(r.stages) || !r.stages.length) return '';
   const st = r.stages, count = k => st.filter(s => s.status === k).length, open = !state.rdCollapsed;
-  const summary = `${count('ready')} of ${st.length} stages ready${count('running') ? ` · ${count('running')} running` : ''}${count('stale') ? ` · ${count('stale')} stale` : ''}${count('failed') ? ` · ${count('failed')} failed` : ''}`;
+  const next = st.find(s => s.status !== 'ready');
+  const summary = `${count('ready')} of ${st.length} stages ready${!open && next ? ` · Next: ${next.label}` : ''}${count('running') ? ` · ${count('running')} running` : ''}${count('stale') ? ` · ${count('stale')} stale` : ''}${count('failed') ? ` · ${count('failed')} failed` : ''}`;
   return `<section class="panel readiness-panel" id="readiness-panel" aria-labelledby="rd-title"><div class="panel-heading"><div><h2 id="rd-title">Readiness</h2><span class="tiny muted" data-rd-summary>${esc(summary)}</span></div><div class="flex">${badge(r.canGenerateAi ? 'AI generation unlocked' : 'AI generation locked', r.canGenerateAi ? 'green' : 'orange')}<button type="button" class="small quiet" data-action="rd-toggle" data-fid="rd-toggle" aria-expanded="${open}" aria-controls="rd-body">${open ? 'Hide checklist' : 'Show checklist'}</button></div></div>`
     + (open ? `<div id="rd-body"><ol class="rd-steps" aria-label="Module pipeline stages">${st.map((s, i) => { const [label, cls, glyph] = rdInfo(s.status); return `<li class="rd-step rd-${esc(s.status)}" data-stage="${esc(s.id)}"><span class="rd-mark" aria-hidden="true">${glyph}</span><div class="rd-main"><div class="rd-title-line"><strong>${i + 1}. ${esc(s.label ?? humanKey(s.id))}</strong>${badge(label, cls)}</div>${s.detail ? `<div class="tiny muted rd-detail">${esc(s.detail)}</div>` : ''}</div>${can('module.view', m.id) ? stageActionHtml(m, s) : ''}</li>`; }).join('')}</ol></div>` : '')
     + '</section>';
