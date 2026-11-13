@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { ROOT } from '../../portal/registry.mjs';
-import { writeSnapshotFile, importSnapshot } from '../../portal/snapshot.mjs';
+import { writeSnapshotFile, importSnapshot, readProfileStore, restoreProfileStore } from '../../portal/snapshot.mjs';
 
 const dataDir = path.resolve(process.env.PORTAL_DATA_DIR || path.join(ROOT, '.portal'));
 const file = path.join(ROOT, 'portal-data', 'snapshot.json');
@@ -16,11 +16,14 @@ if (!fs.existsSync(dbFile)) { console.error(`No portal database at ${dbFile}. St
 
 if (command === 'export') {
   const db = new DatabaseSync(dbFile, { readOnly: true });
-  writeSnapshotFile(db, file); db.close();
-  console.log(`Wrote ${path.relative(ROOT, file)}. Review it, then commit it.`);
+  const credentials = readProfileStore(dataDir);
+  writeSnapshotFile(db, file, { credentials }); db.close();
+  console.log(`Wrote ${path.relative(ROOT, file)} (${credentials ? `${credentials.profiles.length} login profile(s) with passwords and key included - keep the repo private` : 'no login profiles'}). Review it, then commit it.`);
 } else if (command === 'import') {
   if (!process.argv.includes('--force')) { console.error('This replaces users, modules, cases and teams in the local database. Stop the portal, then add --force.'); process.exit(1); }
   const db = new DatabaseSync(dbFile);
-  importSnapshot(db, JSON.parse(fs.readFileSync(file, 'utf8'))); db.close();
-  console.log('Imported the snapshot. Start the portal.');
+  const snapshot = JSON.parse(fs.readFileSync(file, 'utf8'));
+  importSnapshot(db, snapshot); db.close();
+  const restored = restoreProfileStore(dataDir, snapshot.credentials, { overwrite: true });
+  console.log(`Imported the snapshot${restored ? ' and its login profiles' : ''}. Start the portal.`);
 } else { console.error('Usage: node qa/tools/portal-snapshot.mjs export | import --force'); process.exit(1); }

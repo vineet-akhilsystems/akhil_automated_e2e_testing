@@ -125,12 +125,14 @@ JSON export preserves all fields. Excel exports retain the case fields, manual s
 
 ## Sharing the portal database through git
 
-The live database (`.portal/`) is never committed. Instead `portal-data/snapshot.json` carries the shared team data: users (password hashes only), products, modules, cases, insights, teams and access memberships.
+The live database (`.portal/`) is never committed. Instead `portal-data/snapshot.json` carries the shared team data: users (password hashes), products, modules, cases, insights, teams, access memberships, the AI quality settings, and the **login profiles for Miracle and Augastam including their passwords**.
 
-- **New machine:** `git pull`, set `PORTAL_ADMIN_USER` and `PORTAL_ADMIN_PASSWORD` in your local environment file (the same values everywhere give the same admin login), then start the portal. A brand-new database loads the snapshot on first start.
+> **The repository must stay private.** The login passwords are encrypted, but the key that decrypts them is stored in the same file (a team decision, so a fresh clone can log in at once). Anyone who can read the repo can read those passwords. Do not make the repo public or add outside collaborators without removing `credentials` from the snapshot first.
+
+- **New machine:** `git pull`, put `PORTAL_ADMIN_USER` and `PORTAL_ADMIN_PASSWORD` in your local environment file (the same values everywhere give the same admin login; the environment file is never committed), then start the portal. A brand-new data folder loads the snapshot, profiles included, on first start. Press "Refresh application login" once per profile: browser sessions are per machine and are not shared.
 - **Share your changes:** run `node qa/tools/portal-snapshot.mjs export`, review the diff and commit `portal-data/snapshot.json`.
-- **Pick up a teammate's changes later:** stop the portal, `git pull`, run `node qa/tools/portal-snapshot.mjs import --force` (it replaces the local shared data), start the portal.
-- **Not shared:** login profiles and their key, runs and reports, the audit log and uploaded files. Create the profiles in Settings or with `qa/tools/seed-miracle-profile.mjs` and `qa/tools/seed-augastam-test-profile.mjs`; the passwords are passed for that one run and never stored in git.
+- **Pick up a teammate's changes later:** stop the portal, `git pull`, run `node qa/tools/portal-snapshot.mjs import --force` (it replaces the local users, modules, cases, teams, settings and login profiles), start the portal.
+- **Not shared (per machine):** runs and reports, the audit log, AI usage history, saved login sessions and uploaded files (videos are too large for git).
 - The snapshot is one JSON file, so two people editing cases at once can still conflict in git. Export, commit and push often, and pull before you export.
 
 ## AI cost and quality settings

@@ -1,7 +1,37 @@
 {
   "format": 1,
-  "note": "Shared Test Studio data. Contains password hashes but no login-profile credentials. Regenerate with: node qa/tools/portal-snapshot.mjs export",
+  "note": "Shared Test Studio data. Contains password hashes and login profiles. Regenerate with: node qa/tools/portal-snapshot.mjs export",
   "settings": {},
+  "credentials": {
+    "warning": "Encrypted login profiles AND their key. Anyone who can read this file can read the passwords. Keep this repository private.",
+    "profiles": [
+      {
+        "id": "miracle-uat",
+        "name": "Miracle UAT",
+        "productId": "miracle",
+        "url": "https://uatbilling.miracleoncloud.com",
+        "version": 1,
+        "secret": {
+          "iv": "HpiejBaPyoU5DPhd",
+          "tag": "GlxQvWEkp5Xc57DaJRjnBA==",
+          "data": "tTbyW1MowEK9YG3FUnQs9hCY9usIUbhyDgKmMnPHB+UIgAy3cZ5JScZBW5Is8Fk30w0aja4mfs4jFpXfOxiPRo/Le2/DIhQudDcWgJnKHrbilhglYepjL0fAlKFZiH7aG94XKtym4qWImBAnNannb+E0o/ULBPEJJwP4no+L"
+        }
+      },
+      {
+        "id": "augastam-test",
+        "name": "Augastam Test",
+        "productId": "augastam",
+        "url": "https://test.augastam.com",
+        "version": 1,
+        "secret": {
+          "iv": "tiVASsu+P42mbm5I",
+          "tag": "xs8J3J0K4v9HjS9qfSSLbw==",
+          "data": "SXGjeJmrtE+Kuc4K969rCWjCC+fpVEH//MNDtq3Jzc5mXMsGkyzUV9vHg5c7ZnMXvubnhzXCjEJp5lmpBuW4ZL0+/lLCreKkQonfvPvEVS5w1mOEJ54jwVDDhjho8m2bd7uQZAB93Z/AWUtx5hKxCQrP6vgS1Od5v3rT6CfplGqekII="
+        }
+      }
+    ],
+    "key": "9Lw5ZJ0L/ChFwBibjpr53UfuKdoUhKOKzdVcait36Bo="
+  },
   "tables": {
     "users": [
       {

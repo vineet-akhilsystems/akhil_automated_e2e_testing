@@ -20,18 +20,37 @@ export const SHARED_TABLES = [
 // Shared settings kept in the meta table (key prefix "setting:"), e.g. the AI quality preset. Other meta rows are per-machine and stay out.
 const settingsOf = db => Object.fromEntries(db.prepare("SELECT key, value FROM meta WHERE key LIKE 'setting:%' ORDER BY key").all().map(r => [r.key, JSON.parse(r.value)]));
 
-export function exportSnapshot(db) {
+// Login profiles (Settings) are stored encrypted in <data dir>/environment-settings.json with the key in environment-settings.key.
+// By team decision both travel in the snapshot so a clone can log in at once. The key sits next to the data: the repo MUST stay private.
+const PROFILE_FILE = 'environment-settings.json', KEY_FILE = 'environment-settings.key';
+export function readProfileStore(dir) {
+  const f = path.join(dir, PROFILE_FILE), k = path.join(dir, KEY_FILE);
+  if (!fs.existsSync(f) || !fs.existsSync(k)) return null;
+  return { profiles: JSON.parse(fs.readFileSync(f, 'utf8')), key: fs.readFileSync(k).toString('base64') };
+}
+// Without `overwrite` an existing local profile store is never touched (first start only).
+export function restoreProfileStore(dir, credentials, { overwrite = false } = {}) {
+  if (!Array.isArray(credentials?.profiles) || typeof credentials?.key !== 'string' || !credentials.key) return false;
+  const f = path.join(dir, PROFILE_FILE), k = path.join(dir, KEY_FILE);
+  if (!overwrite && (fs.existsSync(f) || fs.existsSync(k))) return false;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(k, Buffer.from(credentials.key, 'base64'), { mode: 0o600 });
+  fs.writeFileSync(f, JSON.stringify(credentials.profiles, null, 2), { mode: 0o600 });
+  return true;
+}
+
+export function exportSnapshot(db, { credentials = null } = {}) {
   const tables = {};
   for (const t of SHARED_TABLES) {
     const rows = db.prepare(`SELECT * FROM ${t.name} ORDER BY ${t.key.join(', ')}`).all();
     tables[t.name] = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, t.json.includes(k) ? JSON.parse(v) : v])));
   }
-  return { format: 1, note: 'Shared Test Studio data. Contains password hashes but no login-profile credentials. Regenerate with: node qa/tools/portal-snapshot.mjs export', settings: settingsOf(db), tables };
+  return { format: 1, note: 'Shared Test Studio data. Contains password hashes and login profiles. Regenerate with: node qa/tools/portal-snapshot.mjs export', settings: settingsOf(db), ...(credentials ? { credentials: { warning: 'Encrypted login profiles AND their key. Anyone who can read this file can read the passwords. Keep this repository private.', ...credentials } } : {}), tables };
 }
 
-export function writeSnapshotFile(db, file) {
+export function writeSnapshotFile(db, file, extras = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(exportSnapshot(db), null, 2) + '\n');
+  fs.writeFileSync(file, JSON.stringify(exportSnapshot(db, extras), null, 2) + '\n');
 }
 
 // Replaces the shared tables with the snapshot's rows inside one transaction.

@@ -45,3 +45,27 @@ test('shared settings (AI quality) live in the database and travel with the snap
   assert.deepEqual([other.get().preset, other.get().dailyJobLimit], ['quality', 9], 'a new machine starts with the team policy');
   b.close();
 });
+
+test('login profiles (encrypted, with their key) travel in the snapshot and work on a new machine; an existing local store is never overwritten', async t => {
+  const { environmentSettings } = await import('../environment-settings.mjs');
+  const { readProfileStore, restoreProfileStore } = await import('../snapshot.mjs');
+  const { loadConfig } = await import('../app/config.mjs');
+  const dirA = tmp(t), a = environmentSettings(dirA);
+  a.save({ id: 'miracle-uat', name: 'Miracle UAT', productId: 'miracle', url: 'https://uat.example.test', version: 0, credentials: { username: 'Admin', password: 'sup3r-secret', facility: 'F', group: 'G', entrySite: 'E' } });
+  const store = openStore(tmp(t)), file = path.join(tmp(t), 'snapshot.json');
+  writeSnapshotFile(store.db, file, { credentials: readProfileStore(dirA) }); store.close();
+  const text = fs.readFileSync(file, 'utf8');
+  assert.ok(!text.includes('sup3r-secret'), 'the password is encrypted, never plain text');
+  assert.match(JSON.parse(text).credentials.warning, /private/);
+
+  const dirB = tmp(t), cfg = loadConfig({ dataDir: dirB, snapshotFile: file, environments: [{ id: 'demo', name: 'Demo', url: 'https://demo.example.test' }] });
+  assert.equal(cfg.profilesRestored, true);
+  assert.ok(cfg.environments.some(e => e.id === 'miracle-uat' && e.productId === 'miracle'), 'the profile is listed on the new machine');
+  assert.deepEqual(cfg.settings.credentials('miracle-uat'), { username: 'Admin', password: 'sup3r-secret', facility: 'F', group: 'G', entrySite: 'E' }, 'and decrypts with the shared key');
+
+  // a machine that already has its own profiles keeps them
+  const again = loadConfig({ dataDir: dirB, snapshotFile: file, environments: [{ id: 'demo', name: 'Demo', url: 'https://demo.example.test' }] });
+  assert.equal(again.profilesRestored, false);
+  assert.equal(restoreProfileStore(dirB, JSON.parse(text).credentials), false);
+  assert.equal(restoreProfileStore(tmp(t), { profiles: [], key: '' }), false, 'incomplete data restores nothing');
+});

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT, check } from '../registry.mjs';
 import { environmentSettings } from '../environment-settings.mjs';
+import { restoreProfileStore } from '../snapshot.mjs';
 
 export function loadConfig(options = {}) {
   const dataDir = path.resolve(options.dataDir ?? process.env.PORTAL_DATA_DIR ?? path.join(ROOT, '.portal'));
@@ -12,6 +13,9 @@ export function loadConfig(options = {}) {
   const environments = structuredClone(options.environments ?? JSON.parse(process.env.PORTAL_ENVIRONMENTS ?? JSON.stringify([
     { id: 'demo', name: 'Demo', url: process.env.BASE_URL ?? 'https://demo.augastam.com', authDir: path.join(ROOT, '.auth') },
   ])));
+  // First start on a new machine: take the team's login profiles from the committed snapshot (never overwrites local ones).
+  let profilesRestored = false;
+  if (options.snapshotFile && fs.existsSync(options.snapshotFile)) { try { profilesRestored = restoreProfileStore(dataDir, JSON.parse(fs.readFileSync(options.snapshotFile, 'utf8')).credentials); } catch { /* an unreadable snapshot is reported when the database loads it */ } }
   const settings = environmentSettings(dataDir);
   for (const saved of settings.list()) {
     const index = environments.findIndex(e => e.id === saved.id);
@@ -26,5 +30,5 @@ export function loadConfig(options = {}) {
     e.productId ??= 'augastam';
     e.authDir = path.resolve(e.authDir ?? path.join(dataDir, 'auth', e.id)); envIds.add(e.id);
   }
-  return { dataDir, host, token, isLocalHost, environments, settings };
+  return { dataDir, host, token, isLocalHost, environments, settings, profilesRestored };
 }
