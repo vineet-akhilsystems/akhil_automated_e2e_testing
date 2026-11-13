@@ -15,6 +15,7 @@ import { environmentsPage, researchPage, settingsPage } from './pages/settings.j
 import { sharedPage } from './pages/shared.js';
 import { loadTeams, teamsPage } from './pages/teams.js';
 import { usersPage } from './pages/users.js';
+import { helpPage } from './pages/help.js';
 import { bootUrl, productName, shell } from './pages/workspace.js';
 import { can, canManageAnywhere, canProduct, isAdmin } from './permissions.js';
 import { currentModule, state } from './state.js';
@@ -76,7 +77,8 @@ export function renderPage() {
       shared: sharedPage,
       environments: environmentsPage,
       settings: settingsPage,
-      research: researchPage
+      research: researchPage,
+      help: helpPage
     };
     page = pages[key]?.() ?? notFoundPage();
   }
