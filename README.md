@@ -123,6 +123,16 @@ Tokens include `{{phone}}`, `{{phone2}}`, `{{today}}`, `{{seqWord}}` and referen
 
 JSON export preserves all fields. Excel exports retain the case fields, manual steps, boolean inputs and expected checks. In Excel, a blank input cell means no override; **`<EMPTY>` explicitly clears a template value**. Manual steps are stored as JSON in the `steps` cell. Imports add **new case IDs only** and validate the entire batch before saving. Existing cases are edited in the portal with version-conflict protection. Full JSON exports include templates for reference; importing cases does not overwrite shared templates.
 
+## Sharing the portal database through git
+
+The live database (`.portal/`) is never committed. Instead `portal-data/snapshot.json` carries the shared team data: users (password hashes only), products, modules, cases, insights, teams and access memberships.
+
+- **New machine:** `git pull`, set `PORTAL_ADMIN_USER` and `PORTAL_ADMIN_PASSWORD` in your local environment file (the same values everywhere give the same admin login), then start the portal. A brand-new database loads the snapshot on first start.
+- **Share your changes:** run `node qa/tools/portal-snapshot.mjs export`, review the diff and commit `portal-data/snapshot.json`.
+- **Pick up a teammate's changes later:** stop the portal, `git pull`, run `node qa/tools/portal-snapshot.mjs import --force` (it replaces the local shared data), start the portal.
+- **Not shared:** login profiles and their key, runs and reports, the audit log and uploaded files. Create the profiles in Settings or with `qa/tools/seed-miracle-profile.mjs` and `qa/tools/seed-augastam-test-profile.mjs`; the passwords are passed for that one run and never stored in git.
+- The snapshot is one JSON file, so two people editing cases at once can still conflict in git. Export, commit and push often, and pull before you export.
+
 ## Team access
 
 Local mode binds to `127.0.0.1`. For a trusted internal server, configure an access key and network binding before starting:

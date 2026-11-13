@@ -11,6 +11,7 @@ import { environmentSettings } from '../environment-settings.mjs';
 const ADMIN = { username: 'root', password: 'correct-horse-battery' };
 const manualCase = (id = 'CS-001') => ({ id, title: 'Create a record', mode: 'manual', category: 'General', priority: 'P1', input: {}, steps: [{ action: 'Do it.', expected: 'It works.' }] });
 const credentials = { username: 'u', password: 'p', tenant: 't', facility: 'f', role: 'r' };
+const miracleCredentials = { username: 'u', password: 'p', facility: 'f', group: 'g', entrySite: 'e' };
 const mod = (name, productId, prefix = 'BIL') => ({ name, productId, prefix, area: 'Setup' });
 
 test('seed products exist and listing carries counts', async t => {
@@ -90,7 +91,7 @@ test('bootstrap filters by product and reports product and products', async t =>
   assert.deepEqual([mir0.product.id, mir0.modules.length, mir0.environments.length, mir0.runs.length], ['miracle', 0, 0, 0]);
   assert.equal((await f.request('/api/bootstrap?product=nope')).status, 404);
 
-  const env = await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials, productId: 'miracle' });
+  const env = await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials: miracleCredentials, productId: 'miracle' });
   assert.equal(env.status, 201, JSON.stringify(env.value)); assert.equal(env.value.productId, 'miracle');
   const m = (await f.request('/api/modules', 'POST', mod('Billing', 'miracle'))).value;
   assert.equal((await f.request(`/api/modules/${m.id}/cases`, 'POST', manualCase())).status, 201);
@@ -110,7 +111,7 @@ test('bootstrap filters by product and reports product and products', async t =>
 
 test('a profile cannot run another product\'s module, in either direction', async t => {
   const f = await boot(t);
-  await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials, productId: 'miracle' });
+  await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials: miracleCredentials, productId: 'miracle' });
   const m = (await f.request('/api/modules', 'POST', mod('Billing', 'miracle'))).value;
   const a = (await f.request('/api/modules', 'POST', mod('Billing'))).value;
   for (const id of [m.id, a.id]) await f.request(`/api/modules/${id}/cases`, 'POST', manualCase());
@@ -123,12 +124,16 @@ test('a profile cannot run another product\'s module, in either direction', asyn
   assert.equal((await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 1, credentials: { ...credentials, password: '' }, productId: 'augastam' })).status, 409);
 });
 
-test('application login refresh is only built for augastam profiles', async t => {
+test('miracle profiles use their own login fields and queue a miracle login run', async t => {
   const f = await boot(t);
-  await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials, productId: 'miracle' });
+  const wrong = await f.request('/api/environments', 'POST', { id: 'm-bad', name: 'M', url: 'https://miracle.example.test', version: 0, credentials, productId: 'miracle' });
+  assert.equal(wrong.status, 400);
+  const saved = await f.request('/api/environments', 'POST', { id: 'miracle-uat', name: 'Miracle UAT', url: 'https://miracle.example.test', version: 0, credentials: miracleCredentials, productId: 'miracle' });
+  assert.equal(saved.status, 201);
+  assert.deepEqual(saved.value.login, { username: 'u', facility: 'f', group: 'g', entrySite: 'e' });
+  assert.equal(saved.value.loginConfigured, true);
   const r = await f.request('/api/environments/miracle-uat/auth', 'POST', {});
-  assert.equal(r.status, 409);
-  assert.equal(r.value.error, 'Login automation for this product has not been built yet. Manual testing and intake work now; ask a developer to add the login adapter.');
+  assert.equal(r.status, 201); assert.equal(r.value.productId, 'miracle');
 });
 
 test('only an administrator can create products; ids come from the name', async t => {

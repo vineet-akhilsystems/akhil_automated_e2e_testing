@@ -7,7 +7,7 @@ import { loginScreen } from '../pages/login.js';
 import { presetsFor } from '../pages/modules.js';
 import { noteReadiness } from '../pages/pipeline.js';
 import { isFindingResult } from '../pages/runs.js';
-import { showEnvironmentDialog } from '../pages/settings.js';
+import { loginFieldsFor, showEnvironmentDialog } from '../pages/settings.js';
 import { enterWorkspace, loadProducts, selectProduct, showPicker, showProductDialog } from '../pages/workspace.js';
 import { can, loadAccess } from '../permissions.js';
 import { reload, renderPage, renderRoute } from '../router.js';
@@ -227,7 +227,7 @@ document.addEventListener('submit', async event => {
     if (form.id === 'environment-form') {
       await api('/api/environments', 'POST', {
         id: f.get('profile-id'), name: f.get('profile-name'), url: f.get('website-url'), productId: state.productId, version: Number(f.get('profile-version')),
-        credentials: Object.fromEntries(['username', 'password', 'tenant', 'facility', 'role'].map(k => [k, f.get('login-' + k)]))
+        credentials: Object.fromEntries(['username', 'password', ...loginFieldsFor(state.productId).map(([k]) => k)].map(k => [k, f.get('login-' + k)]))
       });
       closeDialog(); await reload(); toast('Profile saved. Refresh application login before running tests.');
     } else

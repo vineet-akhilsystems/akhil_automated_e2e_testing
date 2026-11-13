@@ -6,7 +6,7 @@ import { openStore } from '../store.mjs';
 import { pluginFor, plugins } from '../modules/index.mjs';
 import { createQueue } from '../queue.mjs';
 import { TERMINAL } from '../quality.mjs';
-import { LOGIN_KEYS } from '../environment-settings.mjs';
+import { loginSchema } from '../environment-settings.mjs';
 import { createUsers } from '../users.mjs';
 import { createIntake } from '../intake.mjs';
 import { saveExternalInsights } from '../insights.mjs';
@@ -26,7 +26,7 @@ export function createContext(options = {}) {
   const config = loadConfig(options);
   const { dataDir, host, token, isLocalHost, environments, settings } = config;
   const lock = acquireLock(dataDir);
-  const store = openStore(dataDir);
+  const store = openStore(dataDir, { snapshotFile: options.snapshotFile, log: options.logger });
   const logger = options.logger ?? null;
   const users = createUsers(store, logger);
   // options.bootstrap: undefined = never create users automatically (token/open mode, used by tests);
@@ -53,7 +53,7 @@ export function createContext(options = {}) {
   const jobs = new Map();
   const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? 'tests/modules/registration').split('/')), discoveryRoot: qaRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
-    : Object.fromEntries(Object.entries(LOGIN_KEYS).map(([key, variable]) => [key, process.env[variable] ?? '']));
+    : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor);
   const { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts } = createSessions({ store, users, token });
   const audit = user => ({ user: user.username, at: now() });
@@ -95,10 +95,10 @@ export function createContext(options = {}) {
   // Login-profile identity fields (username, tenant, facility, role) are shown only to people who run tests there; others get name, url and session status.
   const publicEnvironment = (e, showLogin = true) => {
     let session = 'missing';
-    const file = path.join(e.authDir, 'session.json');
-    if (fs.existsSync(file) && fs.existsSync(path.join(e.authDir, 'admin.json'))) {
+    const schema = loginSchema(e.productId), file = schema?.expiryFile ? path.join(e.authDir, schema.expiryFile) : null;
+    if (schema && schema.sessionFiles.every(f => fs.existsSync(path.join(e.authDir, f)))) {
       session = 'saved';
-      try {
+      if (file) try {
         const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
         const jwt = String(saved.token ?? '').replace(/^Bearer /, '');
         const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
@@ -107,9 +107,9 @@ export function createContext(options = {}) {
     }
     const credentials = credentialsFor(e);
     return { id: e.id, name: e.name, productId: e.productId ?? 'augastam', url: e.url, session, version: e.version ?? 0,
-      loginConfigured: Object.keys(LOGIN_KEYS).every(k => Boolean(credentials?.[k])),
+      loginConfigured: Boolean(schema) && Object.keys(schema.fields).every(k => Boolean(credentials?.[k])),
       loginSource: e.managed ? 'settings' : 'server', passwordSaved: Boolean(credentials?.password),
-      login: Object.fromEntries(['username', 'tenant', 'facility', 'role'].map(k => [k, showLogin ? credentials?.[k] ?? '' : ''])) };
+      login: Object.fromEntries(Object.keys(schema?.fields ?? {}).filter(k => k !== 'password').map(k => [k, showLogin ? credentials?.[k] ?? '' : ''])) };
   };
   const getModule = id => { const m = store.module(id); check(m, 'Not found.', 404); return m; };
   // The readiness checklist, computed from live state on every call (nothing cached).

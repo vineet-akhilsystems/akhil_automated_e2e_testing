@@ -14,11 +14,12 @@ import { productsSchema, createProductsRepo } from './data/products.mjs';
 import { teamsSchema, createTeamsRepo } from './data/teams.mjs';
 import { membershipsSchema, createMembershipsRepo } from './data/memberships.mjs';
 import { auditSchema, createAuditRepo } from './data/audit.mjs';
+import { importSnapshotIfFresh } from './snapshot.mjs';
 import { agentJobsSchema, createAgentJobsRepo } from './data/agent-jobs.mjs';
 
 // Facade over portal/data/*: opens the database, creates the schema, runs the migrations and
 // returns one object composed from the per-table repositories.
-export function openStore(directory) {
+export function openStore(directory, { snapshotFile = null, log } = {}) {
   fs.mkdirSync(directory, { recursive: true });
   const db = new DatabaseSync(path.join(directory, 'portal.sqlite'));
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;${modulesSchema}${casesSchema}${runsSchema}${usersSchema}${intakeSchema}${insightsSchema}${productsSchema}${teamsSchema}${membershipsSchema}${auditSchema}${agentJobsSchema}
@@ -46,6 +47,8 @@ export function openStore(directory) {
       },
       close: () => db.close(),
     });
+  // A brand-new database adopts the committed team snapshot (users, modules, cases...) before anything is seeded.
+  importSnapshotIfFresh(db, snapshotFile, log);
   // Products: seed idempotently, then give anything created before products existed to Augastam (keeps data and versions).
   for (const p of [{ id: 'augastam', name: 'Augastam', description: 'Augastam EMR' }, { id: 'miracle', name: 'Miracle', description: 'Miracle' }]) {
     if (!store.product(p.id)) store.saveProduct(p);

@@ -3,7 +3,16 @@ import path from 'node:path';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import { check, textValue } from './registry.mjs';
 
-export const LOGIN_KEYS = { username: 'AUGASTAM_USER', password: 'AUGASTAM_PASS', tenant: 'AUGASTAM_TENANT', facility: 'AUGASTAM_FACILITY', role: 'AUGASTAM_ROLE' };
+// What a login profile holds per product: field -> env variable the Playwright login setup reads, the setup project to run,
+// and the files that prove a saved session. Keep the field list in sync with LOGIN_FIELDS in public/pages/settings.js.
+export const LOGIN_SCHEMAS = {
+  augastam: { project: 'setup', sessionFiles: ['session.json', 'admin.json'], expiryFile: 'session.json',
+    fields: { username: 'AUGASTAM_USER', password: 'AUGASTAM_PASS', tenant: 'AUGASTAM_TENANT', facility: 'AUGASTAM_FACILITY', role: 'AUGASTAM_ROLE' } },
+  miracle: { project: 'setup-miracle', sessionFiles: ['miracle.json'], expiryFile: null,
+    fields: { username: 'MIRACLE_USER', password: 'MIRACLE_PASS', facility: 'MIRACLE_FACILITY', group: 'MIRACLE_GROUP', entrySite: 'MIRACLE_ENTRY_SITE' } },
+};
+export const loginSchema = productId => LOGIN_SCHEMAS[productId ?? 'augastam'] ?? null;
+export const LOGIN_KEYS = LOGIN_SCHEMAS.augastam.fields;
 
 // Secrets stay outside SQLite, run snapshots, exports and public environment DTOs.
 export function environmentSettings(directory) {
@@ -36,11 +45,13 @@ export function environmentSettings(directory) {
       check(['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/', 'Use a website origin such as https://demo.augastam.com, without credentials, path, query or fragment.');
       const old = read(), saved = old.find(e => e.id === id);
       check(body.version === (saved?.version ?? 0), 'This profile changed. Reload Settings before saving.', 409);
+      const schema = loginSchema(productId);
+      check(schema, 'Login automation for this product has not been built yet. Manual testing and intake work now; ask a developer to add the login adapter.', 409);
       const input = body.credentials;
       check(input && typeof input === 'object' && !Array.isArray(input), 'Enter the application login fields.');
-      const credentials = Object.fromEntries(Object.keys(LOGIN_KEYS).map(k => [k, k === 'password' && input[k] === '' && previous && new URL(previous.url).origin === url.origin
+      const credentials = Object.fromEntries(Object.keys(schema.fields).map(k => [k, k === 'password' && input[k] === '' && previous && new URL(previous.url).origin === url.origin
         ? this.credentials(id)?.password ?? existingCredentials?.password ?? '' : input[k]]));
-      for (const k of Object.keys(LOGIN_KEYS)) {
+      for (const k of Object.keys(schema.fields)) {
         check(typeof credentials[k] === 'string' && credentials[k].trim().length > 0 && credentials[k].length <= 1000, `Enter ${k}${k === 'password' ? ' (required for a new profile or website)' : ''}.`);
         if (k !== 'password') credentials[k] = credentials[k].trim();
       }

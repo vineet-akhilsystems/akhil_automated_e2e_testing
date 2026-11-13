@@ -39,7 +39,7 @@ export default defineConfig({
     // Listed first: the Playwright test agents (MCP server) use the first project as primary.
     {
       name: 'chromium',
-      testIgnore: [/auth\.setup\.ts/, /discovery[\\/]module-discovery\.spec\.ts/],
+      testIgnore: [/auth\.setup\.ts/, /auth\.miracle\.setup\.ts/, /discovery[\\/]module-discovery\.spec\.ts/],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 }, storageState },
     },
     // Generic read-only module discovery (needs MODULE_ID / MODULE_URL): run via `npm run module:discover`, never by `npm test`.
@@ -50,5 +50,7 @@ export default defineConfig({
     },
     // Logs in once and saves the session. Run with `npm run auth` when the session expires.
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    // Miracle HIS (billing) login; saves .auth/miracle.json. Run with `npm run auth:miracle`.
+    { name: 'setup-miracle', testMatch: /auth\.miracle\.setup\.ts/ },
   ],
 });

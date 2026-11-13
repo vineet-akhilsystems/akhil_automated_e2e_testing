@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { ROOT, adapters } from './registry.mjs';
-import { LOGIN_KEYS } from './environment-settings.mjs';
+import { loginSchema } from './environment-settings.mjs';
 
 // ---- Speed helpers (pure, exported for tests and for the rerun path) ----------------------------------------------
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
@@ -121,7 +121,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     const plan = sharded.length ? sharded : [[]];
     const multi = plan.length > 1;
     const credentials = auth ? credentialsFor(environment) : null;
-    const loginEnv = Object.fromEntries(Object.entries(LOGIN_KEYS).map(([key, variable]) => [variable, credentials?.[key] ?? '']));
+    const loginEnv = Object.fromEntries(Object.entries(loginSchema(environment?.productId)?.fields ?? {}).map(([key, variable]) => [variable, credentials?.[key] ?? '']));
     const caseTimeout = String(options.caseTimeoutMs ?? process.env.PORTAL_CASE_TIMEOUT_MS ?? '');
     const log = fs.openSync(path.join(dir, 'runner.log'), 'a');
     const timing = { workers, shardCount: plan.length, caseTimeoutMs: Number(caseTimeout) || 120000, startedAt: new Date().toISOString(), finishedAt: null,
@@ -142,7 +142,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
         PORTAL_AUTH_RUN: auth ? '1' : '', PAUSE_ON_FAIL: '', SLOWMO: '0', VIDEO: '', FORCE_COLOR: '0' };
     };
     const shardArgs = i => ['node_modules/@playwright/test/cli.js', 'test', '--config=playwright.config.ts',
-      `--project=${auth ? 'setup' : 'chromium'}`, '--workers=1',
+      `--project=${auth ? loginSchema(environment?.productId)?.project ?? 'setup' : 'chromium'}`, '--workers=1',
       // Playwright treats file arguments as regex patterns: escape metacharacters so the path matches literally.
       ...(auth ? [] : [adapters[run.module.adapter].spec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')]),
       `--output=${path.join(dir, 'artifacts')}${multi ? `/s${i}` : ''}`];
@@ -163,9 +163,12 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
           const reasons = {
             configuration: 'Required application login fields are missing. Complete this profile in Settings.',
             'open-login': 'The website login page could not be opened or its login controls were not found. Check the website in Settings.',
+            'sign-in': 'The application did not finish signing in. Check the username, password and selections in Settings and application availability.',
             'verify-password': 'Password verification did not reach the workspace selection screen. Check the username/password in Settings and application availability.',
             tenant: 'The configured tenant could not be selected. Check the tenant assigned to this account in Settings.',
             facility: 'The configured facility could not be selected. Check the facility assigned to this account in Settings.',
+            group: 'The configured group could not be selected. Check the group assigned to this account in Settings.',
+            entrySite: 'The configured entry site could not be selected. Check the entry site assigned to this account in Settings.',
             role: 'The configured application role could not be selected. Check the role assigned to this facility in Settings.',
             submit: 'Workspace selection completed, but the application did not finish signing in. Check profile selections in Settings and application availability.',
             'session-save': 'The application signed in but its session could not be saved on the server. Check portal storage permissions.',

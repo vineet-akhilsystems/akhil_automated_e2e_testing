@@ -96,12 +96,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   };
   try {
     try {
-      portal = createPortal({ logger, bootstrap: true });
+      portal = createPortal({ logger, bootstrap: true, snapshotFile: path.join(ROOT, 'portal-data', 'snapshot.json') });
     } catch (error) {
       if (error.code !== 'PORTAL_ALREADY_RUNNING' || await portalResponds(error.portalUrl ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}`)) throw error;
       console.log(`Removing stale portal lock (PID ${error.pid} is not serving the portal).`);
       fs.rmSync(path.join(dataDir, 'worker.lock'), { force: true });
-      portal = createPortal({ logger, bootstrap: true });
+      portal = createPortal({ logger, bootstrap: true, snapshotFile: path.join(ROOT, 'portal-data', 'snapshot.json') });
     }
   } catch (error) {
     if (error.code === 'PORTAL_ALREADY_RUNNING') {
