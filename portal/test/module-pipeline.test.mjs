@@ -375,7 +375,7 @@ test('readiness: a missing spec file is a failed automation stage; Miracle is bl
   await admin.request(`/api/modules/billing/agent/jobs/${job.value.id}/cancel`, 'POST', {});
   assert.equal((await admin.request('/api/modules', 'POST', { name: 'Mir', prefix: 'MIR', area: 'X', productId: 'miracle' })).status, 201);
   const r = (await admin.request('/api/modules/miracle-mir/readiness')).value;
-  for (const id of ['discovery', 'automation', 'smoke']) { assert.equal(stageOf(r, id).status, 'blocked'); assert.equal(stageOf(r, id).detail, 'Application login automation for this product has not been built yet'); }
+  for (const id of ['discovery', 'automation', 'smoke']) { assert.equal(stageOf(r, id).status, 'blocked'); assert.equal(stageOf(r, id).detail, 'Login works for this product, but discovery and automated runs are only built for the Augastam web app so far'); }
   assert.equal(r.canGenerateAi, false); assert.equal(r.canProposeAutomation, false);
 });
 

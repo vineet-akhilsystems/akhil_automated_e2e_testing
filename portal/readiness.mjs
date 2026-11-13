@@ -1,10 +1,12 @@
 import { check } from './registry.mjs';
 import { pluginFor } from './modules/index.mjs';
+import { loginSchema } from './environment-settings.mjs';
 
 // Module readiness checklist (docs/superpowers/specs/2026-11-09-module-knowledge-pipeline-design.md sections 1-2).
 // readiness() is a pure function: the server gathers live state and passes it in; nothing is cached.
 
 export const NO_LOGIN_AUTOMATION = 'Application login automation for this product has not been built yet';
+export const NO_RUNNER = 'Login works for this product, but discovery and automated runs are only built for the Augastam web app so far';
 export const STAGE_LABELS = { sources: 'Sources', insights: 'Insights', cases: 'Reviewed cases', setup: 'Target setup', discovery: 'Discovery', automation: 'Automation package', smoke: 'Smoke run' };
 
 const isUsable = f => f.extract === 'ok' || f.extract === 'partial' || f.kind === 'image';
@@ -50,7 +52,9 @@ export function cleanVariants(value) {
 export function readiness({ module, product, sources = [], insights = null, cases = [], setup = null, discoveryExists = false, discoveryStale = false, adapterConnected = false, specExists = false, smokePassed = false, jobs = [] }) {
   const reference = typeof module?.id === 'string' && pluginFor(module.id)?.builtIn === true; // the built-in reference module is never locked out
   const productId = product?.id ?? module?.productId ?? 'augastam';
+  // Discovery, adapters and runners exist only for Augastam's web app; other products may still have a working login (Miracle).
   const loginBuilt = productId === 'augastam';
+  const blockedReason = loginSchema(productId) ? NO_RUNNER : NO_LOGIN_AUTOMATION;
   const sortedJobs = [...jobs].sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
   const running = kind => sortedJobs.find(j => j.kind === kind && j.status === 'running');
   const lastJob = kind => sortedJobs.find(j => j.kind === kind);
@@ -94,7 +98,7 @@ export function readiness({ module, product, sources = [], insights = null, case
   // 5. Discovery
   let s5;
   if (reference) s5 = stage('discovery', 'ready', discoveryExists ? 'Discovery files are present.' : 'Built in.');
-  else if (!loginBuilt) s5 = stage('discovery', 'blocked', NO_LOGIN_AUTOMATION);
+  else if (!loginBuilt) s5 = stage('discovery', 'blocked', blockedReason);
   else if (discoveryExists) s5 = stage('discovery', 'ready', 'Discovery output is newer than the target setup.');
   else if (discoveryStale) s5 = stage('discovery', 'stale', 'The target setup was confirmed after the last discovery. Run discovery again.');
   else if (s4.status !== 'ready') s5 = stage('discovery', 'missing', 'Confirm the target setup first; discovery scans the page it names.');
@@ -106,7 +110,7 @@ export function readiness({ module, product, sources = [], insights = null, case
 
   // 6. Automation package
   let s6;
-  if (!loginBuilt) s6 = stage('automation', 'blocked', NO_LOGIN_AUTOMATION);
+  if (!loginBuilt) s6 = stage('automation', 'blocked', blockedReason);
   else if (adapterConnected && specExists) s6 = stage('automation', 'ready', 'An automation adapter is connected and its spec file exists.');
   else if (adapterConnected) s6 = stage('automation', 'failed', 'An adapter is set but its spec file is missing. Ask a developer to check the installation.');
   else if (running('automation')) s6 = stage('automation', 'running', 'An automation proposal is being written.');
@@ -115,7 +119,7 @@ export function readiness({ module, product, sources = [], insights = null, case
 
   // 7. Smoke run
   let s7;
-  if (!loginBuilt) s7 = stage('smoke', 'blocked', NO_LOGIN_AUTOMATION);
+  if (!loginBuilt) s7 = stage('smoke', 'blocked', blockedReason);
   else if (smokePassed) s7 = stage('smoke', 'ready', 'An automated case has passed on a login profile of this product.');
   else if (reference) s7 = stage('smoke', 'ready', 'Reference module (built in).');
   else if (s6.status !== 'ready') s7 = stage('smoke', 'missing', 'Needs the automation package first.');
