@@ -43,6 +43,8 @@ export default async function handle(ctx, rc) {
           check(id && !store.module(id), 'A module with that name already exists, or its name needs English letters/numbers.', 409);
           const prefix = textValue(body.prefix, 'Case prefix', 12, true).toUpperCase();
           check(/^[A-Z][A-Z0-9]{1,11}$/.test(prefix), 'Use 2–12 letters/numbers for the case prefix.');
+          const sharing = store.modules().find(m => (m.productId ?? 'augastam') === product.id && String(m.prefix).toUpperCase() === prefix);
+          check(!sharing, `The case prefix ${prefix} is already used by ${sharing?.name} in ${product.name}. Choose a different one so case numbers stay unique.`, 409);
           const adapter = body.adapter ? String(body.adapter) : null;
           if (adapter) check(Object.hasOwn(adapters, adapter), 'Choose a registered automation adapter.');
           const created = store.transaction(() => {
@@ -127,6 +129,7 @@ export default async function handle(ctx, rc) {
             validateCase({ id: 'TEMPLATE', title: 'Template validation', category: 'General', mode: 'automated', input: body.input, action: 'fill', expected: { outcome: 'field-state' } }, module);
             // Cases built on a template take their data from it, so under the second-approver rule a changed template sends them back to review.
             // Fill order follows the key order, so a reordered template counts as changed.
+            check(!(body.create === true && module.config?.bases?.[name]), `A template named "${name}" already exists. Choose a different name, or edit the existing one.`, 409);
             const changed = JSON.stringify(module.config?.bases?.[name] ?? null) !== JSON.stringify(body.input ?? null);
             const reset = [];
             const saved = store.transaction(() => {

@@ -22,6 +22,7 @@ document.addEventListener('click', async event => {
     if (action === 'new-requirement') showRequirementDialog();
     if (action === 'edit-requirement') showRequirementDialog((currentModule()?.config?.requirements ?? []).find(r => r.id === id));
     if (action === 'delete-requirement') {
+      if (!confirm(`Remove requirement ${id}? Cases linked to it keep their link, but it will no longer count toward coverage.`)) return;
       const m = currentModule();
       await api(`/api/modules/${m.id}/requirements`, 'PUT', { version: m.version, requirements: (m.config.requirements ?? []).filter(r => r.id !== id) });
       await reload(); toast(`Requirement ${id} removed.`);
@@ -118,6 +119,7 @@ document.addEventListener('click', async event => {
     }
     if (action === 'edit-case' || action === 'duplicate-case') showCaseDialog(state.cases.find(c => c.id === id), action === 'duplicate-case');
     if (action === 'delete-case') {
+      if (!confirm(`Delete ${id}? It is removed from the library and this cannot be undone.`)) return;
       await api(`/api/modules/${currentModule().id}/cases/${id}`, 'DELETE');
       state.selected.delete(id);
       await reload(); toast(`${id} deleted.`);
@@ -125,6 +127,7 @@ document.addEventListener('click', async event => {
     if (['bulk-enable', 'bulk-disable', 'bulk-delete'].includes(action)) {
       const bulkAction = action.replace('bulk-', '');
       const ids = [...state.selected];
+      if (bulkAction === 'delete' && !confirm(`Delete ${ids.length} selected case${ids.length === 1 ? '' : 's'}? They are removed from the library and this cannot be undone.`)) return;
       await api(`/api/modules/${currentModule().id}/cases/bulk`, 'POST', { action: bulkAction, caseIds: ids });
       if (bulkAction === 'delete') state.selected.clear();
       await reload(); toast(`${ids.length} case(s) ${bulkAction}d.`);
@@ -152,7 +155,7 @@ document.addEventListener('click', async event => {
     if (action === 'clear-run-all') { drafts.runDraft.selected.clear(); renderRunSelection(); }
     if (action === 'open-run') location.hash = `/runs/${id}`;
     if (action === 'cancel-run') { await api(`/api/runs/${id}/cancel`, 'POST', {}); await reload(); toast('Cancellation requested.'); }
-    if (action === 'complete-run') { await api(`/api/runs/${id}/complete`, 'POST', {}); await reload(); toast('Run closed. Results are preserved.'); }
+    if (action === 'complete-run') { if (!confirm('Close this run? Its results are locked and cannot be changed afterwards.')) return; await api(`/api/runs/${id}/complete`, 'POST', {}); await reload(); toast('Run closed. Results are preserved.'); }
     if (action === 'rerun' || action === 'rerun-failed') {
       const r = state.runDetail, current = await api(`/api/modules/${r.module.id}/cases`);
       const sourceIds = action === 'rerun-failed' ? r.results.filter(isFindingResult).map(x => x.id) : r.cases.map(c => c.id);
@@ -166,6 +169,7 @@ document.addEventListener('click', async event => {
     }
     if (action === 'new-template' || action === 'edit-template') showTemplateDialog(id, name);
     if (action === 'delete-template') {
+      if (!confirm(`Delete the shared data template "${name}"? Cases that use it must be changed first.`)) return;
       await api(`/api/modules/${id}/templates/${encodeURIComponent(name)}`, 'DELETE');
       await reload(); toast(`Template "${name}" deleted.`);
     }
@@ -209,6 +213,7 @@ document.addEventListener('input', event => {
 document.addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target, button = $('button[type=submit]', form);
+  $('#form-error')?.classList.add('hidden');
   if (button) button.disabled = true;
   try {
     const f = new FormData(form);
@@ -226,7 +231,7 @@ document.addEventListener('submit', async event => {
     } else
     if (form.id === 'environment-form') {
       await api('/api/environments', 'POST', {
-        id: f.get('profile-id'), name: f.get('profile-name'), url: f.get('website-url'), productId: state.productId, version: Number(f.get('profile-version')),
+        id: f.get('profile-id'), name: f.get('profile-name'), url: f.get('website-url'), productId: state.productId, version: Number(f.get('profile-version')), create: f.get('profile-new') === '1',
         credentials: Object.fromEntries(['username', 'password', ...loginFieldsFor(state.productId).map(([k]) => k)].map(k => [k, f.get('login-' + k)]))
       });
       closeDialog(); await reload(); toast('Profile saved. Refresh application login before running tests.');
@@ -248,6 +253,8 @@ document.addEventListener('submit', async event => {
     }
     if (form.id === 'module-form') {
       const module = drafts.editorDraft;
+      const nextAdapter = f.get('adapter') || null;
+      if (module && nextAdapter && nextAdapter !== (module.adapter ?? null) && !confirm('Connect this module to automation? It will be shown as automation-ready, but cases only run correctly if this adapter really matches the module\'s screens. Continue?')) return;
       const result = await api(module ? `/api/modules/${module.id}` : '/api/modules', module ? 'PUT' : 'POST', { name: f.get('name'), area: f.get('area'), prefix: f.get('prefix'), description: f.get('description'), adapter: f.get('adapter') || null, ...(module ? (f.has('require-second') || $('#require-second') ? { settings: { requireSecondApprover: f.has('require-second') } } : {}) : { productId: state.productId }), version: module?.version });
       closeDialog(); if (!module) await loadAccess(); await reload(); location.hash = `/modules/${result.id}`; toast(module ? 'Module updated.' : 'Module created. Add your first case.');
     }
@@ -313,7 +320,7 @@ document.addEventListener('submit', async event => {
       closeDialog(); await reload(); location.hash = `/runs/${r.id}`; toast(r.mode === 'manual' ? 'Manual run opened. Record your results.' : 'Run added to the execution queue.');
     }
     if (form.id === 'template-form') {
-      await api(`/api/modules/${drafts.templateModule.id}/templates`, 'PUT', { name: f.get('template-name'), input: readInputs(form, adapterFor(drafts.templateModule)), version: drafts.templateModule.version });
+      await api(`/api/modules/${drafts.templateModule.id}/templates`, 'PUT', { name: f.get('template-name'), input: readInputs(form, adapterFor(drafts.templateModule)), version: drafts.templateModule.version, create: !drafts.templateEditing });
       closeDialog(); await reload(); toast('Shared data template saved.');
     }
     if (form.id === 'import-form') {

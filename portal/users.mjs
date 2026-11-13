@@ -6,7 +6,7 @@ import { check, textValue } from './registry.mjs';
 export const LEGACY_ROLES = ['tester', 'ba', 'viewer'];
 export const ROLES = ['admin', 'member', ...LEGACY_ROLES];
 
-const MANAGED_MSG = 'This administrator account is fixed by the server settings (PORTAL_ADMIN_USER / PORTAL_ADMIN_PASSWORD). Change it there and restart the portal.';
+const MANAGED_MSG = 'This administrator account is managed by the server, so it cannot be changed here. Ask the person who runs the server to change it in the server settings and restart the portal.';
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 export function hashPassword(password) {
   const salt = randomBytes(16);
@@ -40,7 +40,7 @@ export function createUsers(store, logger = null) {
       checkPassword(password);
       check(ROLES.includes(role), `Role must be one of: ${ROLES.join(', ')}.`);
       check(!store.userByName(name), 'That username already exists.', 409);
-      const user = { id: randomUUID(), username: name, role, displayName: textValue(displayName ?? name, 'Display name', 120, true), passwordHash: hashPassword(password), disabled: false, createdAt: now(), ...extra };
+      const user = { id: randomUUID(), username: name, role, displayName: textValue(typeof displayName === 'string' && displayName.trim() ? displayName : name, 'Display name', 120, true), passwordHash: hashPassword(password), disabled: false, createdAt: now(), ...extra };
       store.saveUser(user);
       return user;
     },

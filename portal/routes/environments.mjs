@@ -15,6 +15,7 @@ export default async function handle(ctx, rc) {
         if (route === '/api/environments' && req.method === 'POST') {
           const body = await readJson(req);
           const previous = environments.find(e => e.id === body.id);
+          check(!(body.create === true && previous), `A login profile with the ID "${body.id}" already exists. Choose a different ID, or edit the existing profile.`, 409);
           const productId = body?.productId ?? previous?.productId ?? 'augastam';
           check(typeof productId === 'string', 'Choose a product.');
           getProduct(productId);

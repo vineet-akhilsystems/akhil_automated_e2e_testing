@@ -11,6 +11,7 @@ export const LOGIN_SCHEMAS = {
   miracle: { project: 'setup-miracle', sessionFiles: ['miracle.json'], expiryFile: null,
     fields: { username: 'MIRACLE_USER', password: 'MIRACLE_PASS', facility: 'MIRACLE_FACILITY', group: 'MIRACLE_GROUP', entrySite: 'MIRACLE_ENTRY_SITE' } },
 };
+const FIELD_LABELS = { username: 'username', password: 'password', tenant: 'tenant', facility: 'facility', role: 'application role', group: 'group', entrySite: 'entry site' };
 export const loginSchema = productId => LOGIN_SCHEMAS[productId ?? 'augastam'] ?? null;
 export const LOGIN_KEYS = LOGIN_SCHEMAS.augastam.fields;
 
@@ -52,7 +53,7 @@ export function environmentSettings(directory) {
       const credentials = Object.fromEntries(Object.keys(schema.fields).map(k => [k, k === 'password' && input[k] === '' && previous && new URL(previous.url).origin === url.origin
         ? this.credentials(id)?.password ?? existingCredentials?.password ?? '' : input[k]]));
       for (const k of Object.keys(schema.fields)) {
-        check(typeof credentials[k] === 'string' && credentials[k].trim().length > 0 && credentials[k].length <= 1000, `Enter ${k}${k === 'password' ? ' (required for a new profile or website)' : ''}.`);
+        check(typeof credentials[k] === 'string' && credentials[k].trim().length > 0 && credentials[k].length <= 1000, `Enter the ${FIELD_LABELS[k] ?? k}${k === 'password' ? ' (required for a new profile or website)' : ''}.`);
         if (k !== 'password') credentials[k] = credentials[k].trim();
       }
       const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', key(), iv);

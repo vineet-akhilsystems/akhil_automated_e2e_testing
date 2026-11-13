@@ -104,7 +104,7 @@ export function renderRunSelection() {
 }
 export function showTemplateDialog(moduleId, name) {
   const m = state.data.modules.find(m => m.id === moduleId), a = adapterFor(m);
-  drafts.templateModule = m;
+  drafts.templateModule = m; drafts.templateEditing = Boolean(name);
   showDialog(name ? `Edit ${name}` : 'New shared data template', 'These values provide the starting state for automated cases.', `${field('Template name', 'template-name', name, `required pattern="(?:[A-Za-z0-9_]|-)+" ${name ? 'readonly' : ''}`)}<div class="form-section"><div class="section-line"><h3>Starting field values</h3><button type="button" class="small" data-action="template-add-input">${icon('plus')} Add field</button></div><div id="input-rows">${Object.entries(m.config.bases[name] ?? {}).map(([k, v]) => inputRow(a, k, v)).join('')}</div><p class="form-help">Updating a template affects future runs. Existing runs keep the data they captured.</p></div>`, 'template-form');
 }
 export function showReportDetails() {

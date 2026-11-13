@@ -12,6 +12,8 @@ document.addEventListener('change', async event => {
 document.addEventListener('submit', async event => {
   if (event.target?.id !== 'ai-limit-form') return;
   event.preventDefault();
-  try { paintAiPanel(await api('/api/ai/policy', 'PUT', { dailyJobLimit: Number(new FormData(event.target).get('ai-daily-limit')) })); toast('Daily limit saved.'); }
+  const raw = String(new FormData(event.target).get('ai-daily-limit') ?? '').trim();
+  if (raw === '') return toast('Enter a number. 0 means no limit.', true);
+  try { const saved = await api('/api/ai/policy', 'PUT', { dailyJobLimit: Number(raw) }); paintAiPanel(saved); toast(saved.dailyJobLimit === 0 ? 'Daily limit removed: any number of AI jobs per day.' : `Daily limit saved: ${saved.dailyJobLimit} AI jobs per day.`); }
   catch (error) { toast(error.message, true); }
 });

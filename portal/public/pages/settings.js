@@ -8,7 +8,7 @@ import { aiPanelShell, loadAiPanel } from './ai-settings.js';
 
 export function settingsPage() {
   return heading(`${productName()} configuration`, 'Settings', 'Named application login profiles for developers, BAs and QA.', isAdmin() ?'<button class="primary" data-action="new-environment">'+icon('plus')+' Add login profile</button>' : '')
-    + '<div class="info-strip">'+icon('info')+'<div><strong>Shared workspace profiles</strong><p>Give each team member or test role a separate profile. Everyone with workspace access can use these profiles; they are not private user accounts. Passwords are encrypted on the server and never returned to the browser.</p><p>The current adapter supports Augastam username/password login with tenant, facility and role. Other websites and SSO/OTP flows need a compatible automation adapter.</p></div></div>'
+    + '<div class="info-strip">'+icon('info')+'<div><strong>Shared workspace profiles</strong><p>Give each team member or test role a separate profile. Everyone with workspace access can use these profiles; they are not private user accounts. Passwords are encrypted on the server and never returned to the browser.</p><p>Login for ' + esc(productName()) + ' uses a username and password plus ' + esc(loginFieldsFor(state.productId).map(([, label]) => label.toLowerCase()).join(', ')) + '. Other websites and SSO/OTP flows need a compatible automation adapter.</p></div></div>'
     + environmentsPage(true)
     + aiPanelShell() + (setTimeout(loadAiPanel, 0), '')
     + '<div class="panel settings-guide"><h2>Run automation from the UI</h2><ol><li>Add or edit a login profile here.</li><li>Refresh application login and wait for success.</li><li>Open Module library, choose a module with automation connected and Run cases.</li><li>Select Automated browser run, your profile and cases, then Create run.</li><li>Use Test runs to view progress, cancel a run and download results or evidence.</li></ol><a href="#/modules">Open Module library</a></div>';
@@ -22,10 +22,10 @@ export const loginFieldsFor = productId => LOGIN_FIELDS[productId ?? 'augastam']
 export function showEnvironmentDialog(profile) {
   const login = profile?.login ?? {};
   showDialog(profile ? 'Edit login profile' : 'Add login profile', `Save a named ${productName()} test environment and application login. Saving requires a fresh login before tests can run.`,
-    '<input type="hidden" name="profile-version" value="'+(profile?.version ?? 0)+'"><div class="form-grid">'
+    '<input type="hidden" name="profile-version" value="'+(profile?.version ?? 0)+'"><input type="hidden" name="profile-new" value="'+(profile ? '' : '1')+'"><div class="form-grid">'
     + field('Profile ID', 'profile-id', profile?.id ?? '', 'required maxlength="80" pattern="[a-z0-9]+(-[a-z0-9]+)*" '+(profile ? 'readonly' : ''), 'Example: ba-uat or developer-demo')
     + field('Profile name', 'profile-name', profile?.name ?? '', 'required maxlength="120"')
-    + field('Website URL', 'website-url', profile?.url ?? '', 'type="url" required maxlength="2000"', 'Website origin only, for example https://demo.augastam.com')
+    + field('Website URL', 'website-url', profile?.url ?? '', 'type="url" required maxlength="2000"', 'Website origin only, for example ' + (state.productId === 'miracle' ? 'https://uatbilling.miracleoncloud.com' : 'https://demo.augastam.com'))
     + field('Username', 'login-username', login.username ?? '', 'required autocomplete="off" maxlength="1000"')
     + field('Password', 'login-password', '', 'type="password" autocomplete="new-password" maxlength="1000" '+(profile?.passwordSaved ? 'placeholder="Saved password configured"' : 'required'), profile?.passwordSaved ? 'Your saved password is configured and hidden. Leave blank to keep it for the same website. Enter a password when changing the website.' : 'Stored encrypted on the portal server; never included in run snapshots.')
     + loginFieldsFor(state.productId).map(([key, label]) => field(label, 'login-' + key, login[key] ?? '', 'required maxlength="1000"')).join('')

@@ -60,6 +60,7 @@ test('BA browser workflow: add modules, write cases, execute manually and edit a
   await page.locator('input[name="evidence"]').setInputFiles('portal/test-output/manual-evidence.png');
   await page.getByRole('button', { name: 'Save result', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Close run', exact: true })).toBeEnabled();
+  page.once('dialog', dialog => { assert.match(dialog.message(), /Close this run/); dialog.accept(); }); // closing a run now asks first
   await page.getByRole('button', { name: 'Close run', exact: true }).click();
   await expect(page.locator('.run-subline .badge')).toHaveText('passed');
   await page.getByRole('button', { name: 'Report details', exact: true }).click();

@@ -2,13 +2,14 @@ import { api } from '../api.js';
 import { showDialog } from '../components/dialogs.js';
 import { badge, date, esc, icon, opts } from '../components/dom.js';
 import { empty, field, heading, selectField, toast } from '../components/widgets.js';
-import { roleLabel } from '../permissions.js';
+import { isAdmin, roleLabel } from '../permissions.js';
 import { renderRoute } from '../router.js';
 import { drafts, state } from '../state.js';
 
 
 // ----- Users and account -----
 export function usersPage() {
+  if (!isAdmin()) return empty('Users are not available to you', 'Only administrators can manage user accounts. Ask an administrator if you need access.');
   const rows = state.users ?? [], me = state.user;
   const roles = [['admin', 'Admin', 'Sees and manages everything: products, users, login profiles and every module.'], ['member', 'Member', 'Signs in and sees only what they are given access to.']];
   const roleOptions = u => [...roles.map(r => [r[0], r[1]]), ...(roles.some(r => r[0] === u.role) ? [] : [[u.role, `${roleLabel(u.role)} (legacy)`]])];
