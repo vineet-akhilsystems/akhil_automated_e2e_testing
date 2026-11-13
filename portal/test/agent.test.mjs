@@ -183,7 +183,7 @@ test('automation proposal needs an approved case and a tester; files are listed 
   assert.match(gated.value.error, /Insights/); assert.match(gated.value.error, /Target setup/); assert.match(gated.value.error, /Discovery/);
   assert.equal((await admin.request('/api/modules/billing/insights', 'PUT', { summary: 'Billing', cases: [] })).status, 201);
   assert.equal((await admin.request('/api/modules/billing/setup', 'PUT', { moduleUrl: '/billing', variants: [], loginProfileId: 'local' })).status, 200);
-  fs.mkdirSync(path.join(qaRoot, 'billing', 'discovery'), { recursive: true }); fs.writeFileSync(path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'), '{}');
+  fs.mkdirSync(path.join(qaRoot, 'billing', 'discovery'), { recursive: true }); fs.writeFileSync(path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'), '[{"card":"Invoice","label":"Invoice number"}]');
   const s = await admin.request('/api/modules/billing/agent/jobs', 'POST', { agent: 'claude', kind: 'automation' });
   assert.equal(s.status, 202, JSON.stringify(s.value));
   const job = await wait(admin, s.value.id);

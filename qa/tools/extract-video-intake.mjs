@@ -64,11 +64,46 @@ async function probeDuration(exec, file) {
   } catch { return null; }
 }
 
-async function extractFrames(exec, file, framesDir) {
+// Scene-change detection misses small UI navigation in screen recordings (measured: a 15-minute walkthrough gave 16 frames with
+// 3- and 5-minute holes). Where the frames leave a stretch longer than GAP uncovered, grab evenly spaced frames inside it,
+// then renumber everything in time order. Short videos and well-covered long ones are left untouched.
+export const gapSeconds = duration => Math.max(60, duration / 12);
+async function fillGaps(exec, file, framesDir, frames, duration) {
+  const room = LIMITS.maxFrames - frames.length;
+  if (!(duration > 0) || room <= 0) return frames;
+  const gap = gapSeconds(duration), bounds = [0, ...frames.map(f => f.t), duration], wanted = [];
+  for (let i = 0; i < bounds.length - 1; i++) {
+    const span = bounds[i + 1] - bounds[i];
+    if (span > gap) { const n = Math.ceil(span / gap) - 1; for (let k = 1; k <= n; k++) wanted.push(bounds[i] + span * k / (n + 1)); }
+  }
+  if (!wanted.length) return frames;
+  const picked = wanted.length <= room ? wanted : Array.from({ length: room }, (_, i) => wanted[Math.round(i * (wanted.length - 1) / Math.max(1, room - 1))]);
+  const added = []; let bytes = frames.reduce((n, f) => n + f.bytes, 0);
+  for (const [i, t] of picked.entries()) {
+    const name = `fill-${String(i + 1).padStart(3, '0')}.jpg`, out = path.join(framesDir, name);
+    try {
+      await exec('ffmpeg', ['-hide_banner', '-nostdin', '-y', '-protocol_whitelist', 'file', '-ss', String(Math.max(0, t).toFixed(2)), '-i', file, '-an', '-frames:v', '1', '-vf', 'scale=1280:-1', '-q:v', '4', out], { timeout: LIMITS.ffprobeTimeoutMs });
+      const size = fs.statSync(out).size;
+      if (bytes + size > LIMITS.maxFrameBytes) { fs.rmSync(out, { force: true }); break; }
+      bytes += size; added.push({ t, file: name, bytes: size });
+    } catch { fs.rmSync(out, { force: true }); }
+  }
+  if (!added.length) return frames;
+  // Two-phase rename (time order) so new names never collide with files that still exist.
+  const all = [...frames, ...added].sort((a, b) => a.t - b.t);
+  all.forEach((f, i) => fs.renameSync(path.join(framesDir, f.file), path.join(framesDir, `tmp-${i}.jpg`)));
+  return all.map((f, i) => { const file = `frame-${String(i + 1).padStart(3, '0')}.jpg`; fs.renameSync(path.join(framesDir, `tmp-${i}.jpg`), path.join(framesDir, file)); return { ...f, file }; });
+}
+
+async function extractFrames(exec, file, framesDir, duration = null) {
   fs.rmSync(framesDir, { recursive: true, force: true }); fs.mkdirSync(framesDir, { recursive: true });
   const run = (vf, extra) => exec('ffmpeg', ['-hide_banner', '-nostdin', '-y', '-protocol_whitelist', 'file', '-i', file, '-an', '-vf', vf, '-fps_mode', 'vfr', '-frames:v', String(LIMITS.maxFrames), '-q:v', '4', ...extra, path.join(framesDir, 'frame-%03d.jpg')], { timeout: LIMITS.ffmpegTimeoutMs });
   const times = s => [...String(s).matchAll(/pts_time:\s*(-?\d+(?:\.\d+)?)/g)].map(m => Number(m[1]));
-  let r = await run("select='gt(scene,0.35)',showinfo,scale=1280:-1", []);
+  // With no scene change at all (a calm screen recording) ffmpeg writes nothing and exits non-zero: treat that as "no frames", not a failure.
+  // A timeout or kill is still a failure.
+  let r;
+  try { r = await run("select='gt(scene,0.35)',showinfo,scale=1280:-1", []); }
+  catch (e) { if (e?.killed || e?.signal) throw e; r = { stderr: '' }; }
   let files = fs.readdirSync(framesDir).filter(n => /^frame-\d+\.jpg$/.test(n)).sort(), ts = times(r.stderr);
   if (!files.length) { // no scene changes (static screen recording): keep the first frame so the video is not blank
     r = await run('showinfo,scale=1280:-1', ['-frames:v', '1']);
@@ -80,7 +115,7 @@ async function extractFrames(exec, file, framesDir) {
     if (i >= LIMITS.maxFrames || bytes + size > LIMITS.maxFrameBytes) { fs.rmSync(p, { force: true }); return; }
     bytes += size; frames.push({ t: ts[i] ?? 0, file: n, bytes: size });
   });
-  return frames;
+  return fillGaps(exec, file, framesDir, frames, duration);
 }
 
 // Whisper is only run with a model that is already on disk (never auto-downloaded): $WHISPER_MODEL (a local file) or the
@@ -125,7 +160,7 @@ async function extractVideoNow(file, name, opts = {}) {
     const duration = await probeDuration(exec, file);
     if (duration !== null && duration > LIMITS.maxDurationSec) notes.push(`Video is longer than ${LIMITS.maxDurationSec / 3600} hours; keyframes were not extracted.`);
     else {
-      try { frames = await extractFrames(exec, file, framesDir); } catch { notes.push('Keyframe extraction failed or timed out.'); fs.rmSync(framesDir, { recursive: true, force: true }); }
+      try { frames = await extractFrames(exec, file, framesDir, duration); } catch { notes.push('Keyframe extraction failed or timed out.'); fs.rmSync(framesDir, { recursive: true, force: true }); }
       if (!transcript && frames.length && await available(exec, 'whisper', ['--help'])) {
         const model = whisperModelPath(opts.env ?? process.env);
         if (model) transcript = await runWhisper(exec, file, path.join(framesDir, '_whisper'), model);

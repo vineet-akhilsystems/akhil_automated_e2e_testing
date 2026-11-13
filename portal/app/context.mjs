@@ -116,12 +116,16 @@ export function createContext(options = {}) {
   function readinessFor(module) {
     const id = module.id, productId = module.productId ?? 'augastam', setup = module.setup ?? null;
     const discoveryDir = path.join(qaRoot, id, 'discovery'), fieldsFile = path.join(discoveryDir, 'fields-default.json');
-    let discoveryExists = false, discoveryStale = false;
+    let discoveryExists = false, discoveryStale = false, discoveryEmpty = false;
     if (pluginFor(id)?.discovery) { try { discoveryExists = fs.readdirSync(discoveryDir).length > 0; } catch { /* none */ } }
     else {
       try {
         const mtime = fs.statSync(fieldsFile).mtimeMs, confirmed = setup?.confirmedAt ? Date.parse(setup.confirmedAt) : NaN;
-        if (Number.isFinite(confirmed) && mtime >= confirmed) discoveryExists = true; else discoveryStale = true;
+        if (Number.isFinite(confirmed) && mtime >= confirmed) {
+          // A discovery run that found nothing still writes the file; it only counts once it holds at least one field.
+          let found = 0; try { const f = JSON.parse(fs.readFileSync(fieldsFile, 'utf8')); found = Array.isArray(f) ? f.length : Object.keys(f ?? {}).length; } catch { /* unreadable: treated as empty */ }
+          if (found > 0) discoveryExists = true; else discoveryEmpty = true;
+        } else discoveryStale = true;
       } catch { /* no discovery file */ }
     }
     const adapter = module.adapter ? adapters[module.adapter] : null;
@@ -130,7 +134,7 @@ export function createContext(options = {}) {
     const smokePassed = store.runs().some(r => r.module?.id === id && r.kind !== 'authentication' && r.mode === 'automated' && (r.productId ?? 'augastam') === productId
       && TERMINAL.includes(r.status) && (r.results ?? []).some(x => x.status === 'PASS') && r.cases?.some(c => c.mode === 'automated' && c.action !== 'unavailable'));
     return readiness({ module, product: store.product(productId) ?? { id: productId }, sources: store.intakeFiles(id), insights: store.insights(id), cases: store.cases(id), setup,
-      discoveryExists, discoveryStale, adapterConnected: Boolean(adapter), specExists, smokePassed, jobs: agent.list(id) });
+      discoveryExists, discoveryStale, discoveryEmpty, adapterConnected: Boolean(adapter), specExists, smokePassed, jobs: agent.list(id) });
   }
   const gateError = (message, state) => Object.assign(new HttpError(409, message), { extra: { readiness: state } });
   const productName = id => store.product(id ?? 'augastam')?.name ?? id ?? 'Augastam';

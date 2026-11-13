@@ -341,7 +341,7 @@ test('readiness: a fresh module, then after each stage', async t => {
   r = await get(); assert.equal(stageOf(r, 'setup').status, 'ready'); assert.equal(stageOf(r, 'discovery').status, 'missing');
   // discovery newer than the setup -> ready; a setup confirmed later makes it stale
   fs.mkdirSync(path.join(qaRoot, 'billing', 'discovery'), { recursive: true });
-  const disc = path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'); fs.writeFileSync(disc, '{}');
+  const disc = path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'); fs.writeFileSync(disc, '[{"card":"Invoice","label":"Invoice number"}]');
   r = await get(); assert.equal(stageOf(r, 'discovery').status, 'ready'); assert.equal(r.canProposeAutomation, true);
   assert.equal(stageOf(r, 'automation').action.id, 'propose-automation');
   fs.utimesSync(disc, new Date(Date.now() - 3_600_000), new Date(Date.now() - 3_600_000));
@@ -427,4 +427,11 @@ test('AI generation is gated with the checklist, then works; stale insights only
   assert.equal((await admin.request('/api/modules/reg/cases', 'POST', { id: 'REG-901', title: 'Manual', category: 'c', mode: 'manual', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
   assert.equal((await up(admin, 'reg', 'third.txt', 'Third.\n')).status, 201);
   void f;
+});
+
+test('readiness: a discovery run that found no fields is a failed stage, not a ready one', () => {
+  const base = { module: { id: 'x' }, product: { id: 'augastam' }, setup: { moduleUrl: '/emr', loginProfileId: 'demo', confirmedAt: 'now' } };
+  const empty = stageOf(readiness({ ...base, discoveryEmpty: true }), 'discovery');
+  assert.equal(empty.status, 'failed'); assert.match(empty.detail, /found no fields on \/emr/);
+  assert.equal(stageOf(readiness({ ...base, discoveryExists: true }), 'discovery').status, 'ready');
 });

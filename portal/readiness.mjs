@@ -49,7 +49,7 @@ export function cleanVariants(value) {
   return out;
 }
 
-export function readiness({ module, product, sources = [], insights = null, cases = [], setup = null, discoveryExists = false, discoveryStale = false, adapterConnected = false, specExists = false, smokePassed = false, jobs = [] }) {
+export function readiness({ module, product, sources = [], insights = null, cases = [], setup = null, discoveryExists = false, discoveryStale = false, discoveryEmpty = false, adapterConnected = false, specExists = false, smokePassed = false, jobs = [] }) {
   const reference = typeof module?.id === 'string' && pluginFor(module.id)?.builtIn === true; // the built-in reference module is never locked out
   const productId = product?.id ?? module?.productId ?? 'augastam';
   // Discovery, adapters and runners exist only for Augastam's web app; other products may still have a working login (Miracle).
@@ -99,6 +99,7 @@ export function readiness({ module, product, sources = [], insights = null, case
   let s5;
   if (reference) s5 = stage('discovery', 'ready', discoveryExists ? 'Discovery files are present.' : 'Built in.');
   else if (!loginBuilt) s5 = stage('discovery', 'blocked', blockedReason);
+  else if (discoveryEmpty) s5 = stage('discovery', 'failed', `The last discovery found no fields on ${setup?.moduleUrl ?? 'the module page'}. Check that the module URL in the target setup is the page the sources describe, then run discovery again.`);
   else if (discoveryExists) s5 = stage('discovery', 'ready', 'Discovery output is newer than the target setup.');
   else if (discoveryStale) s5 = stage('discovery', 'stale', 'The target setup was confirmed after the last discovery. Run discovery again.');
   else if (s4.status !== 'ready') s5 = stage('discovery', 'missing', 'Confirm the target setup first; discovery scans the page it names.');
