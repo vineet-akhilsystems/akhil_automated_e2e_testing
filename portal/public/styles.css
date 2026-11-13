@@ -292,3 +292,5 @@ dialog::backdrop {
 @media(max-width:560px){.rd-steps{padding:4px 14px 8px}.rd-step{flex-wrap:wrap}.rd-main{flex-basis:calc(100% - 40px)}.rd-step>button{margin-left:36px}.setup-body{padding:16px}.notice,.agent-info,.setup-body .info-strip{flex-wrap:wrap}}
 
 .ai-presets{display:grid;gap:10px;margin:12px 0}.ai-preset{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer}.ai-preset.selected{border-color:var(--accent)}.ai-preset small{display:block;color:var(--muted);margin-top:2px}.ai-limit{gap:10px;align-items:center;margin:12px 0;flex-wrap:wrap}.ai-limit input{width:90px}.ai-models,.ai-recent{margin:6px 0;padding-left:18px}
+
+.module-tabs a,.module-tabs .tab-button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.module-tabs .tab-button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:12px 0;color:#8d90a4;font:inherit;font-size:12px}.module-tabs .tab-button:hover,.module-tabs a:hover{color:var(--accent)}.count-pill.neutral{background:#eef0f6;color:#6b6f85}
