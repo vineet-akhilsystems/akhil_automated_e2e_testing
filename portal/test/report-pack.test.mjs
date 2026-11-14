@@ -27,7 +27,8 @@ test('redactRun removes bearer tokens, JWTs and secret-keyed values from nested 
   const out = redactRun(run);
   const text = JSON.stringify(out);
   assert.ok(!text.includes('abc.def'));
-  assert.ok(!text.includes('"x"') || !text.includes('"password":"x"'));
+  assert.ok(!text.includes('"password":"x"'));
+  assert.ok(!text.includes('"apiKey":"k"'));
   assert.equal(out.results[1].resolvedInput.password, '[REDACTED]');
   assert.equal(out.results[1].resolvedInput.nested.apiKey, '[REDACTED]');
   assert.match(out.results[1].actual, /\[REDACTED\]/);
@@ -51,6 +52,10 @@ test('JSON, JUnit and Excel exports of a run containing a bearer token never con
   f.store.saveRun(mkRun());
   const json = await f.request('/api/runs/rp-run-1/export?format=json');
   assert.equal(json.status, 200); assert.ok(!JSON.stringify(json.value).includes('abc.def'));
+  const rawJson = await (await fetch(`${f.base}/api/runs/rp-run-1/export?format=json`)).text();
+  assert.ok(!rawJson.includes('abc.def'));
+  assert.equal(json.value.results[1].resolvedInput.password, '[REDACTED]');
+  assert.ok(!JSON.stringify(json.value).includes('"password":"x"'));
   const junit = await f.request('/api/runs/rp-run-1/export?format=junit');
   assert.equal(junit.status, 200); assert.ok(!junit.value.toString().includes('abc.def'));
   const x = await f.request('/api/runs/rp-run-1/export?format=xlsx');
@@ -58,4 +63,15 @@ test('JSON, JUnit and Excel exports of a run containing a bearer token never con
   const wb = new ExcelJS.Workbook(); await wb.xlsx.load(x.value);
   const cells = []; wb.getWorksheet('Results').eachRow(r => r.eachCell(cell => cells.push(String(cell.value))));
   assert.ok(cells.length > 10); assert.ok(!cells.join('\n').includes('abc.def'));
+});
+
+test('JUnit names and headers never contain tokens placed in case titles, run, module or environment names', async t => {
+  const f = await boot(t);
+  const run = mkRun({ id: 'rp-run-2', name: 'Pack password=hunter2', environmentName: 'UAT Bearer abc.def', module: { ...structuredClone(module), name: 'Reg password=hunter2' } });
+  run.cases[0].title = 'Title Bearer abc.def password=hunter2'; run.cases[0].category = 'Cat password=hunter2';
+  f.store.saveRun(run);
+  const junit = await f.request('/api/runs/rp-run-2/export?format=junit');
+  assert.equal(junit.status, 200);
+  const raw = junit.value.toString();
+  assert.ok(!raw.includes('abc.def')); assert.ok(!raw.includes('hunter2'));
 });

@@ -121,10 +121,9 @@ export function reportModel(run) {
     const flaky = Boolean(result?.flaky), attempts = result?.attempts ?? (flaky ? 2 : 1), quarantined = Boolean(result?.quarantined || c.quarantined);
     const ticketUrl = safeReportText(triageOf.ticketUrl);
     if (kind) {
-      const triage = run.triage?.[c.id] ?? {};
       findings.push({ id: `${FINDINGS[kind].prefix}-${c.id}`, caseId: c.id, kind, classification: FINDINGS[kind].label, classificationNote: FINDINGS[kind].note,
-        title: safeReportText(c.title), priority: c.priority ?? 'Not set', severity: kind === 'failure' ? triage.severity ?? 'Not assessed' : 'Not applicable',
-        owner: safeReportText(triage.owner || 'Unassigned'), reference: safeReportText(triage.reference || 'Not linked'), impact: safeReportText(triage.impact || 'Not assessed'), triageNotes: safeReportText(triage.notes),
+        title: safeReportText(c.title), priority: c.priority ?? 'Not set', severity: kind === 'failure' ? triageOf.severity ?? 'Not assessed' : 'Not applicable',
+        owner: safeReportText(triageOf.owner || 'Unassigned'), reference: safeReportText(triageOf.reference || 'Not linked'), impact: safeReportText(triageOf.impact || 'Not assessed'), triageNotes: safeReportText(triageOf.notes),
         requirement: safeReportText(c.requirement || 'Not linked'), suite: c.category || 'General', mode: c.mode, variant: c.registrationType ?? '',
         preconditions: safeReportText(c.preconditions), expected: safeReportText(result.expected || JSON.stringify(c.expected ?? c.steps)), actual: safeReportText(result.actual),
         mismatches: (result.mismatches ?? []).map(safeReportText), input, inputSource,

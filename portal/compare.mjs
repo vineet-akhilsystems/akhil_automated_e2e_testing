@@ -42,7 +42,7 @@ export function toJunit(run) {
   const body = cases.map(c => {
     const r = results.get(c.id), secs = ((r?.wallMs ?? r?.durationMs ?? 0) / 1000);
     time += secs;
-    const head = `<testcase classname="${xml(run.module?.id ?? 'module')}.${xml(c.category ?? 'General')}" name="${xml(`${c.id} ${c.title}`)}" time="${secs.toFixed(3)}"`;
+    const head = `<testcase classname="${xml(safeReportText(run.module?.id ?? 'module'))}.${xml(safeReportText(c.category ?? 'General'))}" name="${xml(safeReportText(`${c.id} ${c.title}`))}" time="${secs.toFixed(3)}"`;
     if (!r) { skipped++; return `${head}><skipped message="Not executed"/></testcase>`; }
     const detail = xml([`Expected: ${safeReportText(r.expected)}`, `Actual: ${safeReportText(r.actual)}`, ...(r.mismatches ?? []).map(safeReportText)].join('\n'));
     if (r.quarantined && BAD.has(r.status)) { skipped++; return `${head}><skipped message="Quarantined: ${xml(r.status)}"/><system-out>${detail}</system-out></testcase>`; }
@@ -51,5 +51,5 @@ export function toJunit(run) {
     if (['SKIPPED', 'BLOCKED'].includes(r.status)) { skipped++; return `${head}><skipped message="${xml(r.status)}"/></testcase>`; }
     return `${head}>${r.flaky ? `<system-out>Flaky: passed on attempt ${xml(r.attempts ?? 2)}</system-out>` : ''}</testcase>`;
   });
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites name="${xml(run.name)}" tests="${cases.length}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="${time.toFixed(3)}">\n<testsuite name="${xml(run.module?.name ?? 'module')} on ${xml(run.environmentName ?? '')}" tests="${cases.length}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="${time.toFixed(3)}" timestamp="${xml(run.startedAt ?? run.createdAt)}">\n${body.join('\n')}\n</testsuite>\n</testsuites>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites name="${xml(safeReportText(run.name))}" tests="${cases.length}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="${time.toFixed(3)}">\n<testsuite name="${xml(safeReportText(run.module?.name ?? 'module'))} on ${xml(safeReportText(run.environmentName))}" tests="${cases.length}" failures="${failures}" errors="${errors}" skipped="${skipped}" time="${time.toFixed(3)}" timestamp="${xml(run.startedAt ?? run.createdAt)}">\n${body.join('\n')}\n</testsuite>\n</testsuites>\n`;
 }

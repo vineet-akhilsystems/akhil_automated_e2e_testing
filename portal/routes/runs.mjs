@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { check, textValue } from '../registry.mjs';
 import { readJson } from '../http/body.mjs';
 import { json, file } from '../http/respond.mjs';
-import { classification, reportModel, safeReportText, TERMINAL } from '../quality.mjs';
+import { classification, safeReportText, TERMINAL } from '../quality.mjs';
 import { generatePdf } from '../pdf-report.mjs';
 import { toJunit } from '../compare.mjs';
 import { redactRun } from '../reports/redact.mjs';
@@ -102,13 +102,15 @@ export default async function handle(ctx, rc) {
             if (url.searchParams.get('format') === 'xlsx') {
               const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('Results');
               ws.columns = ['id', 'title', 'status', 'expected', 'actual', 'category', 'priority', 'requirement', 'durationMs', 'screenshots', 'evidenceWarnings', 'severity', 'owner', 'reference'].map(k => ({ header: k, key: k, width: k === 'id' ? 16 : ['title', 'expected', 'actual'].includes(k) ? 55 : 22 }));
-              for (const row of reportModel(run).cases) {
-                const r = run.results.find(x => x.id === row.id);
+              const byId = new Map(run.results.map(x => [x.id, x]));
+              for (const c of run.cases) {
+                const r = byId.get(c.id), t = run.triage?.[c.id] ?? {};
+                const imgs = (r?.attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/')).length;
                 ws.addRow({
-                  id: row.id, title: row.title, status: r?.status ?? 'NOT EXECUTED', expected: r ? row.expected : '', actual: r ? row.actual : '',
-                  category: row.suite, priority: row.priority === 'Not set' ? '' : row.priority, requirement: row.requirement, durationMs: row.durationMs,
-                  screenshots: row.screenshotCount, evidenceWarnings: row.evidenceWarnings.join('; '),
-                  severity: row.findingKind === 'failure' ? row.severity : (run.triage?.[row.id] ? row.severity : ''), owner: run.triage?.[row.id]?.owner ? row.owner : '', reference: safeReportText(run.triage?.[row.id]?.reference),
+                  id: c.id, title: safeReportText(c.title), status: r?.status ?? 'NOT EXECUTED', expected: safeReportText(r?.expected), actual: safeReportText(r?.actual),
+                  category: safeReportText(c.category), priority: c.priority ?? '', requirement: safeReportText(c.requirement), durationMs: r?.durationMs ?? 0,
+                  screenshots: imgs, evidenceWarnings: safeReportText((r?.evidenceWarnings ?? []).join('; ')),
+                  severity: t.severity ?? '', owner: safeReportText(t.owner), reference: safeReportText(t.reference),
                 });
               }
               ws.getRow(1).font = { bold: true };
