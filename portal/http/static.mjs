@@ -3,7 +3,7 @@ import path from 'node:path';
 import { check } from '../registry.mjs';
 import { file } from './respond.mjs';
 
-const ROOT_FILES = { '/': 'index.html', '/app.js': 'app.js', '/api.js': 'api.js', '/boot.js': 'boot.js', '/permissions.js': 'permissions.js', '/router.js': 'router.js', '/state.js': 'state.js', '/styles.css': 'styles.css', '/favicon.svg': 'favicon.svg' };
+const ROOT_FILES = { '/': 'index.html', '/app.js': 'app.js', '/api.js': 'api.js', '/boot.js': 'boot.js', '/permissions.js': 'permissions.js', '/router.js': 'router.js', '/state.js': 'state.js', '/report-pack-request.js': 'report-pack-request.js', '/styles.css': 'styles.css', '/favicon.svg': 'favicon.svg' };
 // Browser modules live one level down; only plain lowercase module names are served (no dots, no traversal).
 const NESTED_MODULE = /^\/(?:pages|components|handlers)\/[a-z0-9-]+\.js$/;
 

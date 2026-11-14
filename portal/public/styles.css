@@ -462,3 +462,13 @@ button:disabled,button.primary:disabled,button.danger:disabled,a.disabled{opacit
 .knowledge-text[readonly]{background:#f7f8fc}
 .case-context{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
 .agent-critic{display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:13px}.check-line{display:flex;gap:8px;align-items:center;font-size:13px}
+.pack-section{margin-top:20px}.pack-section:first-child{margin-top:0}.pack-section>h3,.pack-section summary h3{font-size:13px;margin-bottom:10px}
+.pack-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pack-card{flex-direction:column;align-items:flex-start;justify-content:flex-start;text-align:left;gap:5px;padding:12px 14px;font-weight:400}.pack-card strong{font-size:13px;color:#41465c}.pack-card.active{border-color:var(--accent);background:#f1edfc;box-shadow:0 0 0 1px var(--accent)}
+.pack-reports{display:grid;gap:10px}.pack-report{display:flex;gap:10px;align-items:flex-start;font-size:13px}.pack-report input{margin-top:3px}.pack-report span{display:grid;gap:2px}.pack-report small{color:var(--muted);font-size:12px;line-height:1.5}
+details.pack-section summary{cursor:pointer;display:flex;align-items:baseline;gap:10px;list-style:none}details.pack-section summary::-webkit-details-marker{display:none}details.pack-section summary h3{margin:0}details.pack-section summary::before{content:"\25B8";color:var(--muted)}details.pack-section[open] summary::before{content:"\25BE"}
+.pack-filter{margin-top:14px;display:grid;gap:14px}.pack-filter fieldset{border:0;padding:0;margin:0}.pack-filter legend{font-size:12px;font-weight:550;color:#74798d;margin-bottom:7px;padding:0}.pack-checks{display:flex;flex-wrap:wrap;gap:6px 16px}.pack-filter .form-grid{margin-bottom:0}
+.pack-estimate{margin:20px 0 0;padding:11px 14px;border-radius:8px;background:#f5f4fb;color:#4a4560;font-size:13px}.pack-estimate.problem{background:#fff8ed;color:#8a6a2f}
+.pack-job{margin-top:14px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;font-size:13px}.pack-job .group-list{margin-top:8px}.pack-job p{margin:10px 0 0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pack-job{scroll-margin-bottom:90px}.pack-job .group-list li{padding:4px 0;font-size:12px}

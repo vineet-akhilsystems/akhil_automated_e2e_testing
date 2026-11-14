@@ -1013,3 +1013,41 @@ test('download of an unfinished job is 409', async t => {
   const r = await admin.request('/api/runs/rp-job-run/report-packs/live-1/download');
   assert.equal(r.status, 409, JSON.stringify(r.value));
 });
+
+// ---- Task 8: the dialog's pure request builder ----
+const packUi = () => import("../public/report-pack-request.js");
+const ALL_OFF = { reports: [], filter: {}, evidence: 'findings' };
+
+test('buildPackRequest maps preset, ticked reports, filter fields and evidence level to the API body', async () => {
+  const { buildPackRequest, PACK_PRESETS } = await packUi();
+  assert.deepEqual(buildPackRequest({ preset: 'developers' }), { reports: ['bugs'], filter: { classes: ['failed', 'review'] }, evidence: 'findings' });
+  assert.deepEqual(buildPackRequest({ preset: 'release' }), { reports: ['summary'], filter: {}, evidence: 'none' });
+  assert.deepEqual(buildPackRequest({ preset: 'testlead' }), { reports: ['log'], filter: {}, evidence: 'none' });
+  assert.deepEqual(buildPackRequest({ preset: 'default' }), { reports: ['summary', 'bugs', 'log'], filter: {}, evidence: 'findings' });
+  assert.deepEqual(Object.keys(PACK_PRESETS), ['developers', 'release', 'testlead', 'default', 'custom']);
+  const body = buildPackRequest({
+    preset: 'custom', reports: ['log', 'bugs'], evidence: 'final',
+    filter: { classes: ['failed', ''], priorities: ['P0'], suites: ' Login, Profile\nBilling ,, ', requirements: ' REQ-1 ', severities: ['High'], text: '  timeout  ', caseIds: ['A-1'] },
+  });
+  assert.deepEqual(body, {
+    reports: ['bugs', 'log'], evidence: 'final',
+    filter: { classes: ['failed'], priorities: ['P0'], suites: ['Login', 'Profile', 'Billing'], requirements: ['REQ-1'], severities: ['High'], caseIds: ['A-1'], text: 'timeout' },
+  });
+  assert.deepEqual(buildPackRequest({ preset: 'custom', reports: ['summary'], evidence: 'none', filter: { text: '   ', suites: '' } }).filter, {});
+});
+
+test('custom preset with nothing ticked is rejected client-side', async () => {
+  const { buildPackRequest } = await packUi();
+  assert.throws(() => buildPackRequest({ preset: 'custom', ...ALL_OFF }), /Choose at least one report\./);
+  assert.throws(() => buildPackRequest({ preset: 'custom', reports: ['nope'], evidence: 'none' }), /Choose at least one report\./);
+});
+
+test('every preset and a custom request validate against the server normalizeRequest', async () => {
+  const { buildPackRequest, PACK_PRESETS } = await packUi();
+  for (const preset of Object.keys(PACK_PRESETS).filter(k => k !== 'custom')) {
+    const body = buildPackRequest({ preset });
+    assert.deepEqual(normalizeRequest(body), body, preset);
+  }
+  const custom = buildPackRequest({ preset: 'custom', reports: ['summary', 'log'], evidence: 'all', filter: { classes: ['passed'], suites: 'a,b', text: 'x' } });
+  assert.deepEqual(normalizeRequest(custom), custom);
+});
