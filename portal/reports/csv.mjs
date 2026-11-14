@@ -1,11 +1,17 @@
 // Pure CSV helpers. Every free-text field goes through safeCell so spreadsheet apps never evaluate it as a formula.
+import { safeReportText } from '../quality.mjs';
 const MAX_CELL = 32000;
 const PRIORITY = { P0: 'Highest', P1: 'High', P2: 'Medium', P3: 'Low' };
 const SEVERITY = { Critical: 'Highest', High: 'High', Medium: 'Medium', Low: 'Low' };
 
 export function safeCell(value) {
-  const s = value == null ? '' : String(value);
-  return (/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).slice(0, MAX_CELL);
+  const s = typeof value === 'string' ? safeReportText(value) : value == null ? '' : String(value);
+  const out = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  if (out.length <= MAX_CELL) return out;
+  let end = MAX_CELL;
+  const last = out.charCodeAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end--; // never split a surrogate pair
+  return out.slice(0, end);
 }
 
 export function toCsv(rows) {

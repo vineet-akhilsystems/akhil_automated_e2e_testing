@@ -5,7 +5,13 @@ import { VERDICT_LABEL } from './markdown.mjs';
 import { FINDINGS } from '../quality.mjs';
 
 const ExcelJS = createRequire(import.meta.url)('exceljs');
-const UNSAFE_LINK = /^\s*(javascript|data|vbscript):/i;
+// Allowlist: a plain relative path only (no scheme, absolute/UNC/drive form, traversal or control characters).
+function safeRelativeLink(link) {
+  if (typeof link !== 'string' || !link || link !== link.trim()) return false;
+  for (const ch of link) { const code = ch.codePointAt(0); if (code < 32 || code === 127) return false; }
+  if (link.startsWith('/') || link.includes('\\') || link.includes(':') || link.includes('//')) return false;
+  return !link.split('/').includes('..');
+}
 
 function sheet(wb, name, headers, rows, widths = []) {
   const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
@@ -15,6 +21,7 @@ function sheet(wb, name, headers, rows, widths = []) {
   headers.forEach((_, i) => { ws.getColumn(i + 1).width = widths[i] ?? 18; });
   return ws;
 }
+const wrap = (ws, ...cols) => { for (const c of cols) ws.getColumn(c).alignment = { wrapText: true, vertical: 'top' }; };
 
 const steps = f => (f.steps ?? []).map((s, i) => `${i + 1}. ${s.action}${s.expected ? ` (expect: ${s.expected})` : ''}`).join('\n');
 const buffer = async wb => Buffer.from(await wb.xlsx.writeBuffer());
@@ -25,7 +32,7 @@ export async function executionLogWorkbook(model, listing, ctx = {}) {
   const summary = ctx.summary;
   const ws = wb.addWorksheet('Summary');
   ws.getColumn(1).width = 28; ws.getColumn(2).width = 90;
-  const add = (k, v = '') => ws.addRow([k, typeof v === 'number' ? v : safeCell(v)]);
+  const add = (k, v = '') => ws.addRow([safeCell(k), typeof v === 'number' ? v : safeCell(v)]);
   add(model.title).font = { bold: true, size: 14 };
   if (summary) {
     add(`Suggested verdict: ${VERDICT_LABEL[summary.verdict.value] ?? summary.verdict.value}`).font = { bold: true };
@@ -46,12 +53,14 @@ export async function executionLogWorkbook(model, listing, ctx = {}) {
     [12, 40, 16, 9, 16, 18, 20, 12, 14, 24, 9, 8, 12, 12, 14, 18]);
   listing.cases.forEach((r, i) => {
     const link = links[r.id];
-    if (typeof link === 'string' && link && !UNSAFE_LINK.test(link)) results.getRow(i + 2).getCell(16).value = { text: 'Open evidence', hyperlink: link };
+    if (safeRelativeLink(link)) results.getRow(i + 2).getCell(16).value = { text: 'Open evidence', hyperlink: link };
+    else if (link) results.getRow(i + 2).getCell(16).value = safeCell(link);
   });
 
-  sheet(wb, 'Findings', ['Finding', 'Case', 'Classification', 'Title', 'Priority', 'Severity', 'Owner', 'Reference', 'Ticket', 'Quarantined', 'Expected', 'Actual'],
+  wrap(results, 2);
+  wrap(sheet(wb, 'Findings', ['Finding', 'Case', 'Classification', 'Title', 'Priority', 'Severity', 'Owner', 'Reference', 'Ticket', 'Quarantined', 'Expected', 'Actual'],
     listing.findings.map(f => [safeCell(f.id), safeCell(f.caseId), safeCell(f.classification), safeCell(f.title), safeCell(f.priority), safeCell(f.severity), safeCell(f.owner), safeCell(f.reference), safeCell(f.ticketUrl), f.quarantined ? 'Yes' : 'No', safeCell(f.expected), safeCell(f.actual)]),
-    [14, 12, 20, 40, 9, 12, 14, 14, 24, 12, 40, 40]);
+    [14, 12, 20, 40, 9, 12, 14, 14, 24, 12, 40, 40]), 11, 12);
 
   sheet(wb, 'Not executed', ['Case', 'Title', 'Suite', 'Priority', 'Requirement', 'Status'],
     listing.cases.filter(r => !r.executed).map(r => [safeCell(r.id), safeCell(r.title), safeCell(r.suite), safeCell(r.priority), safeCell(r.requirement), safeCell(r.status)]),

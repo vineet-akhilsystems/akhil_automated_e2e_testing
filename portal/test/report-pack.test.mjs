@@ -242,26 +242,104 @@ test('toCsv quotes commas, quotes and newlines', () => {
   assert.equal(toCsv([['a', 'b,c', 'd"e', 'f\ng', 'h\ri'], ['1', '2']]), 'a,"b,c","d""e","f\ng","h\ri"\r\n1,2');
 });
 
+// Minimal RFC 4180 parser for tests: handles quoted fields with commas, quotes and CRLF.
+const parseCsv = text => {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(f); f = ''; }
+    else if (ch === '\r' && text[i + 1] === '\n') { row.push(f); rows.push(row); row = []; f = ''; i++; }
+    else f += ch;
+  }
+  row.push(f); rows.push(row);
+  return rows;
+};
+
 test('jiraCsv maps priority, excludes quarantined, escapes quotes', () => {
   const { model, listing } = rendererFixture();
   model.findings.find(f => f.caseId === 'P-3').title = 'He said "hi", ok';
   const csv = jiraCsv(model, listing);
-  const lines = csv.split('\r\n');
-  assert.equal(lines[0], 'Summary,Description,Priority,Labels,Labels,Issue Type');
-  assert.equal(lines.length, 3);
+  const rows = parseCsv(csv);
+  assert.deepEqual(rows[0], ['Summary', 'Description', 'Priority', 'Labels', 'Labels', 'Issue Type']);
+  assert.equal(rows.length, 3);
   assert.ok(!csv.includes('P-2'));
-  assert.ok(lines[1].startsWith('"[P-3] He said ""hi"", ok",'));
-  assert.match(lines[1], /,High,test-studio,[a-z0-9-]+,Bug$/);
-  assert.match(lines[2], /^"?\[P-4\]/);
-  assert.match(lines[2], /,High,test-studio,[a-z0-9-]+,Task$/);
+  assert.equal(rows[1][0], '[P-3] He said "hi", ok');
+  assert.deepEqual([rows[1][2], rows[1][3], rows[1][5]], ['High', 'test-studio', 'Bug']);
+  assert.match(rows[1][4], /^[a-z0-9-]+$/);
+  assert.equal(rows[2][0], '[P-4] Case P-4');
+  assert.deepEqual([rows[2][2], rows[2][5]], ['High', 'Task']);
+});
+
+test('jiraCsv keeps a description with CRLF, comma and double quote in one field', () => {
+  const { model, listing } = rendererFixture();
+  model.findings.find(f => f.caseId === 'P-3').actual = 'line1\r\nsaid "x", then y';
+  const rows = parseCsv(jiraCsv(model, listing));
+  assert.equal(rows.length, 3);
+  assert.equal(rows[1].length, 6);
+  assert.ok(rows[1][1].includes('Actual: line1\r\nsaid "x", then y'));
 });
 
 test('jiraCsv falls back to test priority and uses Bug for failed assertions', () => {
   const { model, listing } = rendererFixture();
   const f = model.findings.find(x => x.caseId === 'P-3');
-  f.kind = 'failure'; f.severity = 'Not assessed'; f.priority = 'P0';
-  const row = jiraCsv(model, listing).split('\r\n')[1];
-  assert.match(row, /,Highest,test-studio,[a-z0-9-]+,Bug$/);
+  f.severity = 'Not assessed'; f.priority = 'P0';
+  const row = parseCsv(jiraCsv(model, listing))[1];
+  assert.deepEqual([row[2], row[5]], ['Highest', 'Bug']);
+});
+
+test('safeCell caps by code points without splitting a surrogate pair', () => {
+  const out = safeCell('a'.repeat(31999) + '\u{1F600}tail');
+  assert.equal(out.length, 31999);
+  assert.ok(!/[\uD800-\uDBFF]$/.test(out));
+});
+
+test('evidence links are an allowlist of plain relative paths', async () => {
+  const { model, listing } = rendererFixture();
+  const bad = ['javascript:alert(1)', 'java\tscript:x', 'file:///c:/x', 'http://x.test/a', '\\\\host\\share\\a.png', 'C:\\x.png', '/etc/passwd', '../up.png', 'a/../b.png', 'a\nb.png'];
+  for (const link of bad) {
+    const wb = await rdr(await executionLogWorkbook(model, listing, { evidenceLinks: { 'P-1': link } }));
+    const v = wb.getWorksheet('Results').getRow(2).getCell(16).value;
+    assert.equal(typeof v, 'string', `rejected as plain text: ${JSON.stringify(link)}`);
+    assert.ok(!(v && v.hyperlink));
+  }
+  const ok = await rdr(await executionLogWorkbook(model, listing, { evidenceLinks: { 'P-1': 'evidence/REG-001/1-final.png' } }));
+  assert.equal(ok.getWorksheet('Results').getRow(2).getCell(16).value.hyperlink, 'evidence/REG-001/1-final.png');
+});
+
+test('summary sheet keys and titles are formula-neutralized', async () => {
+  const { model, listing } = rendererFixture();
+  model.title = '=HYPERLINK("http://x","y")';
+  model.cases[0].title = '@evil';
+  const wb = await rdr(await executionLogWorkbook(model, listing, { summary: buildSummary(model, listing) }));
+  const sum = wb.getWorksheet('Summary');
+  assert.equal(sum.getRow(1).getCell(1).value, `'=HYPERLINK("http://x","y")`);
+  sum.eachRow(r => r.eachCell(cl => {
+    assert.equal(cl.formula, undefined);
+    if (typeof cl.value === 'string') assert.ok(!/^[=+\-@\t\r]/.test(cl.value), cl.value);
+  }));
+  assert.equal(wb.getWorksheet('Results').getRow(2).getCell(2).value, "'@evil");
+});
+
+test('secrets in titles, risks and the filter note never reach any renderer output', async () => {
+  const { model } = rendererFixture();
+  const secret = 'Bearer abc.def.ghi and password=hunter2';
+  model.cases[0].title = secret;
+  model.findings.find(f => f.caseId === 'P-3').title = secret;
+  const listing = applyFilter(model, { priorities: ['P1'] });
+  const summary = buildSummary(model, listing);
+  summary.risks.push(`risk ${secret}`);
+  summary.filterNote = `filter ${secret}`;
+  summary.scope = `scope ${secret}`;
+  const wb = await rdr(await executionLogWorkbook(model, listing, { summary }));
+  const dw = await rdr(await defectWorkbook(model, listing));
+  const cells = [];
+  for (const w of [wb, dw]) w.eachSheet(s => s.eachRow(r => r.eachCell(cl => cells.push(String(cl.value?.text ?? cl.value)))));
+  const all = [cells.join('\n'), jiraCsv(model, listing), summaryMarkdown(summary)].join('\n');
+  assert.ok(!all.includes('abc.def.ghi'));
+  assert.ok(!all.includes('hunter2'));
+  assert.ok(all.includes('[REDACTED]'));
 });
 
 test('execution log workbook has the four sheets, an autofilter, one row per listed case and a hyperlink cell when evidenceLinks has the case', async () => {
