@@ -453,3 +453,5 @@ button:disabled,button.primary:disabled,button.danger:disabled,a.disabled{opacit
 .run-insight{padding:24px;margin:0 0 24px}.run-insight:empty{display:none}.run-insight h2{margin:0;font-size:17px}.run-insight h3{margin:18px 0 8px;font-size:14px}.run-insight .panel-heading{padding:0;margin:0 0 8px}
 .postmortem{margin:8px 0 0;line-height:1.55}.group-list{list-style:none;margin:0;padding:0}.group-list li{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}.group-list code{display:block;margin:4px 0;padding:6px 8px;background:#f1f2f8;border-radius:6px;font-size:12px;overflow-wrap:anywhere}
 .copy-box{width:100%;font-size:12px;margin-top:6px}.run-insight details{margin:6px 0}.run-insight summary{cursor:pointer;padding:4px 0}
+
+[data-tk][hidden]{display:none !important}
