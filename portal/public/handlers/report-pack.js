@@ -23,8 +23,10 @@ document.addEventListener('input', edited);
 
 document.addEventListener('submit', async event => {
   if (event.target?.id !== 'pack-form') return;
+  event.preventDefault(); // do not rely on main.js's generic submit handler running first
   try { await createPack(); } catch (error) { toast(error.message, true); }
 });
 
 // 'close' does not bubble, so listen in the capture phase to stop timers when the dialog goes away.
-document.addEventListener('close', event => { if (event.target?.id === 'dialog') stopPolling(); }, true);
+// A reopen fires this late with the new dialog already open, so only stop when it really is closed.
+document.addEventListener('close', event => { if (event.target?.id === 'dialog' && !event.target.open) stopPolling(); }, true);

@@ -1051,3 +1051,26 @@ test('every preset and a custom request validate against the server normalizeReq
   const custom = buildPackRequest({ preset: 'custom', reports: ['summary', 'log'], evidence: 'all', filter: { classes: ['passed'], suites: 'a,b', text: 'x' } });
   assert.deepEqual(normalizeRequest(custom), custom);
 });
+
+test('an estimate response only counts while the form still produces the request it answered', async () => {
+  const { estimateIsCurrent, buildPackRequest } = await packUi();
+  const a = buildPackRequest({ preset: 'developers' }), b = buildPackRequest({ preset: 'default' });
+  assert.equal(estimateIsCurrent(a, buildPackRequest({ preset: 'developers' })), true);
+  assert.equal(estimateIsCurrent(a, b), false);
+  assert.equal(estimateIsCurrent(a, null), false, 'an invalid current form is never current');
+});
+
+test('describeEstimate prints the run total only when it is known and humanizes size and time', async () => {
+  const { describeEstimate } = await packUi();
+  assert.equal(describeEstimate({ cases: 37, screenshots: 61, bytes: 14.2 * 1048576, seconds: 40 }, 1000), '37 of 1,000 cases, 61 screenshots, about 14.2 MB, about 40 seconds');
+  assert.equal(describeEstimate({ cases: 5, screenshots: 1, bytes: 10, seconds: 130 }, undefined), '5 cases, 1 screenshot, under 1 KB, about 2 minutes');
+  assert.equal(describeEstimate({ cases: 1, screenshots: 0, bytes: 2048, seconds: 1 }, 0), '1 case, 0 screenshots, about 2 KB, about 1 second');
+});
+
+test('the portal serves the dialog request module as JavaScript', async t => {
+  const f = await boot(t);
+  const res = await fetch(`${f.base}/report-pack-request.js`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type') ?? '', /javascript/);
+  assert.match(await res.text(), /export function buildPackRequest/);
+});

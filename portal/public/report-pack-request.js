@@ -41,3 +41,14 @@ export function buildPackRequest(formState = {}) {
   if (text) filter.text = text;
   return { reports, filter, evidence: source.evidence ?? 'findings' };
 }
+
+/** An estimate response only applies if the form still produces the request it was asked for. */
+export const estimateIsCurrent = (sent, now) => Boolean(sent && now) && JSON.stringify(sent) === JSON.stringify(now);
+
+const seconds = s => s < 60 ? `about ${Math.max(1, Math.round(s))} second${Math.round(s) === 1 ? '' : 's'}` : `about ${Math.round(s / 60)} minute${Math.round(s / 60) === 1 ? '' : 's'}`;
+const bytesText = n => n < 1024 ? 'under 1 KB' : n < 1048576 ? `about ${Math.round(n / 1024)} KB` : `about ${n >= 104857600 ? Math.round(n / 1048576) : (n / 1048576).toFixed(1).replace(/.0$/, '')} MB`;
+/** "37 of 1,000 cases, 61 screenshots, about 14 MB, about 40 seconds". Without a known run total, just the count. */
+export function describeEstimate(e, total) {
+  const known = Number.isFinite(total) && total > 0;
+  return `${e.cases.toLocaleString('en-US')}${known ? ` of ${total.toLocaleString('en-US')}` : ''} case${known || e.cases !== 1 ? 's' : ''}, ${e.screenshots.toLocaleString('en-US')} screenshot${e.screenshots === 1 ? '' : 's'}, ${bytesText(e.bytes)}, ${seconds(e.seconds)}`;
+}
