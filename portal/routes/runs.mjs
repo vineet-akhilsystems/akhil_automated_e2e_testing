@@ -5,9 +5,10 @@ import { createRequire } from 'node:module';
 import { check, textValue } from '../registry.mjs';
 import { readJson } from '../http/body.mjs';
 import { json, file } from '../http/respond.mjs';
-import { classification, TERMINAL } from '../quality.mjs';
+import { classification, reportModel, safeReportText, TERMINAL } from '../quality.mjs';
 import { generatePdf } from '../pdf-report.mjs';
 import { toJunit } from '../compare.mjs';
+import { redactRun } from '../reports/redact.mjs';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -101,21 +102,20 @@ export default async function handle(ctx, rc) {
             if (url.searchParams.get('format') === 'xlsx') {
               const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('Results');
               ws.columns = ['id', 'title', 'status', 'expected', 'actual', 'category', 'priority', 'requirement', 'durationMs', 'screenshots', 'evidenceWarnings', 'severity', 'owner', 'reference'].map(k => ({ header: k, key: k, width: k === 'id' ? 16 : ['title', 'expected', 'actual'].includes(k) ? 55 : 22 }));
-              for (const c of run.cases) {
-                const r = run.results.find(x => x.id === c.id), t = run.triage?.[c.id] ?? {};
-                const imgs = (r?.attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/')).length;
+              for (const row of reportModel(run).cases) {
+                const r = run.results.find(x => x.id === row.id);
                 ws.addRow({
-                  id: c.id, title: c.title, status: r?.status ?? 'NOT EXECUTED', expected: r?.expected ?? '', actual: r?.actual ?? '',
-                  category: c.category ?? '', priority: c.priority ?? '', requirement: c.requirement ?? '', durationMs: r?.durationMs ?? 0,
-                  screenshots: imgs, evidenceWarnings: (r?.evidenceWarnings ?? []).join('; '),
-                  severity: t.severity ?? '', owner: t.owner ?? '', reference: t.reference ?? '',
+                  id: row.id, title: row.title, status: r?.status ?? 'NOT EXECUTED', expected: r ? row.expected : '', actual: r ? row.actual : '',
+                  category: row.suite, priority: row.priority === 'Not set' ? '' : row.priority, requirement: row.requirement, durationMs: row.durationMs,
+                  screenshots: row.screenshotCount, evidenceWarnings: row.evidenceWarnings.join('; '),
+                  severity: row.findingKind === 'failure' ? row.severity : (run.triage?.[row.id] ? row.severity : ''), owner: run.triage?.[row.id]?.owner ? row.owner : '', reference: safeReportText(run.triage?.[row.id]?.reference),
                 });
               }
               ws.getRow(1).font = { bold: true };
               res.writeHead(200, { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="${id}-results.xlsx"` });
               res.end(Buffer.from(await wb.xlsx.writeBuffer())); return;
             }
-            res.setHeader('Content-Disposition', `attachment; filename="${id}-results.json"`); return json(res, 200, run);
+            res.setHeader('Content-Disposition', `attachment; filename="${id}-results.json"`); return json(res, 200, redactRun(run));
           }
           if (resource === 'files' && req.method === 'GET') {
             const runDir = queue.dirFor(id), target = path.resolve(runDir, decodeURIComponent(relative ?? ''));

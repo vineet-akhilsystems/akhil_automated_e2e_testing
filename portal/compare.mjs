@@ -1,3 +1,4 @@
+import { safeReportText } from './quality.mjs';
 // Run-to-run comparison and JUnit export. Pure functions over stored run documents.
 const BAD = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 const state = r => (!r ? 'absent' : r.status === 'PASS' ? 'pass' : BAD.has(r.status) ? 'fail' : 'other');
@@ -43,10 +44,10 @@ export function toJunit(run) {
     time += secs;
     const head = `<testcase classname="${xml(run.module?.id ?? 'module')}.${xml(c.category ?? 'General')}" name="${xml(`${c.id} ${c.title}`)}" time="${secs.toFixed(3)}"`;
     if (!r) { skipped++; return `${head}><skipped message="Not executed"/></testcase>`; }
-    const detail = xml([`Expected: ${r.expected ?? ''}`, `Actual: ${r.actual ?? ''}`, ...(r.mismatches ?? [])].join('\n'));
+    const detail = xml([`Expected: ${safeReportText(r.expected)}`, `Actual: ${safeReportText(r.actual)}`, ...(r.mismatches ?? []).map(safeReportText)].join('\n'));
     if (r.quarantined && BAD.has(r.status)) { skipped++; return `${head}><skipped message="Quarantined: ${xml(r.status)}"/><system-out>${detail}</system-out></testcase>`; }
-    if (r.status === 'ERROR') { errors++; return `${head}><error message="${xml(String(r.actual ?? 'error').split('\n')[0].slice(0, 300))}">${detail}</error></testcase>`; }
-    if (BAD.has(r.status)) { failures++; return `${head}><failure message="${xml(r.mismatches?.[0] ?? r.actual ?? r.status)}" type="${xml(r.status)}">${detail}</failure></testcase>`; }
+    if (r.status === 'ERROR') { errors++; return `${head}><error message="${xml(safeReportText(r.actual ?? 'error').split('\n')[0].slice(0, 300))}">${detail}</error></testcase>`; }
+    if (BAD.has(r.status)) { failures++; return `${head}><failure message="${xml(safeReportText(r.mismatches?.[0] ?? r.actual ?? r.status))}" type="${xml(r.status)}">${detail}</failure></testcase>`; }
     if (['SKIPPED', 'BLOCKED'].includes(r.status)) { skipped++; return `${head}><skipped message="${xml(r.status)}"/></testcase>`; }
     return `${head}>${r.flaky ? `<system-out>Flaky: passed on attempt ${xml(r.attempts ?? 2)}</system-out>` : ''}</testcase>`;
   });

@@ -85,7 +85,7 @@ export function moduleCoverage(module, cases, runs, environmentId) {
     requirements, fields, actions, variants, cases: caseCoverage };
 }
 
-const secretKey = /password|passwd|secret|token|authorization|cookie|session|api[-_]?key/i;
+export const secretKey = /password|passwd|secret|token|authorization|cookie|session|api[-_]?key/i;
 export function safeReportText(value) {
   return String(value ?? '').replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi, 'Bearer [REDACTED]')
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED TOKEN]')
@@ -117,6 +117,9 @@ export function reportModel(run) {
     const fieldErrors = safeMap(result?.fieldErrors);
     const toasts = (result?.toasts ?? []).map(safeReportText);
     const checks = safeMap(c.expected ?? {});
+    const triageOf = run.triage?.[c.id] ?? {};
+    const flaky = Boolean(result?.flaky), attempts = result?.attempts ?? (flaky ? 2 : 1), quarantined = Boolean(result?.quarantined || c.quarantined);
+    const ticketUrl = safeReportText(triageOf.ticketUrl);
     if (kind) {
       const triage = run.triage?.[c.id] ?? {};
       findings.push({ id: `${FINDINGS[kind].prefix}-${c.id}`, caseId: c.id, kind, classification: FINDINGS[kind].label, classificationNote: FINDINGS[kind].note,
@@ -127,6 +130,7 @@ export function reportModel(run) {
         mismatches: (result.mismatches ?? []).map(safeReportText), input, inputSource,
         checks, steps, observedValues, fieldErrors, toasts,
         durationMs: result.durationMs ?? 0, attachments: result.attachments ?? [],
+        quarantined, flaky, ticketUrl,
         screenshotCount: ev.screenshotCount, evidenceWarnings: ev.evidenceWarnings, evidenceState: ev.evidenceState, evidenceSummary: ev.evidenceSummary,
       });
     }
@@ -143,6 +147,12 @@ export function reportModel(run) {
       status: result?.status === 'PASS' && c.expected?.assumed ? 'PASS (assumed rule)' : result?.status ?? 'NOT EXECUTED',
       rawStatus: result?.status ?? 'NOT EXECUTED',
       inFindings: Boolean(kind),
+      findingKind: kind,
+      assumed: Boolean(c.expected?.assumed),
+      flaky, attempts, quarantined,
+      severity: kind === 'failure' ? triageOf.severity ?? 'Not assessed' : 'Not applicable',
+      owner: safeReportText(triageOf.owner || 'Unassigned'),
+      ticketUrl: safeReportText(triageOf.ticketUrl),
       executed: isExecutedResult(result),
       expected: safeReportText(result?.expected || c.expected?.outcome || c.steps?.map(s => s.expected).join('; ')),
       actual: safeReportText(result?.actual || 'No result was recorded.'),
@@ -170,11 +180,18 @@ export function reportModel(run) {
     warnings: executedCases.filter(c => c.evidenceWarnings.length > 0).length,
     totalScreenshots: executedCases.reduce((sum, c) => sum + c.screenshotCount, 0),
   };
+  const totalsByClass = { passed: 0, failed: 0, review: 0, execution: 0, blocked: 0, observed: 0, skipped: 0, 'not-executed': 0, flaky: 0, quarantined: 0 };
+  const classKey = { PASS: 'passed', FAIL: 'failed', 'FAIL (assumed requirement)': 'review', ERROR: 'execution', BLOCKED: 'blocked', OBSERVED: 'observed', SKIPPED: 'skipped' };
+  for (const row of cases) {
+    totalsByClass[classKey[row.rawStatus] ?? 'not-executed']++;
+    if (row.flaky) totalsByClass.flaky++;
+    if (row.quarantined) totalsByClass.quarantined++;
+  }
   return { version: 2, title: safeReportText(run.reportDetails?.title || `${run.module.name} - Bug & Test Report`),
     preparedBy: safeReportText(run.reportDetails?.preparedBy || 'Not specified'), release: safeReportText(run.reportDetails?.release || 'Not specified'),
     build: safeReportText(run.reportDetails?.build || 'Not specified'), notes: safeReportText(run.reportDetails?.notes),
     run: { id: run.id, name: safeReportText(run.name), productId: run.productId ?? 'augastam', productName: safeReportText(run.productName || 'Augastam'), module: safeReportText(run.module.name), area: safeReportText(run.module.area), environment: safeReportText(run.environmentName), url: safeReportText(run.environmentUrl), status: run.status,
       mode: run.mode, createdAt: run.createdAt, startedAt: run.startedAt, finishedAt: run.finishedAt, error: safeReportText(run.error), scope: run.scope ?? null, workers: run.timing?.shardCount ?? null, wallTimeMs: run.timing?.wallMs ?? null },
-    counts, evidenceCounts, assumedCases: run.cases.filter(c => c.expected?.assumed).length, findings, cases,
+    counts, totalsByClass, evidenceCounts, assumedCases: run.cases.filter(c => c.expected?.assumed).length, findings, cases,
     scopeNote: 'This report covers only the selected case snapshots in this run. Passing cases do not prove untested requirements or modules. Observations, skipped, blocked and unexecuted cases are not passes. Severity is assessed separately from test priority. Raw server responses and saved login/session files are excluded. Review screenshot contents before sharing outside the team.' };
 }
