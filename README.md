@@ -107,7 +107,7 @@ A report pack is one ZIP with the reports a given reader needs, built in the bac
 | Bug report | Developers and the people triaging | `02-Bug-Report.pdf`, `02-Bugs.xlsx`, `02-Bugs-for-Jira.csv` (quarantined findings left out of the CSV) |
 | Execution log | QA leads and auditors of the test record | `03-Execution-Log.xlsx`, one row per listed case with evidence links |
 
-**Presets and filters.** Presets are Bugs, All failures, Needs triage, P0 and P1, and Everything. A filter can also narrow by result class, priority, severity, suite, requirement, owner, case id, manual or automated mode, free text, and the switches assumed rules only, new failures only (compared with the previous run) and missing evidence only. A filter only changes which cases are listed. The totals, pass rate and suggested verdict always cover the whole run and are labelled as unfiltered, so a narrow pack cannot make a run look healthier than it is.
+**Presets and filters.** Presets are Bugs, All failures, Needs triage, P0 and P1, and Everything. A filter can also narrow by result class, priority, severity, suite, requirement, owner, case id, manual or automated (a single choice), free text, and the switches assumed rules only, new failures only (compared with the previous run) and missing evidence only. A filter only changes which cases are listed. The totals, pass rate and suggested verdict always cover the whole run and are labelled as unfiltered, so a narrow pack cannot make a run look healthier than it is.
 
 **Evidence levels.** `none` (no screenshots), `findings` (all screenshots of the listed findings), `final` (those, plus the final screenshot of every other listed case) and `all` (every screenshot of every listed case). Use the estimate shown in the dialog (cases, screenshots, size, time) before building. A pack must fit one ZIP; if not, choose fewer cases or a lower level.
 
@@ -128,7 +128,7 @@ MANIFEST.json        every other file with its size and SHA-256, written last
 
 **The verdict is a suggestion.** The summary shows a suggested verdict (Release, Release with known issues, Needs triage, or Do not release) worked out only from the recorded results and the exit criteria. A person must confirm it before any release decision. The pack is a test record, not an approval or an electronic signature, and nothing here claims regulatory compliance.
 
-Default exit criteria: any open failed check at Critical or High severity blocks release; no execution issues are allowed (runner or environment problems mean the product was not verified); failed checks must be triaged (severity assessed), otherwise the suggestion is Needs triage; blocked cases also give Needs triage. Quarantined findings are not counted as open.
+Default exit criteria, applied in this order: **Do not release** when any open failed assertion has Critical or High severity; otherwise **Needs triage** when any open failed assertion has no severity assessed, any case had an execution issue (runner or environment problems mean the product was not verified), or any case was blocked; otherwise **Release with known issues** when other open findings remain; otherwise **Release**. Quarantined findings are not counted as open.
 
 **Security fix included.** The JSON, JUnit and Excel exports of a run now redact credential-like fields, bearer strings and JWTs in the same way as the PDF.
 

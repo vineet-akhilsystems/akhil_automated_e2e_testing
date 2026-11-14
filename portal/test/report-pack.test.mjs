@@ -432,7 +432,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generatePdf } from '../pdf-report.mjs';
+import { generatePdf, pdfTimeoutMs } from '../pdf-report.mjs';
 
 const pdfScript = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'report_pdf.py');
 const py = process.env.PORTAL_PYTHON ?? 'python';
@@ -1075,20 +1075,20 @@ test('the portal serves the dialog request module as JavaScript', async t => {
   assert.match(await res.text(), /export function buildPackRequest/);
 });
 
-// ---- Scale check: 1,000 cases, about 3,600 screenshot entries, default log + bugs pack, no evidence ----
-const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-test('a 1000-case run with 3,600 screenshot entries estimates and builds the default log and bugs pack within bounds', async t => {
-  const runDir = tempDir(t, 'pack-scale-');
+// ---- Scale check: 1,000 cases, 3,600 screenshot entries, default log + bugs pack, no evidence ----
+// 40 findings (every 25th case); 100 passing cases also have real image files, so embedding them would be caught.
+function scaleRun(runDir) {
   fs.mkdirSync(path.join(runDir, 'artifacts'));
-  const N = 1000, cases = [], results = [];
+  const cases = [], results = [], png = makePng(4, 4, [30, 90, 200]);
   let entries = 0, findingShots = 0;
-  for (let i = 0; i < N; i++) {
-    const id = `S-${String(i).padStart(4, '0')}`, finding = i % 25 === 0; // 40 findings
+  for (let i = 0; i < 1000; i++) {
+    const id = `S-${String(i).padStart(4, '0')}`, finding = i % 25 === 0, real = finding || i % 10 === 1; // i%10===1: 100 passing cases with files
     const shots = i % 5 < 3 ? 4 : 3; // 600 cases x 4 + 400 cases x 3 = 3,600
     const attachments = [];
     for (let s = 0; s < shots; s++) {
       const rel = `artifacts/${id}-${s}.png`;
-      if (finding) { fs.writeFileSync(path.join(runDir, rel), TINY_PNG); findingShots++; }
+      if (real) fs.writeFileSync(path.join(runDir, rel), png);
+      if (finding) findingShots++;
       attachments.push({ name: s === shots - 1 ? 'Final result' : `Stage ${s}`, path: rel, contentType: 'image/png' });
       entries++;
     }
@@ -1096,38 +1096,53 @@ test('a 1000-case run with 3,600 screenshot entries estimates and builds the def
     results.push({ id, status: finding ? 'FAIL' : 'PASS', expected: 'e', actual: finding ? 'wrong' : 'e', attachments });
   }
   assert.equal(entries, 3600);
-  const run = mkRun({ id: 'rp-scale-1', cases, results, triage: {} });
-  const req = { reports: ['log', 'bugs'], filter: {}, evidence: 'none' };
+  return { run: mkRun({ id: 'rp-scale-1', cases, results, triage: {} }), findingShots };
+}
+async function scaleLog(t) {
+  const runDir = tempDir(t, 'pack-scale-'), { run, findingShots } = scaleRun(runDir);
+  const req = { reports: ['log'], filter: {}, evidence: 'none' };
   const estimate = estimatePack(run, req, { runDir });
-  assert.equal(estimate.cases, N); assert.equal(estimate.findings, 40); assert.equal(estimate.screenshots, 0);
+  assert.equal(estimate.cases, 1000); assert.equal(estimate.findings, 40); assert.equal(estimate.screenshots, 0);
   const started = Date.now();
   const out = await buildPack({ run, runDir, req, who: 'T', now: fixedNow });
   const seconds = (Date.now() - started) / 1000;
-  console.log(`scale build: ${seconds.toFixed(1)} s, ${out.size} bytes, pdf=${pdfSkip ? 'skipped' : 'included'}`);
   assert.ok(seconds < 90, `build took ${seconds} s`);
-  assert.ok(out.size < 25 * 1048576, `ZIP is ${out.size} bytes`);
-  assert.equal(out.manifest.listed, N);
-  const zip = openPack(out.file);
+  assert.ok(out.size < 25 * 1048576, `ZIP is ${out.size} bytes (built in ${seconds} s)`);
+  assert.equal(out.manifest.listed, 1000);
+  return { run, runDir, findingShots, zip: openPack(out.file), req };
+}
+test('a 1000-case run with 3,600 screenshot entries builds the log pack within bounds', async t => {
+  const { zip } = await scaleLog(t);
   const sheet = (await rdr(zip.get('03-Execution-Log.xlsx')())).getWorksheet('Results');
   let rows = 0; sheet.eachRow((row, n) => { if (n > 1 && row.getCell(1).value) rows++; });
-  assert.equal(rows, N);
+  assert.equal(rows, 1000);
   assert.ok(!evidenceNames(zip).length, 'evidence none adds no screenshots');
-  if (!pdfSkip) {
-    const pdf = zip.get('02-Bug-Report.pdf')();
-    const file = path.join(runDir, 'scale-bugs.pdf'); fs.writeFileSync(file, pdf);
-    const code = 'import sys, pypdf\nr = pypdf.PdfReader(sys.argv[1])\nprint(sum(len(p.images) for p in r.pages))';
-    const o = spawnSync(py, ['-I', '-c', code, file], { encoding: 'utf8' });
-    assert.equal(o.status, 0, o.stderr);
-    const images = Number(o.stdout.trim());
-    assert.ok(images > 0 && images <= findingShots, `bugs PDF embeds ${images} images; the 40 findings have ${findingShots}`);
-  }
+});
+test('the bugs PDF of a 1000-case run embeds exactly the screenshots of its findings', { skip: pdfSkip }, async t => {
+  const runDir = tempDir(t, 'pack-scale-pdf-'), { run, findingShots } = scaleRun(runDir);
+  const out = await buildPack({ run, runDir, req: { reports: ['bugs'], filter: {}, evidence: 'none' }, who: 'T', now: fixedNow });
+  const file = path.join(runDir, 'scale-bugs.pdf'); fs.writeFileSync(file, openPack(out.file).get('02-Bug-Report.pdf')());
+  const code = ['import sys, pypdf', 'r = pypdf.PdfReader(sys.argv[1])', 'print(sum(len(p.images) for p in r.pages))'].join('\n');
+  const o = spawnSync(py, ['-I', '-c', code, file], { encoding: 'utf8' });
+  assert.equal(o.status, 0, o.stderr);
+  assert.equal(Number(o.stdout.trim()), findingShots, 'one embedded image per finding screenshot, none for the 100 passing cases that also have files');
 });
 
-import { pdfTimeoutMs, pdfTimeoutFor } from '../pdf-report.mjs';
-test('PDF timeout uses the base limit only for the effective summary mode', () => {
-  const model = { evidenceCounts: { totalScreenshots: 2000 } };
-  assert.equal(pdfTimeoutFor('summary', model), pdfTimeoutMs(0));
-  assert.equal(pdfTimeoutFor('summary', model), 90000);
-  for (const mode of ['bugs', 'full', undefined]) assert.equal(pdfTimeoutFor(mode, model), pdfTimeoutMs(2000));
-  assert.equal(pdfTimeoutFor('bugs', {}), 90000);
+test('generatePdf enforces the base time limit only for the effective summary mode', async () => {
+  const run = pdfRun(), seen = {};
+  const model = { ...reportModel(run), evidenceCounts: { ...reportModel(run).evidenceCounts, totalScreenshots: 2000 } };
+  const saved = process.env.PORTAL_PYTHON;
+  process.env.PORTAL_PYTHON = 'no-such-interpreter-for-limit-test'; // spawn fails right after the limit is computed
+  try {
+    const limit = async options => { let ms; await assert.rejects(generatePdf(run, tempDirSync(), { model, ...options, onLimit: v => { ms = v; } })); return ms; };
+    seen.summaryOption = await limit({ mode: 'summary' });
+    seen.summaryFromModel = await limit({ model: { ...model, report: { mode: 'summary' } } });
+    seen.bugs = await limit({ mode: 'bugs' });
+    seen.full = await limit({ mode: 'full' });
+  } finally { if (saved === undefined) delete process.env.PORTAL_PYTHON; else process.env.PORTAL_PYTHON = saved; }
+  assert.equal(seen.summaryOption, 90000);
+  assert.equal(seen.summaryFromModel, 90000);
+  assert.equal(seen.bugs, pdfTimeoutMs(2000));
+  assert.equal(seen.full, pdfTimeoutMs(2000));
 });
+const tempDirSync = () => fs.mkdtempSync(path.join(os.tmpdir(), 'pack-limit-'));
