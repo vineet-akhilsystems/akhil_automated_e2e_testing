@@ -5,10 +5,11 @@ import { createRequire } from 'node:module';
 import { check, textValue } from '../registry.mjs';
 import { readJson } from '../http/body.mjs';
 import { json, file } from '../http/respond.mjs';
-import { classification, safeReportText, TERMINAL } from '../quality.mjs';
+import { classification, TERMINAL } from '../quality.mjs';
 import { generatePdf } from '../pdf-report.mjs';
 import { toJunit } from '../compare.mjs';
 import { redactRun } from '../reports/redact.mjs';
+import { safeCell } from '../reports/csv.mjs';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -106,11 +107,12 @@ export default async function handle(ctx, rc) {
               for (const c of run.cases) {
                 const r = byId.get(c.id), t = run.triage?.[c.id] ?? {};
                 const imgs = (r?.attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/')).length;
+                // Text cells go through safeCell (redaction and formula neutralization); numbers stay numbers.
                 ws.addRow({
-                  id: c.id, title: safeReportText(c.title), status: r?.status ?? 'NOT EXECUTED', expected: safeReportText(r?.expected), actual: safeReportText(r?.actual),
-                  category: safeReportText(c.category), priority: c.priority ?? '', requirement: safeReportText(c.requirement), durationMs: r?.durationMs ?? 0,
-                  screenshots: imgs, evidenceWarnings: safeReportText((r?.evidenceWarnings ?? []).join('; ')),
-                  severity: t.severity ?? '', owner: safeReportText(t.owner), reference: safeReportText(t.reference),
+                  id: safeCell(c.id), title: safeCell(c.title), status: safeCell(r?.status ?? 'NOT EXECUTED'), expected: safeCell(r?.expected), actual: safeCell(r?.actual),
+                  category: safeCell(c.category), priority: safeCell(c.priority ?? ''), requirement: safeCell(c.requirement), durationMs: r?.durationMs ?? 0,
+                  screenshots: imgs, evidenceWarnings: safeCell((r?.evidenceWarnings ?? []).join('; ')),
+                  severity: safeCell(t.severity ?? ''), owner: safeCell(t.owner), reference: safeCell(t.reference),
                 });
               }
               ws.getRow(1).font = { bold: true };

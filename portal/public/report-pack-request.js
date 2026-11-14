@@ -11,7 +11,7 @@ export const PACK_EVIDENCE = [
   ['all', 'Everything'],
 ];
 export const PACK_CLASSES = [
-  ['failed', 'Failed'], ['review', 'Needs rule review'], ['execution', 'Execution error'], ['blocked', 'Blocked'], ['passed', 'Passed'],
+  ['failed', 'Failed'], ['review', 'Needs rule review'], ['execution', 'Execution issue'], ['blocked', 'Blocked'], ['passed', 'Passed'],
   ['observed', 'Observed'], ['skipped', 'Skipped'], ['not-executed', 'Not executed'], ['flaky', 'Flaky'], ['quarantined', 'Quarantined'],
 ];
 export const PACK_PRIORITIES = ['P0', 'P1', 'P2', 'P3'];
@@ -23,6 +23,28 @@ export const PACK_PRESETS = {
   default: { label: 'Standard pack', hint: 'Summary, bug report and execution log together.', reports: ['summary', 'bugs', 'log'], filter: {}, evidence: 'findings' },
   custom: { label: 'Custom', hint: 'Choose reports, filters and evidence yourself.', reports: [], filter: {}, evidence: 'findings' },
 };
+
+// Quick filters fill the dialog's filter controls. Keys and filters are the server presets (portal/reports/filter.mjs
+// PRESETS, the single truth; a test keeps them equal). Each uses only filters the dialog has controls for.
+export const QUICK_FILTERS = [
+  { key: 'bugs', label: 'Bugs only', filter: { classes: ['failed', 'review'] } },
+  { key: 'failures', label: 'Failures and blocked', filter: { classes: ['failed', 'review', 'execution', 'blocked'] } },
+  { key: 'needs-triage', label: 'Needs triage', filter: { classes: ['failed'], severities: ['Not assessed'] } },
+  { key: 'p0p1', label: 'P0 and P1', filter: { priorities: ['P0', 'P1'] } },
+  { key: 'everything', label: 'Everything', filter: {} },
+];
+
+/** True when two API filters ask for the same thing (key order does not matter). */
+export const sameFilter = (a, b) => {
+  const norm = f => JSON.stringify(Object.keys(f ?? {}).sort().map(k => [k, f[k]]));
+  return norm(a) === norm(b);
+};
+
+/** How the dialog treats a job status: queued and running are still pending. */
+export const jobPhase = status => (status === 'queued' || status === 'running' ? 'pending' : status === 'done' ? 'done' : 'failed');
+/** Status text for the earlier-packs list. */
+export const jobStatusText = job => ({ queued: 'Waiting for another report to finish', running: 'Building', done: 'Ready' })[job?.status]
+  ?? (job?.error ? `Failed: ${job.error}` : 'Failed');
 
 const LIST_KEYS = ['classes', 'priorities', 'suites', 'requirements', 'severities', 'owners', 'variants', 'caseIds'];
 // Text boxes take comma or newline separated values; checkbox groups already give arrays.

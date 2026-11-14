@@ -30,8 +30,8 @@ const EVIDENCE_TEXT = {
 };
 const FILE_TEXT = {
   '01-Release-Summary.pdf': 'One-page release summary with the suggested verdict', '01-Release-Summary.md': 'The same summary as Markdown, for chat or email',
-  '02-Bug-Report.pdf': 'Listed findings with steps, expected and actual results and screenshots', '02-Bugs.xlsx': 'Defect register (Bugs and Needs review sheets)',
-  '02-Bugs-for-Jira.csv': 'Listed findings in Jira CSV import format (quarantined ones left out)', '03-Execution-Log.xlsx': 'One row per listed case, with evidence links',
+  '02-Bug-Report.pdf': 'Listed findings with steps, expected and actual results and screenshots', '02-Bugs.xlsx': 'Defect register (Bugs and Needs review sheets) with captured inputs and evidence links',
+  '02-Bugs-for-Jira.csv': 'Failed assertions and business-rule reviews in Jira CSV import format, with steps and inputs (quarantined ones left out)', '03-Execution-Log.xlsx': 'One row per listed case, with evidence links',
 };
 const MAX_SEGMENT = 60;
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i;
@@ -153,6 +153,11 @@ export function estimatePack(run, rawReq, { runDir, previous } = {}) {
   return { cases: listing.cases.length, findings: listing.findings.length, screenshots: plan.selected, bytes: plan.bytes, seconds: Math.round(seconds * 100) / 100, ...(note ? { note } : {}) };
 }
 
+const KIND_ORDER = { failure: 0, assumption: 1, execution: 2, blocked: 3 };
+const byCaseId = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+/** The bug report's order: failed assertions, business-rule reviews, execution issues, then blocked cases; by case id inside a kind. */
+export const bugReportOrder = findings => [...findings].sort((a, b) => (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9) || byCaseId.compare(String(a.caseId), String(b.caseId)));
+
 const localDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const sha256File = file => new Promise((resolve, reject) => {
@@ -195,7 +200,7 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
   const date = now(), generatedAt = date.toISOString(), by = safeReportText(String(who || 'Unknown').replace(/\s+/g, ' ').trim().slice(0, 200));
   // One summary from the whole run's totals, shared by the summary PDF/Markdown and the execution log.
   const summary = buildSummary(model, listing, prevModel ? { previous: prevModel } : {});
-  const narrowed = mode => ({ ...model, cases: listing.cases, findings: listing.findings, report: { mode, filterNote: summary.filterNote }, summary });
+  const narrowed = mode => ({ ...model, cases: listing.cases, findings: mode === 'bugs' ? bugReportOrder(listing.findings) : listing.findings, report: { mode, filterNote: summary.filterNote }, summary });
   const plan = planEvidence(listing, req.evidence, runDir);
   checkSize(plan);
 
@@ -218,7 +223,7 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
     if (req.reports.includes('bugs')) {
       step('Building the bug report...');
       sources.set('02-Bug-Report.pdf', await generatePdf(run, runDir, { mode: 'bugs', model: narrowed('bugs') }));
-      put('02-Bugs.xlsx', await defectWorkbook(model, listing));
+      put('02-Bugs.xlsx', await defectWorkbook(model, listing, { evidenceLinks: plan.links }));
       put('02-Bugs-for-Jira.csv', jiraCsv(model, listing));
     }
     if (req.reports.includes('log')) {

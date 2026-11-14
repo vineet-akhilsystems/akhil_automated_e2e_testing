@@ -471,4 +471,5 @@ details.pack-section summary{cursor:pointer;display:flex;align-items:baseline;ga
 .pack-estimate{margin:20px 0 0;padding:11px 14px;border-radius:8px;background:#f5f4fb;color:#4a4560;font-size:13px}.pack-estimate.problem{background:#fff8ed;color:#8a6a2f}
 .pack-job{margin-top:14px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;font-size:13px}.pack-job .group-list{margin-top:8px}.pack-job p{margin:10px 0 0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pack-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}.pack-quick-label{font-size:12px;font-weight:550;color:#74798d;margin-right:4px}.pack-chip{padding:5px 12px;min-height:0;border-radius:999px;font-size:12px;font-weight:500}.pack-chip.active{border-color:var(--accent);background:#f1edfc;color:#41465c;box-shadow:0 0 0 1px var(--accent)}.pack-status-error{color:#a3333d}#pack-earlier{overflow-x:auto;max-width:100%}
 .pack-job{scroll-margin-bottom:90px}.pack-job .group-list li{padding:4px 0;font-size:12px}

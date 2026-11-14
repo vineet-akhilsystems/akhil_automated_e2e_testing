@@ -1424,3 +1424,130 @@ test('the run files route never serves anything under packs/', async t => {
     assert.ok([403, 404].includes(r.status), `${p}: ${r.status}`);
   }
 });
+
+// ---- Final fix wave: bug files agree, can reproduce a bug, dialog helpers, xlsx export ----
+import { bugReportOrder } from '../reports/pack.mjs';
+
+// Every finding kind: P-2 quarantined failure, P-3 failure, P-4 assumed-rule failure, P-5 execution issue, P-6 blocked.
+const allKinds = () => {
+  const run = mkRun();
+  run.cases.push(c('P-4'), c('P-5'), c('P-6'));
+  run.results.push({ id: 'P-4', status: 'FAIL (assumed requirement)', expected: 'e4', actual: 'a4', attachments: [] },
+    { id: 'P-5', status: 'ERROR', expected: 'e5', actual: 'runner timed out', attachments: [] }, { id: 'P-6', status: 'BLOCKED', expected: 'e6', actual: 'no data', attachments: [] });
+  run.results[2].resolvedInput = { mobile: '=1+1', password: 'hunter2', firstName: 'Asha' };
+  return run;
+};
+
+test('the Jira CSV holds only failed assertions and business-rule reviews, like the defect register', async () => {
+  const model = reportModel(redactRun(allKinds())), listing = applyFilter(model, {});
+  const rows = parseCsv(jiraCsv(model, listing));
+  assert.deepEqual(rows.slice(1).map(r => r[0].slice(0, 5)), ['[P-3]', '[P-4]']);
+  assert.deepEqual(rows.slice(1).map(r => r[5]), ['Bug', 'Task']);
+  const wb = await rdr(await defectWorkbook(model, listing));
+  const ids = s => { const o = []; wb.getWorksheet(s).eachRow((r, i) => { if (i > 1) o.push(r.getCell(2).value); }); return o; };
+  assert.deepEqual([...ids('Bugs'), ...ids('Needs review')].filter(id => id !== 'P-2'), ['P-3', 'P-4']);
+});
+
+test('the Jira CSV description lists the captured inputs after the steps, redacted and neutralized', () => {
+  const model = reportModel(allKinds()), listing = applyFilter(model, {});
+  const f = model.findings.find(x => x.caseId === 'P-3');
+  const desc = parseCsv(jiraCsv(model, listing))[1][1];
+  assert.ok(desc.indexOf('Steps:') < desc.indexOf('Inputs:') && desc.indexOf('Inputs:') < desc.indexOf('Expected:'), desc);
+  for (const { key, value } of f.input) assert.ok(desc.includes(`- ${key}: ${value}`), `${key} in ${desc}`);
+  assert.ok(desc.includes(': [REDACTED]')); assert.ok(!desc.includes('hunter2'));
+  assert.ok(desc.includes(': =1+1'), 'inside the cell the value is plain text; the cell itself does not start with a formula');
+  assert.ok(!/^[=+\-@]/.test(desc));
+});
+
+test('the defect register has Inputs and Evidence columns; evidence links go through the allowlist', async () => {
+  const model = reportModel(allKinds()), listing = applyFilter(model, {});
+  const wb = await rdr(await defectWorkbook(model, listing, { evidenceLinks: { 'P-3': 'evidence/P-3/1-final.png', 'P-4': 'javascript:alert(1)' } }));
+  const bugs = wb.getWorksheet('Bugs'), review = wb.getWorksheet('Needs review');
+  const header = bugs.getRow(1).values.slice(1), col = name => header.indexOf(name) + 1;
+  assert.ok(col('Inputs') > 0 && col('Evidence') > 0, header.join());
+  let p3 = null; bugs.eachRow((r, i) => { if (i > 1 && r.getCell(2).value === 'P-3') p3 = r; });
+  assert.equal(p3.getCell(col('Evidence')).value.hyperlink, 'evidence/P-3/1-final.png');
+  const inputs = String(p3.getCell(col('Inputs')).value);
+  assert.match(inputs, /: =1\+1/); assert.match(inputs, /: \[REDACTED\]/); assert.ok(!inputs.includes('hunter2'));
+  const p4 = review.getRow(2).getCell(col('Evidence')).value;
+  assert.equal(typeof p4, 'string'); assert.ok(!(p4 && p4.hyperlink));
+  wb.eachSheet(s => s.eachRow(r => r.eachCell(cl => { if (typeof cl.value === 'string') assert.ok(!/^[=+\-@\t\r]/.test(cl.value), cl.value); })));
+  assert.equal(String(review.getRow(2).getCell(1).value), 'RULE-P-4');
+  const none = await rdr(await defectWorkbook(model, listing));
+  assert.equal(none.getWorksheet('Bugs').getRow(2).getCell(col('Evidence')).value ?? '', '');
+});
+
+test('the bugs PDF lists findings by kind: failures, assumed rules, execution issues, then blocked', () => {
+  const f = (caseId, kind) => ({ caseId, kind });
+  const order = bugReportOrder([f('X-10', 'execution'), f('X-2', 'failure'), f('X-1', 'blocked'), f('X-3', 'assumption'), f('X-1', 'failure'), f('X-10', 'failure'), f('X-0', 'execution')]);
+  assert.deepEqual(order.map(x => `${x.kind}:${x.caseId}`), ['failure:X-1', 'failure:X-2', 'failure:X-10', 'assumption:X-3', 'execution:X-0', 'execution:X-10', 'blocked:X-1']);
+});
+
+test('a bugs pack groups the PDF by kind and links evidence in 02-Bugs.xlsx', { skip: pdfSkip }, async t => {
+  const runDir = tempDir(t, 'pack-bugs-');
+  fs.mkdirSync(path.join(runDir, 'artifacts'));
+  fs.writeFileSync(path.join(runDir, 'artifacts', 'f.png'), makePng(8, 8, [200, 30, 30]));
+  const run = mkRun({ id: 'rp-bugs-1', triage: {}, cases: [c('K-1', { title: 'Blocked first' }), c('K-2', { title: 'Execution second' }), c('K-3', { title: 'Rule third' }), c('K-4', { title: 'Failure fourth' })],
+    results: [{ id: 'K-1', status: 'BLOCKED', expected: 'e', actual: 'a', attachments: [] }, { id: 'K-2', status: 'ERROR', expected: 'e', actual: 'a', attachments: [] },
+      { id: 'K-3', status: 'FAIL (assumed requirement)', expected: 'e', actual: 'a', attachments: [] }, { id: 'K-4', status: 'FAIL', expected: 'e', actual: 'a', attachments: [{ name: 'Final result', path: 'artifacts/f.png', contentType: 'image/png' }] }] });
+  const out = await buildPack({ run, runDir, req: { reports: ['bugs'], filter: {}, evidence: 'findings' }, who: 'T', now: fixedNow });
+  const zip = openPack(out.file);
+  const pdf = path.join(runDir, 'bugs.pdf'); fs.writeFileSync(pdf, zip.get('02-Bug-Report.pdf')());
+  const o = spawnSync(py, ['-I', '-c', 'import sys, pypdf\nprint("\\n".join(p.extract_text() for p in pypdf.PdfReader(sys.argv[1]).pages))', pdf], { encoding: 'utf8' });
+  assert.equal(o.status, 0, o.stderr);
+  const text = o.stdout.replace(/\s+/g, ' ');
+  const at = title => text.indexOf(title);
+  for (const title of ['Failure fourth', 'Rule third', 'Execution second', 'Blocked first']) assert.ok(at(title) >= 0, title);
+  assert.ok(at('Failure fourth') < at('Rule third') && at('Rule third') < at('Execution second') && at('Execution second') < at('Blocked first'), text.slice(0, 600));
+  const wb = await rdr(zip.get('02-Bugs.xlsx')());
+  const bugs = wb.getWorksheet('Bugs'), header = bugs.getRow(1).values.slice(1);
+  const link = bugs.getRow(2).getCell(header.indexOf('Evidence') + 1).value?.hyperlink;
+  assert.equal(link, 'evidence/K-4/1-final-result.png');
+  assert.ok(zip.has(link));
+  assert.match(zip.get('00-README.txt')().toString('utf8'), /02-Bugs-for-Jira\.csv: Failed assertions and business-rule reviews/);
+});
+
+test('QUICK_FILTERS are the server presets, validate, and only use filters the dialog can show', async () => {
+  const { QUICK_FILTERS, buildPackRequest } = await packUi();
+  assert.deepEqual(QUICK_FILTERS.map(q => q.key), Object.keys(PRESETS));
+  assert.deepEqual(QUICK_FILTERS.map(q => q.label), ['Bugs only', 'Failures and blocked', 'Needs triage', 'P0 and P1', 'Everything']);
+  for (const q of QUICK_FILTERS) {
+    assert.deepEqual(q.filter, PRESETS[q.key].filter, q.key);
+    assert.deepEqual(normalizeFilter(q.filter), q.filter, q.key);
+    const body = buildPackRequest({ preset: 'custom', reports: ['log'], evidence: 'none', filter: q.filter });
+    assert.deepEqual(normalizeRequest(body), body, q.key);
+    assert.deepEqual(body.filter, q.filter, q.key);
+    for (const k of Object.keys(q.filter)) assert.ok(['classes', 'priorities', 'suites', 'requirements', 'severities', 'text'].includes(k), `${q.key}: ${k} has no control in the dialog`);
+  }
+});
+
+test('the dialog treats queued and running jobs as pending and labels every job status', async () => {
+  const { jobPhase, jobStatusText, PACK_CLASSES } = await packUi();
+  assert.equal(jobPhase('queued'), 'pending'); assert.equal(jobPhase('running'), 'pending');
+  assert.equal(jobPhase('done'), 'done'); assert.equal(jobPhase('error'), 'failed'); assert.equal(jobPhase(undefined), 'failed');
+  assert.equal(jobStatusText({ status: 'queued' }), 'Waiting for another report to finish');
+  assert.equal(jobStatusText({ status: 'running' }), 'Building');
+  assert.equal(jobStatusText({ status: 'error', error: 'Boom' }), 'Failed: Boom');
+  assert.equal(jobStatusText({ status: 'error' }), 'Failed');
+  assert.equal(jobStatusText({ status: 'done' }), 'Ready');
+  assert.equal(PACK_CLASSES.find(([k]) => k === 'execution')[1], 'Execution issue');
+});
+
+test('the Excel export of a run stores formula-like text as text', async t => {
+  const f = await boot(t);
+  const run = mkRun({ id: 'rp-xlsx-1' });
+  run.cases[0].title = '=HYPERLINK("http://evil.test","x")'; run.cases[0].category = '+cmd';
+  run.results[0].actual = '@SUM(A1)'; run.triage = { 'P-1': { owner: '-2+3' } };
+  f.store.saveRun(run);
+  const x = await f.request('/api/runs/rp-xlsx-1/export?format=xlsx');
+  assert.equal(x.status, 200);
+  const ws = (await rdr(x.value)).getWorksheet('Results');
+  assert.deepEqual(ws.getRow(1).values.slice(1, 4), ['id', 'title', 'status'], 'layout unchanged');
+  const row = ws.getRow(2);
+  assert.equal(row.getCell(2).value, `'=HYPERLINK("http://evil.test","x")`);
+  ws.eachRow(r => r.eachCell(cl => {
+    assert.equal(cl.formula, undefined);
+    if (typeof cl.value === 'string') assert.ok(!/^[=+\-@\t\r]/.test(cl.value), cl.value);
+  }));
+  assert.equal(typeof row.getCell(9).value, 'number', 'durationMs stays a number');
+});

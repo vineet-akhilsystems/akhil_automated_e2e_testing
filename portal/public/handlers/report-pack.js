@@ -1,5 +1,5 @@
 import { toast } from '../components/widgets.js';
-import { applyPreset, createPack, markCustom, scheduleEstimate, showReportPackDialog, stopPolling } from '../pages/report-pack.js';
+import { applyPreset, applyQuickFilter, createPack, markCustom, scheduleEstimate, showReportPackDialog, stopPolling } from '../pages/report-pack.js';
 import { state } from '../state.js';
 
 // Report pack dialog: preset cards, live estimate, create and poll.
@@ -8,6 +8,7 @@ document.addEventListener('click', event => {
   const action = button?.dataset.action;
   if (action === 'report-pack') showReportPackDialog(state.runDetail);
   if (action === 'pack-preset') applyPreset(button.dataset.preset);
+  if (action === 'pack-quick') applyQuickFilter(button.dataset.quick);
 });
 
 // Checkboxes and the select report on 'change'; text boxes report on every keystroke ('input').

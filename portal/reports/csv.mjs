@@ -21,15 +21,21 @@ export function toCsv(rows) {
 
 const slug = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'general';
 
-/** Jira import CSV: one row per listed finding that is not quarantined. */
+/** The captured inputs of a finding as "key: value" lines (values already redacted by the report model). */
+export const inputLines = f => (f.input ?? []).map(({ key, value }) => `${key}: ${value}`);
+
+/** Jira import CSV: one row per listed failed assertion or business-rule review that is not quarantined
+ * (the same findings as the defect register; execution issues and blocked cases are not bugs to file). */
 export function jiraCsv(model, listing) {
   const rows = [['Summary', 'Description', 'Priority', 'Labels', 'Labels', 'Issue Type']];
   for (const f of listing.findings) {
-    if (f.quarantined) continue;
+    if (f.quarantined || (f.kind !== 'failure' && f.kind !== 'assumption')) continue;
     const priority = SEVERITY[f.severity] ?? PRIORITY[f.priority] ?? 'Medium';
+    const inputs = inputLines(f);
     const description = [
       `Classification: ${f.classification}`, `Requirement: ${f.requirement}`, `Priority: ${f.priority}; Severity: ${f.severity}`,
       'Steps:', ...(f.steps ?? []).map((s, i) => `${i + 1}. ${s.action}${s.expected ? ` (expect: ${s.expected})` : ''}`),
+      inputs.length ? 'Inputs:' : 'Inputs: none recorded', ...inputs.map(line => `- ${line}`),
       `Expected: ${f.expected}`, `Actual: ${f.actual}`, ...(f.mismatches?.length ? ['Mismatches:', ...f.mismatches.map(m => `- ${m}`)] : []),
     ].join('\n');
     rows.push([safeCell(`[${f.caseId}] ${f.title}`), safeCell(description), priority, 'test-studio', slug(f.suite), f.kind === 'failure' ? 'Bug' : 'Task']);

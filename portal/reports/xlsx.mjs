@@ -1,6 +1,6 @@
 // Pure workbook builders. Every free-text cell goes through safeCell; numbers and fixed labels are written as-is.
 import { createRequire } from 'node:module';
-import { safeCell } from './csv.mjs';
+import { safeCell, inputLines } from './csv.mjs';
 import { VERDICT_LABEL } from './markdown.mjs';
 import { FINDINGS } from '../quality.mjs';
 
@@ -68,17 +68,23 @@ export async function executionLogWorkbook(model, listing, ctx = {}) {
   return buffer(wb);
 }
 
-export async function defectWorkbook(model, listing) {
+// An evidence cell: a hyperlink for an allowlisted relative path, plain (neutralized) text otherwise.
+const evidenceCell = link => (safeRelativeLink(link) ? { text: 'Open evidence', hyperlink: link } : link ? safeCell(link) : '');
+
+/** Defect register. ctx.evidenceLinks (case id -> path inside the pack) fills the Evidence column, as in executionLogWorkbook. */
+export async function defectWorkbook(model, listing, ctx = {}) {
   const wb = new ExcelJS.Workbook();
-  const headers = ['Finding', 'Case', 'Title', 'Suite', 'Priority', 'Severity', 'Owner', 'Reference', 'Ticket', 'Quarantined', 'Requirement', 'Steps', 'Expected', 'Actual', 'Mismatches'];
+  const links = ctx.evidenceLinks ?? {};
+  const headers = ['Finding', 'Case', 'Title', 'Suite', 'Priority', 'Severity', 'Owner', 'Reference', 'Ticket', 'Quarantined', 'Requirement', 'Steps', 'Expected', 'Actual', 'Mismatches', 'Inputs', 'Evidence'];
   const rowOf = f => [safeCell(f.id), safeCell(f.caseId), safeCell(f.title), safeCell(f.suite), safeCell(f.priority), safeCell(f.severity), safeCell(f.owner), safeCell(f.reference), safeCell(f.ticketUrl), f.quarantined ? 'Yes' : 'No',
-    safeCell(f.requirement), safeCell(steps(f)), safeCell(f.expected), safeCell(f.actual), safeCell((f.mismatches ?? []).join('\n'))];
-  const widths = [14, 12, 40, 16, 9, 12, 14, 14, 24, 12, 16, 50, 40, 40, 40];
+    safeCell(f.requirement), safeCell(steps(f)), safeCell(f.expected), safeCell(f.actual), safeCell((f.mismatches ?? []).join('\n')), safeCell(inputLines(f).join('\n')),
+    evidenceCell(Object.hasOwn(links, f.caseId) ? links[f.caseId] : undefined)];
+  const widths = [14, 12, 40, 16, 9, 12, 14, 14, 24, 12, 16, 50, 40, 40, 40, 40, 18];
   const bugs = [], review = [];
   for (const f of listing.findings) { if (f.kind === 'failure') bugs.push(rowOf(f)); else if (f.kind === 'assumption') review.push(rowOf(f)); }
   for (const [name, rows] of [['Bugs', bugs], ['Needs review', review]]) {
     const ws = sheet(wb, name, headers, rows, widths);
-    ws.getColumn(12).alignment = ws.getColumn(15).alignment = { wrapText: true, vertical: 'top' };
+    for (const c of [12, 15, 16]) ws.getColumn(c).alignment = { wrapText: true, vertical: 'top' };
   }
   return buffer(wb);
 }
