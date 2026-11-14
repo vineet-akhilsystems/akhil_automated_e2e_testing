@@ -24,6 +24,7 @@ import cases from './routes/cases.mjs';
 import environments from './routes/environments.mjs';
 import runs from './routes/runs.mjs';
 import health from './routes/health.mjs';
+import reportPacks from './routes/report-packs.mjs';
 import knowledge from './routes/knowledge.mjs';
 
 const PACKAGE_VERSION = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version; } catch { return 'unknown'; } })();
@@ -32,7 +33,7 @@ const publicDir = path.join(ROOT, 'portal/public');
 export function createPortal(options = {}) {
   const ctx = createContext(options);
   const { host, store, queue, agent, lock, logger, schedules } = ctx;
-  const dispatch = createRouter([auth, gate, authPassword, usersRoutes, access, teams, products, modules, agentRoutes, intakeRoutes, insightsRoutes, cases, environments, runs, health, knowledge]);
+  const dispatch = createRouter([auth, gate, authPassword, usersRoutes, access, teams, products, modules, agentRoutes, intakeRoutes, insightsRoutes, cases, environments, runs, health, reportPacks, knowledge]);
   const server = http.createServer(async (req, res) => {
     if (logger) {
       // The UI polls GET endpoints every few seconds, so log only changes (non-GET) and failures.
@@ -76,7 +77,7 @@ export function createPortal(options = {}) {
   });
   // Raw intake uploads can be large; the default 30 s whole-request limit would cut them off.
   server.requestTimeout = Number(process.env.PORTAL_REQUEST_TIMEOUT_MS) || 30 * 60 * 1000;
-  return { server, store, queue, host, schedules, async close() { schedules.stop(); agent.stop(); await queue.stop(); await new Promise(resolve => server.close(resolve)); store.close(); lock.release(); } };
+  return { server, store, queue, host, schedules, async close() { schedules.stop(); agent.stop(); await queue.stop(); await ctx.reportJobs.stop(); await new Promise(resolve => server.close(resolve)); store.close(); lock.release(); } };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

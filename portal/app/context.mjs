@@ -21,6 +21,7 @@ import { createMembership } from '../services/membership.mjs';
 import { createNotifications } from '../notifications.mjs';
 import { createSchedules } from '../schedules.mjs';
 import { createTickets } from '../tickets.mjs';
+import { createReportJobs } from '../reports/jobs.mjs';
 
 const now = () => new Date().toISOString();
 
@@ -60,6 +61,7 @@ export function createContext(options = {}) {
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
   const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor, { retries: options.retries, workers: options.workers, onFinish: run => notifications.runFinished(run) });
+  const reportJobs = createReportJobs({ store, dirFor: queue.dirFor, logger });
   const { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts } = createSessions({ store, users, token });
   const audit = user => ({ user: user.username, at: now() });
   const { accessFor, authorize, modulePermission, runPermission, enforce, pidOf, DENIED } = createAccess({ store, users, environments });
@@ -253,6 +255,6 @@ export function createContext(options = {}) {
   const tickets = createTickets(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
   const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
-  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
+  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, reportJobs, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, qaRoot, specRoot, helpers };
 }

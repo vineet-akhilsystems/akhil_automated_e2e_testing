@@ -4,7 +4,8 @@ import { createRequire } from 'node:module';
 import { reportModel } from '../quality.mjs';
 import { redactRun } from '../reports/redact.mjs';
 import { PRESETS, normalizeFilter, applyFilter } from '../reports/filter.mjs';
-import { boot } from './support.mjs';
+import { boot, signedIn, makeUser, until } from './support.mjs';
+import { createReportJobs } from '../reports/jobs.mjs';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { REPORTS, safeSegment, normalizeRequest, packFingerprint, estimatePack, buildPack } from '../reports/pack.mjs';
@@ -887,4 +888,128 @@ test('a 1000-case synthetic run with 300 MB of evidence builds with bounded memo
     assert.ok(out.size > N * SHOT);
   } finally { clearInterval(timer); }
   assert.ok(peak - base < bound, `heap growth ${Math.round((peak - base) / 1048576)} MB`);
+});
+
+// ---- Report pack jobs and routes ----
+const PACK_ADMIN = { username: 'root', password: 'correct-horse-battery' };
+const LOG_ONLY = { reports: ['log'], filter: {}, evidence: 'findings' };
+async function jobWorld(t, extra = {}) {
+  const f = await boot(t, { bootstrap: PACK_ADMIN, ...extra });
+  const admin = await signedIn(f, PACK_ADMIN.username, PACK_ADMIN.password);
+  const run = mkRun({ id: 'rp-job-run', module: structuredClone(f.store.module('registration')), status: 'failed' });
+  f.store.saveRun(run);
+  return { f, admin, run, runDir: f.queue.dirFor('rp-job-run') };
+}
+const finished = (client, runId, id) => until(async () => { const r = await client.request(`/api/runs/${runId}/report-packs/${id}`); return r.value.status !== 'running' ? r.value : null; });
+
+test('estimate returns counts and 400 for unknown report or evidence level', async t => {
+  const { admin } = await jobWorld(t);
+  const ok = await admin.request('/api/runs/rp-job-run/report-pack/estimate', 'POST', LOG_ONLY);
+  assert.equal(ok.status, 200, JSON.stringify(ok.value));
+  assert.deepEqual(Object.keys(ok.value).sort(), ['bytes', 'cases', 'findings', 'screenshots', 'seconds']);
+  assert.equal(ok.value.cases, 3);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-pack/estimate', 'POST', { ...LOG_ONLY, reports: ['nope'] })).status, 400);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-pack/estimate', 'POST', { ...LOG_ONLY, evidence: 'lots' })).status, 400);
+  assert.equal((await admin.request('/api/runs/missing-run/report-pack/estimate', 'POST', LOG_ONLY)).status, 404);
+});
+
+test('start returns 202, the job finishes done, download returns a ZIP with MANIFEST.json, and the audit event holds no paths', async t => {
+  const { f, admin, runDir } = await jobWorld(t);
+  const started = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  assert.equal(started.status, 202, JSON.stringify(started.value));
+  const job = await finished(admin, 'rp-job-run', started.value.id);
+  assert.equal(job.status, 'done', JSON.stringify(job));
+  assert.ok(job.progress.length > 0);
+  assert.ok(!JSON.stringify(job).includes(runDir), 'no server path is exposed');
+  assert.deepEqual((await admin.request('/api/runs/rp-job-run/report-packs')).value.map(j => j.id), [started.value.id]);
+  const dl = await admin.request(`/api/runs/rp-job-run/report-packs/${started.value.id}/download`);
+  assert.equal(dl.status, 200);
+  assert.match(dl.response.headers.get('content-disposition'), /^attachment; filename="[\w.-]+\.zip"$/);
+  assert.ok([...readZip(dl.value).keys()].some(n => n.endsWith('/MANIFEST.json')));
+  assert.ok(!fs.readdirSync(path.join(runDir, 'packs')).some(n => n.startsWith('.tmp-')), 'no partial files left');
+  const events = f.store.auditLog({ scopeType: 'module', scopeId: 'registration' }).filter(e => e.action === 'run.report-pack');
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0].detail.reports, ['log']);
+  assert.ok(!JSON.stringify(events[0]).includes(runDir));
+});
+
+test('identical concurrent requests return the same job id, and a finished identical pack is reused', async t => {
+  const { admin } = await jobWorld(t);
+  const [a, b] = await Promise.all([1, 2].map(() => admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY)));
+  assert.equal(a.value.id, b.value.id);
+  const other = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', { ...LOG_ONLY, evidence: 'none' });
+  assert.notEqual(other.value.id, a.value.id);
+  await finished(admin, 'rp-job-run', a.value.id); await finished(admin, 'rp-job-run', other.value.id);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY)).value.id, a.value.id);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-packs')).value.length, 2);
+});
+
+test('a finished pack whose ZIP is gone is built again', async t => {
+  const { admin, runDir } = await jobWorld(t);
+  const a = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  assert.equal((await finished(admin, 'rp-job-run', a.value.id)).status, 'done');
+  for (const n of fs.readdirSync(path.join(runDir, 'packs')).filter(n => n.endsWith('.zip'))) fs.rmSync(path.join(runDir, 'packs', n));
+  assert.equal((await admin.request(`/api/runs/rp-job-run/report-packs/${a.value.id}/download`)).status, 404);
+  const b = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  assert.notEqual(b.value.id, a.value.id);
+  assert.equal((await finished(admin, 'rp-job-run', b.value.id)).status, 'done');
+});
+
+test('a viewer can build and download but a user without access to the module gets 404', async t => {
+  const { f, admin } = await jobWorld(t);
+  const vic = await makeUser(admin, 'vic', 'viewer'), v = await signedIn(f, 'vic', vic.password);
+  const mia = await makeUser(admin, 'mia', 'member'), m = await signedIn(f, 'mia', mia.password);
+  const started = await v.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  assert.equal(started.status, 202, JSON.stringify(started.value));
+  assert.equal((await finished(v, 'rp-job-run', started.value.id)).status, 'done');
+  assert.equal((await v.request(`/api/runs/rp-job-run/report-packs/${started.value.id}/download`)).status, 200);
+  for (const [method, route, body] of [['POST', '/report-pack/estimate', LOG_ONLY], ['POST', '/report-pack', LOG_ONLY], ['GET', '/report-packs'], ['GET', `/report-packs/${started.value.id}`], ['GET', `/report-packs/${started.value.id}/download`]]) {
+    assert.equal((await m.request(`/api/runs/rp-job-run${route}`, method, body)).status, 404, `${method} ${route}`);
+  }
+});
+
+test('a job id of another run is 404, and odd job ids never address files', async t => {
+  const { f, admin, run } = await jobWorld(t);
+  f.store.saveRun({ ...run, id: 'rp-job-run-b' });
+  const a = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  await finished(admin, 'rp-job-run', a.value.id);
+  assert.equal((await admin.request(`/api/runs/rp-job-run-b/report-packs/${a.value.id}`)).status, 404);
+  assert.equal((await admin.request(`/api/runs/rp-job-run-b/report-packs/${a.value.id}/download`)).status, 404);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-packs/..%2F..%2Fx/download')).status, 404);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-packs/nope')).status, 404);
+});
+
+test('unfinished runs are rejected with 409', async t => {
+  const { f, admin, run } = await jobWorld(t);
+  f.store.saveRun({ ...run, id: 'rp-job-live', status: 'running' });
+  assert.equal((await admin.request('/api/runs/rp-job-live/report-pack', 'POST', LOG_ONLY)).status, 409);
+  assert.equal((await admin.request('/api/runs/rp-job-live/report-pack/estimate', 'POST', LOG_ONLY)).status, 409);
+});
+
+test('a stuck running job file becomes an error after restart, and the list never shows partial zips', async t => {
+  const dir = tempDir(t, 'pack-jobs-');
+  const dirFor = id => path.join(dir, id), packs = path.join(dirFor('r1'), 'packs');
+  fs.mkdirSync(packs, { recursive: true });
+  fs.writeFileSync(path.join(packs, 'stuck-1.json'), JSON.stringify({ id: 'stuck-1', runId: 'r1', status: 'running', startedAt: '2026-11-14T10:00:00.000Z', finishedAt: null, progress: ['Preparing...'], request: LOG_ONLY }));
+  fs.writeFileSync(path.join(packs, '.tmp-abc.zip'), 'partial');
+  const runs = [{ id: 'r1' }];
+  const jobs = createReportJobs({ store: { runs: () => runs, run: id => runs.find(r => r.id === id) }, dirFor });
+  const job = jobs.get('r1', 'stuck-1');
+  assert.equal(job.status, 'error');
+  assert.equal(job.error, 'The portal restarted while this was building.');
+  assert.ok(job.finishedAt);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(packs, 'stuck-1.json'), 'utf8')).status, 'error');
+  assert.deepEqual(jobs.list('r1').map(j => j.id), ['stuck-1']);
+  assert.throws(() => jobs.filePath('r1', 'stuck-1'), e => e.status === 409);
+  assert.throws(() => jobs.filePath('r1', '.tmp-abc'), e => e.status === 404);
+  await jobs.stop();
+});
+
+test('download of an unfinished job is 409', async t => {
+  const { admin, runDir } = await jobWorld(t);
+  fs.mkdirSync(path.join(runDir, 'packs'), { recursive: true });
+  fs.writeFileSync(path.join(runDir, 'packs', 'live-1.json'), JSON.stringify({ id: 'live-1', runId: 'rp-job-run', status: 'running', startedAt: new Date().toISOString(), finishedAt: null, progress: [], request: LOG_ONLY }));
+  // A record written by another process is only trusted after a restart: here it is read from disk as it is.
+  const r = await admin.request('/api/runs/rp-job-run/report-packs/live-1/download');
+  assert.equal(r.status, 409, JSON.stringify(r.value));
 });
