@@ -95,6 +95,45 @@ python -m pip install -r portal/requirements-report.txt
 
 Set `PORTAL_PYTHON` to an absolute interpreter path if `python` is not on PATH. The report renderer uses Segoe UI on Windows, DejaVu Sans on Linux when available, and available fallback glyphs for Unicode; unsupported glyphs are represented explicitly by code point rather than as black squares.
 
+## Report packs
+
+A report pack is one ZIP with the reports a given reader needs, built in the background from a finished run. Open a finished run and choose **Report pack**.
+
+**The three reports**
+
+| Report | For | Files |
+|---|---|---|
+| Release summary | Managers and release owners | `01-Release-Summary.pdf` (one page) and `.md` (for chat or email), with the suggested verdict |
+| Bug report | Developers and the people triaging | `02-Bug-Report.pdf`, `02-Bugs.xlsx`, `02-Bugs-for-Jira.csv` (quarantined findings left out of the CSV) |
+| Execution log | QA leads and auditors of the test record | `03-Execution-Log.xlsx`, one row per listed case with evidence links |
+
+**Presets and filters.** Presets are Bugs, All failures, Needs triage, P0 and P1, and Everything. A filter can also narrow by result class, priority, severity, suite, requirement, owner, case id, manual or automated mode, free text, and the switches assumed rules only, new failures only (compared with the previous run) and missing evidence only. A filter only changes which cases are listed. The totals, pass rate and suggested verdict always cover the whole run and are labelled as unfiltered, so a narrow pack cannot make a run look healthier than it is.
+
+**Evidence levels.** `none` (no screenshots), `findings` (all screenshots of the listed findings), `final` (those, plus the final screenshot of every other listed case) and `all` (every screenshot of every listed case). Use the estimate shown in the dialog (cases, screenshots, size, time) before building. A pack must fit one ZIP; if not, choose fewer cases or a lower level.
+
+**ZIP layout.** Everything sits in one root folder named `<module>_<date>_run-<id>`:
+
+```text
+00-README.txt        what is inside, the filter used, whole-run totals, how to read it
+01-/02-/03- files    the selected reports
+evidence/<case>/     screenshots, when an evidence level above none is chosen
+data/results.json    the whole run's results, with secrets removed
+data/junit.xml       the whole run as JUnit XML
+MANIFEST.json        every other file with its size and SHA-256, written last
+```
+
+**Reading `MANIFEST.json`.** It records the run, who generated the pack and when, the reports, the filter (and a plain-language description), the evidence level, `listed` of `total` cases, and `files`: each file's path, byte size and SHA-256. To check that a file is unchanged, hash it (for example `certutil -hashfile <file> SHA256` on Windows) and compare. `missingEvidence` lists screenshots that were selected but could not be included, and why.
+
+**Background job.** Building does not block the page. The dialog shows progress and a download link when it is done; you can close it and come back. Packs and their job records are kept in the run folder at `<run>/packs/` and can be downloaded again from the run page. Nothing is deleted automatically yet.
+
+**The verdict is a suggestion.** The summary shows a suggested verdict (Release, Release with known issues, Needs triage, or Do not release) worked out only from the recorded results and the exit criteria. A person must confirm it before any release decision. The pack is a test record, not an approval or an electronic signature, and nothing here claims regulatory compliance.
+
+Default exit criteria: any open failed check at Critical or High severity blocks release; no execution issues are allowed (runner or environment problems mean the product was not verified); failed checks must be triaged (severity assessed), otherwise the suggestion is Needs triage; blocked cases also give Needs triage. Quarantined findings are not counted as open.
+
+**Security fix included.** The JSON, JUnit and Excel exports of a run now redact credential-like fields, bearer strings and JWTs in the same way as the PDF.
+
+**Planned.** Phase B: an interactive HTML evidence report, plus requirements coverage and automation-health reports. Phase C: a release pack across several runs, a recorded approval and retention rules for old packs.
+
 ## Multiple modules
 
 The hierarchy is **workspace → business area → module → suite → test case**, with executions stored separately. Business areas and suites are labels in this version; they are not nested folders. Module cards show whether automation is connected. Creating a module never claims that its browser automation already exists.

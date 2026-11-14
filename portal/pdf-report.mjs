@@ -12,6 +12,8 @@ const pending = new Map();
 // a run with no screenshots gets 90 s, a 1,000-screenshot run gets 90 s + 1,000 x 500 ms = 590 s.
 // Measured: a 957-screenshot run (262 cases) renders in about 290 s, so this leaves about 2x headroom.
 export const pdfTimeoutMs = screenshots => 90000 + 500 * Math.max(0, Number(screenshots) || 0);
+// The summary PDF embeds no screenshots, so only it gets the base limit; this takes the EFFECTIVE mode.
+export const pdfTimeoutFor = (mode, model) => pdfTimeoutMs(mode === 'summary' ? 0 : model.evidenceCounts?.totalScreenshots);
 const rendererFingerprint = createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'portal/report_pdf.py'))).digest('hex');
 const MODES = ['full', 'bugs', 'summary'];
 export function generatePdf(run, runDir, options = {}) {
@@ -37,7 +39,7 @@ export function generatePdf(run, runDir, options = {}) {
         let diagnostic = '';
         let spawnFailed = false;
         const screenshots = mode === 'summary' ? 0 : model.evidenceCounts?.totalScreenshots;
-        const limitMs = pdfTimeoutMs(screenshots);
+        const limitMs = pdfTimeoutFor(mode, model);
         const timer = setTimeout(() => {
           spawnFailed = true; // the close event that follows the kill is not a renderer failure
           child.kill();

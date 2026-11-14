@@ -1,6 +1,6 @@
 # Report pack: different reports for different readers, with filters, delivered as one ZIP
 
-Status: DRAFT for review. Nothing in this document is built yet.
+Status: Phase A implemented (see plan); Phases B and C not started.
 
 ## Intent and why
 
