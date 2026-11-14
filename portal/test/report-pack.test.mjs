@@ -215,3 +215,130 @@ test('a 100% pass run with 3 not-executed cases lists them in notTested', () => 
   assert.equal(s.passRate, 100);
   assert.ok(s.notTested.some(t => t.includes('3') && /not executed/i.test(t)));
 });
+
+// ---- Task 4: renderers ----
+import { safeCell, toCsv, jiraCsv } from '../reports/csv.mjs';
+import { executionLogWorkbook, defectWorkbook } from '../reports/xlsx.mjs';
+import { summaryMarkdown } from '../reports/markdown.mjs';
+
+const rdr = async buf => { const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf); return wb; };
+const rendererFixture = (extra = {}) => {
+  const run = mkRun(extra);
+  run.cases.push(c('P-4'));
+  run.results.push({ id: 'P-4', status: 'FAIL (assumed requirement)', expected: 'e4', actual: 'a4', attachments: [] });
+  const model = reportModel(redactRun(run));
+  return { model, listing: applyFilter(model, {}) };
+};
+
+test('safeCell neutralizes formula starters', () => {
+  for (const v of ['=1+1', '+cmd', '-2', '@SUM(A1)', '\tx', '\rx']) assert.equal(safeCell(v), `'${v}`);
+  assert.equal(safeCell('plain'), 'plain');
+  assert.equal(safeCell(null), '');
+  assert.equal(safeCell(5), '5');
+  assert.equal(safeCell('a'.repeat(40000)).length, 32000);
+});
+
+test('toCsv quotes commas, quotes and newlines', () => {
+  assert.equal(toCsv([['a', 'b,c', 'd"e', 'f\ng', 'h\ri'], ['1', '2']]), 'a,"b,c","d""e","f\ng","h\ri"\r\n1,2');
+});
+
+test('jiraCsv maps priority, excludes quarantined, escapes quotes', () => {
+  const { model, listing } = rendererFixture();
+  model.findings.find(f => f.caseId === 'P-3').title = 'He said "hi", ok';
+  const csv = jiraCsv(model, listing);
+  const lines = csv.split('\r\n');
+  assert.equal(lines[0], 'Summary,Description,Priority,Labels,Labels,Issue Type');
+  assert.equal(lines.length, 3);
+  assert.ok(!csv.includes('P-2'));
+  assert.ok(lines[1].startsWith('"[P-3] He said ""hi"", ok",'));
+  assert.match(lines[1], /,High,test-studio,[a-z0-9-]+,Bug$/);
+  assert.match(lines[2], /^"?\[P-4\]/);
+  assert.match(lines[2], /,High,test-studio,[a-z0-9-]+,Task$/);
+});
+
+test('jiraCsv falls back to test priority and uses Bug for failed assertions', () => {
+  const { model, listing } = rendererFixture();
+  const f = model.findings.find(x => x.caseId === 'P-3');
+  f.kind = 'failure'; f.severity = 'Not assessed'; f.priority = 'P0';
+  const row = jiraCsv(model, listing).split('\r\n')[1];
+  assert.match(row, /,Highest,test-studio,[a-z0-9-]+,Bug$/);
+});
+
+test('execution log workbook has the four sheets, an autofilter, one row per listed case and a hyperlink cell when evidenceLinks has the case', async () => {
+  const { model, listing } = rendererFixture();
+  const summary = buildSummary(model, listing);
+  const wb = await rdr(await executionLogWorkbook(model, listing, { evidenceLinks: { 'P-3': 'evidence/P-3.html' }, summary }));
+  assert.deepEqual(wb.worksheets.map(w => w.name), ['Summary', 'Results', 'Findings', 'Not executed']);
+  const res = wb.getWorksheet('Results');
+  assert.ok(res.autoFilter);
+  assert.equal(res.views[0].state, 'frozen');
+  assert.equal(res.rowCount, 1 + listing.cases.length);
+  const header = res.getRow(1).values.slice(1);
+  const linkCol = header.length;
+  const p3 = res.getRow(4);
+  assert.equal(p3.getCell(1).value, 'P-3');
+  assert.equal(p3.getCell(linkCol).value.hyperlink, 'evidence/P-3.html');
+  assert.equal(res.getRow(2).getCell(linkCol).value ?? '', '');
+  for (const n of ['Findings', 'Not executed']) { assert.ok(wb.getWorksheet(n).autoFilter); assert.equal(wb.getWorksheet(n).views[0].state, 'frozen'); }
+  const text = JSON.stringify(wb.getWorksheet('Summary').getSheetValues());
+  assert.match(text, /Suggested verdict: /);
+  assert.ok(!/approv(ed|al)/i.test(text.replace(/not an approval/gi, '')));
+});
+
+test('execution log summary shows not-tested counts right under the verdict and the filter note', async () => {
+  const { model } = rendererFixture();
+  model.cases.push({ ...model.cases[0], id: 'P-9', title: 'Never ran', rawStatus: 'NOT EXECUTED', status: 'NOT EXECUTED', executed: false, findingKind: null });
+  model.totalsByClass['not-executed']++;
+  const listing = applyFilter(model, { priorities: ['P1'] });
+  const summary = buildSummary(model, listing);
+  const wb = await rdr(await executionLogWorkbook(model, listing, { summary }));
+  const rows = []; wb.getWorksheet('Summary').eachRow(r => rows.push(r.values.slice(1).join(' | ')));
+  const vi = rows.findIndex(r => r.includes('Suggested verdict: '));
+  assert.ok(vi >= 0);
+  assert.match(rows[vi + 1], /not executed/);
+  assert.ok(rows.some(r => r.includes('Filter')));
+  const ne = wb.getWorksheet('Not executed');
+  assert.equal(ne.getRow(2).getCell(1).value, 'P-9');
+});
+
+test('a title like =HYPERLINK(...) is stored as text', async () => {
+  const { model } = rendererFixture();
+  model.cases[0].title = '=HYPERLINK("http://evil","x")';
+  model.cases[0].owner = '+cmd'; model.cases[0].requirement = '@SUM(1)';
+  model.findings[0].title = '-2+3'; model.findings[0].owner = '=1+1';
+  const listing = applyFilter(model, {});
+  const wb = await rdr(await executionLogWorkbook(model, listing));
+  const cell = wb.getWorksheet('Results').getRow(2).getCell(2);
+  assert.equal(cell.value, `'=HYPERLINK("http://evil","x")`);
+  assert.equal(cell.formula, undefined);
+  for (const sheet of wb.worksheets) sheet.eachRow(r => r.eachCell(cl => {
+    const v = cl.value;
+    if (typeof v === 'string') assert.ok(!/^[=+\-@\t\r]/.test(v), `${sheet.name} ${cl.address}: ${v}`);
+    assert.ok(!(v && typeof v === 'object' && 'formula' in v));
+  }));
+  const dw = await rdr(await defectWorkbook(model, listing));
+  dw.eachSheet(sheet => sheet.eachRow(r => r.eachCell(cl => { if (typeof cl.value === 'string') assert.ok(!/^[=+\-@\t\r]/.test(cl.value)); })));
+});
+
+test('defect workbook splits bugs and needs-review', async () => {
+  const { model, listing } = rendererFixture();
+  const wb = await rdr(await defectWorkbook(model, listing));
+  assert.deepEqual(wb.worksheets.map(w => w.name), ['Bugs', 'Needs review']);
+  const bugs = wb.getWorksheet('Bugs'), review = wb.getWorksheet('Needs review');
+  const h = bugs.getRow(1).values.slice(1);
+  for (const k of ['Steps', 'Expected', 'Actual', 'Mismatches', 'Severity', 'Owner', 'Ticket']) assert.ok(h.includes(k), k);
+  const ids = s => { const o = []; s.eachRow((r, i) => { if (i > 1) o.push(r.getCell(1).value); }); return o; };
+  assert.deepEqual(ids(bugs), ['BUG-P-2', 'BUG-P-3']);
+  assert.deepEqual(ids(review), ['RULE-P-4']);
+  assert.ok(bugs.autoFilter && review.autoFilter);
+});
+
+test('summaryMarkdown starts with the suggested verdict', () => {
+  const { model, listing } = rendererFixture();
+  const md = summaryMarkdown(buildSummary(model, listing));
+  const lines = md.split('\n');
+  assert.match(lines[0], /^\*\*Suggested verdict: /);
+  assert.match(md, /not an approval/);
+  assert.match(md, /Open bugs/i);
+  assert.ok(md.indexOf('Suggested verdict') < md.indexOf('Open bugs'));
+});
