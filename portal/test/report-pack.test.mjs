@@ -5,6 +5,10 @@ import { reportModel } from '../quality.mjs';
 import { redactRun } from '../reports/redact.mjs';
 import { PRESETS, normalizeFilter, applyFilter } from '../reports/filter.mjs';
 import { boot } from './support.mjs';
+import zlib from 'node:zlib';
+import { createHash } from 'node:crypto';
+import { REPORTS, safeSegment, normalizeRequest, packFingerprint, estimatePack, buildPack } from '../reports/pack.mjs';
+import { readZip } from '../zip.mjs';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -568,11 +572,6 @@ test('bugs mode still embeds finding screenshots', { skip: pdfSkip }, async () =
 });
 
 // ---- Task 6: pack builder and estimate ----
-import zlib from 'node:zlib';
-import { createHash } from 'node:crypto';
-import { REPORTS, safeSegment, normalizeRequest, packFingerprint, estimatePack, buildPack } from '../reports/pack.mjs';
-import { readZip } from '../zip.mjs';
-
 const pngChunk = (type, data) => {
   const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
   const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
@@ -586,10 +585,15 @@ const makePng = (w, h, rgb) => {
 };
 const sha = b => createHash('sha256').update(b).digest('hex');
 const ALL_REPORTS = { reports: ['summary', 'bugs', 'log'], filter: {}, evidence: 'findings' };
-const fixedNow = () => new Date('2026-11-14T08:30:00Z');
+const fixedNow = () => new Date(2026, 10, 14, 12, 30, 0); // local noon, so the local date is 2026-11-14 in any time zone
+const tempDir = (t, prefix) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+};
 
-function packFixture(extra = {}) {
-  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-build-'));
+function packFixture(t, extra = {}) {
+  const runDir = tempDir(t, 'pack-build-');
   fs.mkdirSync(path.join(runDir, 'artifacts'));
   let shade = 0;
   const img = (name, file) => { shade += 40; fs.writeFileSync(path.join(runDir, 'artifacts', file), makePng(40, 30, [shade % 256, 90, 200 - (shade % 200)])); return { name, path: `artifacts/${file}`, contentType: 'image/png' }; };
@@ -601,19 +605,30 @@ function packFixture(extra = {}) {
     ], ...extra });
   return { run, runDir };
 }
-const openPack = file => readZip(fs.readFileSync(file));
+// Every entry sits under one root folder; returns entries keyed by their path inside it (root on .root).
+function openPack(file) {
+  const raw = readZip(fs.readFileSync(file)), names = [...raw.keys()];
+  const root = names[0].split('/')[0];
+  for (const n of names) assert.ok(n.startsWith(`${root}/`), `outside the root folder: ${n}`);
+  const zip = new Map(names.map(n => [n.slice(root.length + 1), raw.get(n)]));
+  zip.root = root;
+  return zip;
+}
+const entryCount = file => { const b = fs.readFileSync(file); return b.readUInt16LE(b.length - 12); }; // EOCD record count (no comment)
 const evidenceNames = zip => [...zip.keys()].filter(n => n.startsWith('evidence/'));
 
-test('default pack contains README, selected reports and a manifest whose sha256 values match the files', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async () => {
-  const { run, runDir } = packFixture();
+test('default pack contains README, selected reports and a manifest whose sha256 values match the files', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async t => {
+  const { run, runDir } = packFixture(t);
   const progress = [];
-  const out = await buildPack({ run, runDir, req: ALL_REPORTS, who: 'Tester', now: fixedNow, onProgress: t => progress.push(t) });
+  const out = await buildPack({ run, runDir, req: ALL_REPORTS, who: 'Tester', now: fixedNow, onProgress: s => progress.push(s) });
   assert.equal(path.dirname(out.file), path.join(runDir, 'packs'));
-  assert.match(path.basename(out.file), /^Registration_2026-11-14_run-rp-pk-1x_[0-9a-f]{8}\.zip$/);
+  assert.match(path.basename(out.file), /^registration_2026-11-14_run-rp-pk-1x_[0-9a-f]{8}\.zip$/);
   assert.equal(path.basename(out.file).slice(-12, -4), packFingerprint(run, ALL_REPORTS).slice(0, 8));
   assert.equal(out.size, fs.statSync(out.file).size);
   assert.deepEqual(fs.readdirSync(path.join(runDir, 'packs')), [path.basename(out.file)], 'temp files are cleaned up');
   const zip = openPack(out.file), names = [...zip.keys()];
+  assert.equal(zip.root, 'registration_2026-11-14_run-rp-pk-1x');
+  assert.equal(entryCount(out.file), names.length);
   assert.equal(names[0], '00-README.txt');
   assert.equal(names.at(-1), 'MANIFEST.json');
   for (const k of Object.keys(REPORTS)) for (const f of REPORTS[k].files) assert.ok(names.includes(f), f);
@@ -626,7 +641,7 @@ test('default pack contains README, selected reports and a manifest whose sha256
     assert.equal(f.bytes, data.length, f.path); assert.equal(f.sha256, sha(data), f.path);
   }
   assert.deepEqual(manifest.run, { id: 'rp-pk-1x-abcdef', name: 'Pack', module: 'Registration', environment: 'UAT', status: 'failed' });
-  assert.equal(manifest.generatedAt, '2026-11-14T08:30:00.000Z'); assert.equal(manifest.generatedBy, 'Tester');
+  assert.equal(manifest.generatedAt, fixedNow().toISOString()); assert.equal(manifest.generatedBy, 'Tester');
   assert.deepEqual(manifest.reports, ['summary', 'bugs', 'log']); assert.deepEqual(manifest.filter, {});
   assert.equal(manifest.filterDescription, 'All cases'); assert.equal(manifest.evidence, 'findings');
   assert.equal(manifest.listed, 4); assert.equal(manifest.total, 4); assert.deepEqual(manifest.missingEvidence, []); assert.equal(manifest.modelVersion, 2);
@@ -646,13 +661,13 @@ test('default pack contains README, selected reports and a manifest whose sha256
   const res = wb.getWorksheet('Results');
   let link = null; res.eachRow(r => { if (r.getCell(1).value === 'P-3') link = r.getCell(16).value?.hyperlink; });
   assert.equal(link, 'evidence/P-3/1-step-one.png');
-  assert.ok(names.includes(link));
+  assert.ok(names.includes(link), 'the link resolves from the workbook inside the root folder');
   assert.ok(progress.includes('Building the execution log...'));
   assert.ok(progress.includes('Building the release summary...') && progress.includes('Building the bug report...'));
 });
 
-test('evidence level findings only includes screenshots of listed findings', async () => {
-  const { run, runDir } = packFixture();
+test('evidence level findings only includes screenshots of listed findings', async t => {
+  const { run, runDir } = packFixture(t);
   const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'findings' }, who: 'T', now: fixedNow });
   const zip = openPack(out.file);
   assert.deepEqual(evidenceNames(zip).sort(), ['evidence/P-2/1-final-result.png', 'evidence/P-3/1-step-one.png', 'evidence/P-3/2-step-two.png']);
@@ -662,8 +677,8 @@ test('evidence level findings only includes screenshots of listed findings', asy
   assert.equal(only3.manifest.listed, 2); assert.equal(only3.manifest.total, 4);
 });
 
-test('evidence level none includes no evidence folder', async () => {
-  const { run, runDir } = packFixture();
+test('evidence level none includes no evidence folder', async t => {
+  const { run, runDir } = packFixture(t);
   const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'none' }, who: 'T', now: fixedNow });
   const zip = openPack(out.file);
   assert.deepEqual(evidenceNames(zip), []);
@@ -673,17 +688,23 @@ test('evidence level none includes no evidence folder', async () => {
   wb.getWorksheet('Results').eachRow((r, i) => { if (i > 1) assert.ok(!r.getCell(16).value?.hyperlink); });
 });
 
-test('final level picks the Final result screenshot', async () => {
-  const { run, runDir } = packFixture();
+test('final level keeps every finding screenshot and picks the Final result screenshot for other cases', async t => {
+  const { run, runDir } = packFixture(t);
   const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'final' }, who: 'T', now: fixedNow });
   const zip = openPack(out.file);
-  assert.deepEqual(evidenceNames(zip).sort(), ['evidence/P-1/1-final-result.png', 'evidence/P-2/1-final-result.png', 'evidence/P-3/1-step-two.png']);
+  assert.deepEqual(evidenceNames(zip).sort(), ['evidence/P-1/1-final-result.png', 'evidence/P-2/1-final-result.png', 'evidence/P-3/1-step-one.png', 'evidence/P-3/2-step-two.png']);
   assert.deepEqual(zip.get('evidence/P-1/1-final-result.png')(), fs.readFileSync(path.join(runDir, 'artifacts/p1-b.png')));
+  assert.match(zip.get('00-README.txt')().toString('utf8'), /all screenshots of the listed findings, plus the final screenshot of every other listed case/);
+  run.results[0].attachments[1].name = 'Middle'; // no "Final result": the last image of the passed case
+  const last = await buildPack({ run, runDir, req: { reports: ['log'], filter: { caseIds: ['P-1'] }, evidence: 'final' }, who: 'T', now: fixedNow });
+  const lastZip = openPack(last.file);
+  assert.deepEqual(evidenceNames(lastZip), ['evidence/P-1/1-after-toast.png']);
+  assert.deepEqual(lastZip.get('evidence/P-1/1-after-toast.png')(), fs.readFileSync(path.join(runDir, 'artifacts/p1-c.png')));
   const all = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'all' }, who: 'T', now: fixedNow });
   assert.equal(evidenceNames(openPack(all.file)).length, 6);
 });
 
-test('case ids with ../ and : become safe unique folder names', async () => {
+test('case ids with ../ and : become safe unique folder names', async t => {
   assert.equal(safeSegment('../etc/passwd'), 'etc-passwd');
   assert.equal(safeSegment('C:\\x'), 'C-x');
   assert.equal(safeSegment('...'), 'item');
@@ -694,13 +715,13 @@ test('case ids with ../ and : become safe unique folder names', async () => {
   assert.deepEqual(['a:b', 'a/b', 'A-B', 'a-b'].map(s => safeSegment(s, taken)), ['a-b', 'a-b-2', 'A-B-3', 'a-b-4']);
   assert.equal(safeSegment('y'.repeat(80), taken).length, 60); assert.equal(safeSegment('y'.repeat(80), taken), `${'y'.repeat(58)}-2`);
 
-  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-ids-'));
+  const runDir = tempDir(t, 'pack-ids-');
   fs.mkdirSync(path.join(runDir, 'artifacts'));
   const ids = ['../evil', '..', 'a:b', 'a/b', '.hidden', 'C:\\Windows', 'x'.repeat(100), 'nul', '..\\..\\up'];
   const run = mkRun({ id: 'rp-ids-1', cases: ids.map(id => c(id)), triage: {},
     results: ids.map((id, i) => { fs.writeFileSync(path.join(runDir, 'artifacts', `${i}.png`), makePng(4, 4, [i, i, i])); return { id, status: 'FAIL', expected: 'e', actual: 'a', attachments: [{ name: '../../Final: result', path: `artifacts/${i}.png`, contentType: 'image/png' }] }; }) });
   const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'all' }, who: 'T', now: fixedNow });
-  const zip = openPack(out.file), names = [...zip.keys()];
+  const zip = openPack(out.file), names = [...zip.keys()].map(n => `${zip.root}/${n}`);
   for (const n of names) {
     assert.ok(!n.includes(':') && !n.includes('\\') && !n.startsWith('/'), n);
     assert.ok(!n.split('/').some(s => s === '..' || s === '.' || s.startsWith('.')), n);
@@ -712,9 +733,40 @@ test('case ids with ../ and : become safe unique folder names', async () => {
   assert.ok(evidenceNames(zip).every(n => /\/1-final-result\.png$/.test(n)));
 });
 
-test('a missing screenshot file is listed in manifest.missingEvidence and the pack still builds', async () => {
-  const { run, runDir } = packFixture();
+test('case ids like constructor and __proto__ get their own folders and evidence links', async t => {
+  const runDir = tempDir(t, 'pack-proto-');
+  fs.mkdirSync(path.join(runDir, 'artifacts'));
+  const ids = ['constructor', '__proto__', 'toString', 'hasOwnProperty'];
+  const run = mkRun({ id: 'rp-proto-1', cases: ids.map(id => c(id)), triage: {},
+    results: ids.map((id, i) => { fs.writeFileSync(path.join(runDir, 'artifacts', `${i}.png`), makePng(4, 4, [i, 0, 0])); return { id, status: 'FAIL', expected: 'e', actual: 'a', attachments: [{ name: 'Final result', path: `artifacts/${i}.png`, contentType: 'image/png' }] }; }) });
+  const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence: 'final' }, who: 'T', now: fixedNow });
+  const zip = openPack(out.file);
+  assert.deepEqual(evidenceNames(zip).sort(), ids.map(id => `evidence/${id}/1-final-result.png`).sort());
+  const links = {};
+  (await rdr(zip.get('03-Execution-Log.xlsx')())).getWorksheet('Results').eachRow((r, i) => { if (i > 1) links[`id:${r.getCell(1).value}`] = r.getCell(16).value?.hyperlink; });
+  for (const id of ids) { assert.equal(links[`id:${id}`], `evidence/${id}/1-final-result.png`, id); assert.ok(zip.has(links[`id:${id}`])); }
+});
+
+test('repeated case ids in a run never produce duplicate zip entry names', async t => {
+  const runDir = tempDir(t, 'pack-dup-');
+  fs.mkdirSync(path.join(runDir, 'artifacts'));
+  fs.writeFileSync(path.join(runDir, 'artifacts', 'd.png'), makePng(4, 4, [9, 9, 9]));
+  const run = mkRun({ id: 'rp-dup-1', cases: [c('D-1'), c('D-1'), c('d-1')], triage: {},
+    results: [{ id: 'D-1', status: 'FAIL', expected: 'e', actual: 'a', attachments: [{ name: 'Final result', path: 'artifacts/d.png', contentType: 'image/png' }] },
+      { id: 'd-1', status: 'PASS', expected: 'e', actual: 'e', attachments: [{ name: 'Final result', path: 'artifacts/d.png', contentType: 'image/png' }] }] });
+  for (const evidence of ['findings', 'final', 'all']) {
+    const out = await buildPack({ run, runDir, req: { reports: ['log'], filter: {}, evidence }, who: 'T', now: fixedNow });
+    const paths = out.manifest.files.map(f => f.path);
+    assert.equal(new Set(paths.map(p => p.toLowerCase())).size, paths.length, evidence);
+    assert.equal(entryCount(out.file), paths.length + 1, evidence);
+    assert.equal(paths.filter(p => p.startsWith('evidence/')).length, evidence === 'findings' ? 2 : 3, evidence);
+  }
+});
+
+test('a missing screenshot file is listed in manifest.missingEvidence and the pack still builds', async t => {
+  const { run, runDir } = packFixture(t);
   const outside = path.join(path.dirname(runDir), `outside-${path.basename(runDir)}.png`);
+  t.after(() => fs.rmSync(outside, { force: true }));
   fs.writeFileSync(outside, Buffer.from('OUTSIDE-SECRET-CONTENT'));
   run.results[1].attachments = [{ name: 'Final result', path: 'artifacts/gone.png', contentType: 'image/png' }];
   run.results[2].attachments.push({ name: 'Escape', path: `../${path.basename(outside)}`, contentType: 'image/png' }, { name: 'Absolute', path: outside, contentType: 'image/png' });
@@ -727,11 +779,10 @@ test('a missing screenshot file is listed in manifest.missingEvidence and the pa
   assert.deepEqual(evidenceNames(zip).sort(), ['evidence/P-3/1-step-one.png', 'evidence/P-3/2-step-two.png']);
   for (const [, read] of zip) assert.ok(!read().includes('OUTSIDE-SECRET-CONTENT'));
   assert.match(zip.get('00-README.txt')().toString('utf8'), /3 screenshot file\(s\) could not be included/);
-  fs.unlinkSync(outside);
 });
 
-test('zero matching cases builds a pack whose README says No cases match this filter and whose totals are intact', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async () => {
-  const { run, runDir } = packFixture();
+test('zero matching cases builds a pack whose README says No cases match this filter and whose totals are intact', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async t => {
+  const { run, runDir } = packFixture(t);
   const out = await buildPack({ run, runDir, req: { reports: ['summary', 'log'], filter: { caseIds: ['NOPE'] }, evidence: 'all' }, who: 'T', now: fixedNow });
   const zip = openPack(out.file);
   const readme = zip.get('00-README.txt')().toString('utf8');
@@ -748,13 +799,13 @@ test('zero matching cases builds a pack whose README says No cases match this fi
   assert.match(zip.get('01-Release-Summary.md')().toString('utf8'), /Showing 0 of 4 cases/);
 });
 
-test('estimatePack counts screenshots by level and returns 0 cases for an empty match', () => {
-  const { run, runDir } = packFixture();
+test('estimatePack counts screenshots by level and returns 0 cases for an empty match', t => {
+  const { run, runDir } = packFixture(t);
   const size = f => fs.statSync(path.join(runDir, 'artifacts', f)).size;
   const est = (evidence, extra = {}) => estimatePack(run, { reports: ['log'], filter: {}, evidence, ...extra }, { runDir });
   assert.deepEqual(est('none'), { cases: 4, findings: 2, screenshots: 0, bytes: 0, seconds: 5.04 });
   assert.deepEqual(est('findings'), { cases: 4, findings: 2, screenshots: 3, bytes: size('p2-a.png') + size('p3-a.png') + size('p3-b.png'), seconds: 5.04 });
-  assert.equal(est('final').screenshots, 3); assert.equal(est('final').bytes, size('p1-b.png') + size('p2-a.png') + size('p3-b.png'));
+  assert.equal(est('final').screenshots, 4); assert.equal(est('final').bytes, size('p1-b.png') + size('p2-a.png') + size('p3-a.png') + size('p3-b.png'));
   assert.equal(est('all').screenshots, 6);
   assert.equal(est('none', { reports: ['bugs', 'summary'] }).seconds, 6.54);
   const empty = est('all', { reports: ['bugs'], filter: { caseIds: ['NOPE'] } });
@@ -765,8 +816,17 @@ test('estimatePack counts screenshots by level and returns 0 cases for an empty 
   assert.throws(() => estimatePack(run, { reports: ['log'], filter: {}, evidence: 'most' }, { runDir }), e => e.status === 400);
 });
 
-test('unfinished and authentication runs are rejected', async () => {
-  const { run, runDir } = packFixture();
+test('estimatePack and buildPack reject a pack too large for one ZIP with 413 before writing anything', async t => {
+  const { run, runDir } = packFixture(t);
+  run.results[2].attachments = Array.from({ length: 65000 }, (_, i) => ({ name: `Shot ${i}`, path: 'artifacts/p3-a.png', contentType: 'image/png' }));
+  const req = { reports: ['log'], filter: {}, evidence: 'all' };
+  assert.throws(() => estimatePack(run, req, { runDir }), e => e.status === 413 && /too large/.test(e.message));
+  await assert.rejects(buildPack({ run, runDir, req, who: 'T', now: fixedNow }), e => e.status === 413);
+  assert.ok(!fs.existsSync(path.join(runDir, 'packs')));
+});
+
+test('unfinished and authentication runs are rejected', async t => {
+  const { run, runDir } = packFixture(t);
   const req = { reports: ['log'], filter: {}, evidence: 'none' };
   for (const bad of [{ ...run, status: 'running' }, { ...run, status: 'queued' }, { ...run, kind: 'authentication' }, { ...run, results: [] }]) {
     await assert.rejects(buildPack({ run: bad, runDir, req, who: 'T' }), e => e.status === 409);
@@ -775,12 +835,12 @@ test('unfinished and authentication runs are rejected', async () => {
   assert.ok(!fs.existsSync(path.join(runDir, 'packs')) || fs.readdirSync(path.join(runDir, 'packs')).length === 0);
 });
 
-test('normalizeRequest validates reports, evidence and filter; packFingerprint is stable and request-sensitive', () => {
+test('normalizeRequest validates reports, evidence and filter; packFingerprint is stable and request-sensitive', t => {
   assert.deepEqual(normalizeRequest({ reports: ['log', 'summary', 'log'], filter: { classes: ['failed', 'bogus'], evil: 1 }, evidence: 'final' }), { reports: ['summary', 'log'], filter: { classes: ['failed'] }, evidence: 'final' });
   for (const bad of [null, 'x', [], {}, { reports: [], evidence: 'none' }, { reports: ['log', 'nope'], evidence: 'none' }, { reports: ['constructor'], evidence: 'none' }, { reports: 'log', evidence: 'none' }, { reports: ['log'] }, { reports: ['log'], evidence: 'ALL' }, { reports: ['log'], evidence: 'toString' }]) {
     assert.throws(() => normalizeRequest(bad), e => e.status === 400, JSON.stringify(bad));
   }
-  const { run } = packFixture();
+  const { run } = packFixture(t);
   const a = packFingerprint(run, { reports: ['log', 'bugs'], filter: {}, evidence: 'none' });
   assert.match(a, /^[0-9a-f]{64}$/);
   assert.equal(a, packFingerprint(structuredClone(run), { reports: ['bugs', 'log'], filter: { evil: 1 }, evidence: 'none' }));
@@ -789,8 +849,8 @@ test('normalizeRequest validates reports, evidence and filter; packFingerprint i
   assert.notEqual(a, packFingerprint(changed, { reports: ['log', 'bugs'], filter: {}, evidence: 'none' }));
 });
 
-test('newFailuresOnly uses the previous run document and the summary compares with it', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async () => {
-  const { run, runDir } = packFixture();
+test('newFailuresOnly uses the previous run document and the summary compares with it', { skip: !pdfDeps && 'reportlab/Pillow not installed' }, async t => {
+  const { run, runDir } = packFixture(t);
   const previous = mkRun({ id: 'rp-prev', cases: [c('P-1'), c('P-2'), c('P-3')], results: [{ id: 'P-1', status: 'PASS', attachments: [] }, { id: 'P-2', status: 'FAIL', attachments: [] }, { id: 'P-3', status: 'PASS', attachments: [] }], triage: {} });
   const out = await buildPack({ run, runDir, previous, req: { reports: ['summary', 'log'], filter: { newFailuresOnly: true }, evidence: 'findings' }, who: 'T', now: fixedNow });
   assert.equal(out.manifest.listed, 1);
@@ -802,17 +862,19 @@ test('newFailuresOnly uses the previous run document and the summary compares wi
   assert.equal(estimatePack(run, { reports: ['log'], filter: { newFailuresOnly: true }, evidence: 'findings' }, { runDir, previous }).cases, 1);
 });
 
-test('a 1000-case synthetic run builds with bounded memory', async () => {
-  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-big-'));
+test('a 1000-case synthetic run with 300 MB of evidence builds with bounded memory', async t => {
+  const runDir = tempDir(t, 'pack-big-');
   fs.mkdirSync(path.join(runDir, 'artifacts'));
-  const N = 1000, cases = [], results = [];
+  const N = 1000, SHOT = 300 * 1024, cases = [], results = [];
   for (let i = 0; i < N; i++) {
     const id = `B-${String(i).padStart(4, '0')}`;
-    fs.writeFileSync(path.join(runDir, 'artifacts', `${id}.png`), Buffer.alloc(64 * 1024, i % 251));
+    fs.writeFileSync(path.join(runDir, 'artifacts', `${id}.png`), Buffer.alloc(SHOT, i % 251));
     cases.push(c(id, { title: `Big case ${i} ${'detail '.repeat(20)}` }));
     results.push({ id, status: i % 10 === 0 ? 'FAIL' : 'PASS', expected: 'e'.repeat(200), actual: 'a'.repeat(200), attachments: [{ name: 'Final result', path: `artifacts/${id}.png`, contentType: 'image/png' }] });
   }
   const run = mkRun({ id: 'rp-big-1', cases, results, triage: {} });
+  const bound = 200 * 1024 * 1024;
+  assert.ok(N * SHOT > bound * 1.4, 'the evidence is clearly larger than the memory bound');
   const used = () => { const m = process.memoryUsage(); return m.heapUsed + m.arrayBuffers; };
   const base = used();
   let peak = base;
@@ -822,7 +884,7 @@ test('a 1000-case synthetic run builds with bounded memory', async () => {
     peak = Math.max(peak, used());
     assert.equal(out.manifest.listed, N);
     assert.equal(out.manifest.files.filter(f => f.path.startsWith('evidence/')).length, N);
-    assert.ok(out.size > N * 64 * 1024);
+    assert.ok(out.size > N * SHOT);
   } finally { clearInterval(timer); }
-  assert.ok(peak - base < 200 * 1024 * 1024, `heap growth ${Math.round((peak - base) / 1048576)} MB`);
+  assert.ok(peak - base < bound, `heap growth ${Math.round((peak - base) / 1048576)} MB`);
 });

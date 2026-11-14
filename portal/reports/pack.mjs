@@ -24,7 +24,7 @@ export const REPORTS = {
 export const EVIDENCE = ['none', 'findings', 'final', 'all'];
 const EVIDENCE_TEXT = {
   none: 'no screenshots', findings: 'all screenshots of the listed findings',
-  final: 'the final screenshot of each listed case', all: 'every screenshot of every listed case',
+  final: 'all screenshots of the listed findings, plus the final screenshot of every other listed case', all: 'every screenshot of every listed case',
 };
 const FILE_TEXT = {
   '01-Release-Summary.pdf': 'One-page release summary with the suggested verdict', '01-Release-Summary.md': 'The same summary as Markdown, for chat or email',
@@ -78,25 +78,26 @@ function prepare(run, rawReq, previous) {
 }
 
 const images = attachments => (attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/'));
+// 'final': a listed finding keeps all its screenshots; any other listed case keeps the one named like "Final result", else its last.
 function chooseEvidence(listing, level) {
   if (level === 'none') return [];
   if (level === 'findings') return listing.findings.map(f => ({ id: f.caseId, shots: images(f.attachments) }));
   return listing.cases.map(r => {
     const all = images(r.attachments);
-    if (level === 'all' || !all.length) return { id: r.id, shots: all };
+    if (level === 'all' || r.findingKind || !all.length) return { id: r.id, shots: all };
     return { id: r.id, shots: [all.find(a => /final result/i.test(String(a.name ?? ''))) ?? all.at(-1)] };
   });
 }
 
-// Resolves an attachment path to a regular file inside runDir (after following links), or explains why not.
-function locate(runDir, relative) {
-  if (!runDir || typeof relative !== 'string' || !relative) return { reason: 'file not found' };
-  const root = path.resolve(runDir), target = path.resolve(root, relative);
+// Resolves an attachment path to a regular file inside the run folder (after following links), or explains why not.
+function locate(root, realRoot, relative) {
+  if (!realRoot || typeof relative !== 'string' || !relative) return { reason: 'file not found' };
+  const target = path.resolve(root, relative);
   if (!target.startsWith(root + path.sep)) return { reason: 'outside the run folder' };
   try {
     const stat = fs.statSync(target);
     if (!stat.isFile()) return { reason: 'file not found' };
-    if (!fs.realpathSync(target).startsWith(fs.realpathSync(root) + path.sep)) return { reason: 'outside the run folder' };
+    if (!fs.realpathSync(target).startsWith(realRoot + path.sep)) return { reason: 'outside the run folder' };
     return { file: target, size: stat.size };
   } catch { return { reason: 'file not found' }; }
 }
@@ -106,33 +107,45 @@ const extOf = file => (/\.(png|jpe?g|gif|webp)$/i.exec(String(file ?? ''))?.[0] 
 
 /** The evidence files for a listing: zip entries (streamed from disk), missing ones, and the first entry per case for Excel links. */
 function planEvidence(listing, level, runDir) {
-  const taken = new Set(), folders = new Map(), entries = [], missing = [], links = {};
-  let selected = 0;
+  const taken = new Set(), entries = [], missing = [], links = Object.create(null), located = new Map();
+  const root = runDir ? path.resolve(runDir) : null;
+  let realRoot = null;
+  try { realRoot = root && fs.realpathSync(root); } catch { /* no run folder: every file is missing */ }
+  let selected = 0, bytes = 0;
   for (const { id, shots } of chooseEvidence(listing, level)) {
     if (!shots.length) continue;
-    if (!folders.has(id)) folders.set(id, safeSegment(id, taken));
+    const folder = safeSegment(id, taken); // one folder per listed occurrence, so repeated case ids never share entry names
     shots.forEach((a, i) => {
       selected++;
-      const found = locate(runDir, a.path);
+      if (!located.has(a.path)) located.set(a.path, locate(root, realRoot, a.path));
+      const found = located.get(a.path);
       if (!found.file) { missing.push(`${safeReportText(id)}: ${safeReportText(a.path || a.name || 'screenshot')} (${found.reason})`); return; }
-      const name = `evidence/${folders.get(id)}/${i + 1}-${stageOf(a.name)}${extOf(a.path)}`;
+      const name = `evidence/${folder}/${i + 1}-${stageOf(a.name)}${extOf(a.path)}`;
       entries.push({ name, file: found.file, size: found.size });
+      bytes += found.size;
       links[id] ??= name;
     });
   }
-  return { entries, missing, links, selected };
+  return { entries, missing, links, selected, bytes };
 }
+
+// The zip writer has no zip64: stay under 65,535 entries and 4 GB (reports and headers get a 256 MB margin).
+const checkSize = plan => check(plan.entries.length < 65000 && plan.bytes < 0xF0000000,
+  'This pack is too large for one ZIP file. Choose fewer cases or a lower evidence level.', 413);
 
 const pdfScreenshots = (req, listing) => (req.reports.includes('bugs') ? listing.findings.reduce((n, f) => n + images(f.attachments).length, 0) : 0);
 
-/** A cheap preview of a pack: no rendering, no image reads (file sizes from fs.statSync only). */
+/** A cheap preview of a pack: no rendering, no image reads (file sizes from fs.statSync only).
+ * Throws the same HttpError(413) as buildPack when the pack would be too large for one ZIP. */
 export function estimatePack(run, rawReq, { runDir, previous } = {}) {
   const { req, listing } = prepare(run, rawReq, previous);
   const plan = planEvidence(listing, req.evidence, runDir);
+  checkSize(plan);
   const seconds = 5 + 0.5 * pdfScreenshots(req, listing) + 0.01 * listing.cases.length;
-  return { cases: listing.cases.length, findings: listing.findings.length, screenshots: plan.selected,
-    bytes: plan.entries.reduce((n, e) => n + e.size, 0), seconds: Math.round(seconds * 100) / 100 };
+  return { cases: listing.cases.length, findings: listing.findings.length, screenshots: plan.selected, bytes: plan.bytes, seconds: Math.round(seconds * 100) / 100 };
 }
+
+const localDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const sha256File = file => new Promise((resolve, reject) => {
   const hash = createHash('sha256');
@@ -170,20 +183,20 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
   step('Preparing the report data...');
   const { req, model, prevModel, listing } = prepare(run, rawReq, previous);
   const fingerprint = fingerprintOf(model, req);
-  const generatedAt = now().toISOString(), by = safeReportText(String(who || 'Unknown').replace(/\s+/g, ' ').trim().slice(0, 200));
+  const date = now(), generatedAt = date.toISOString(), by = safeReportText(String(who || 'Unknown').replace(/\s+/g, ' ').trim().slice(0, 200));
   // One summary from the whole run's totals, shared by the summary PDF/Markdown and the execution log.
   const summary = buildSummary(model, listing, prevModel ? { previous: prevModel } : {});
   const narrowed = mode => ({ ...model, cases: listing.cases, findings: listing.findings, report: { mode, filterNote: summary.filterNote }, summary });
   const plan = planEvidence(listing, req.evidence, runDir);
-  // The zip writer has no zip64: stay under 65,535 entries and 4 GB (reports and headers get a 256 MB margin).
-  check(plan.entries.length < 65000 && plan.entries.reduce((n, e) => n + e.size, 0) < 0xF0000000,
-    'This pack is too large for one ZIP file. Choose fewer cases or a lower evidence level.', 413);
+  checkSize(plan);
 
   const packs = path.join(runDir, 'packs');
   fs.mkdirSync(packs, { recursive: true });
   const work = path.join(packs, `.tmp-${randomUUID()}`);
   const temporary = path.join(packs, `.tmp-${randomUUID()}.zip`);
-  const target = path.join(packs, `${safeSegment(model.run.module)}_${generatedAt.slice(0, 10)}_run-${safeSegment(String(model.run.id).slice(0, 8))}_${fingerprint.slice(0, 8)}.zip`);
+  // Every entry sits in one folder named like the ZIP (local date); manifest paths and Excel links are relative to it.
+  const folder = `${safeSegment(safeReportText(run.module?.id ?? model.run.module))}_${localDate(date)}_run-${safeSegment(String(model.run.id).slice(0, 8))}`;
+  const target = path.join(packs, `${folder}_${fingerprint.slice(0, 8)}.zip`);
   fs.mkdirSync(path.join(work, 'data'), { recursive: true });
   try {
     const files = [], sources = new Map();
@@ -219,8 +232,11 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
     add('data/junit.xml', sources.get('data/junit.xml'));
 
     step('Writing checksums...');
-    const manifestFiles = [];
-    for (const e of entries) manifestFiles.push({ path: e.name, bytes: e.size, sha256: await sha256File(e.file) });
+    const manifestFiles = [], digests = new Map(); // a file used by several entries is hashed once
+    for (const e of entries) {
+      if (!digests.has(e.file)) digests.set(e.file, await sha256File(e.file));
+      manifestFiles.push({ path: e.name, bytes: e.size, sha256: digests.get(e.file) });
+    }
     const manifest = { run: { id: model.run.id, name: model.run.name, module: model.run.module, environment: model.run.environment, status: model.run.status },
       generatedAt, generatedBy: by, reports: req.reports, filter: redactRun(req.filter), filterDescription: safeReportText(listing.description),
       evidence: req.evidence, listed: listing.shown, total: listing.total, files: manifestFiles, missingEvidence: plan.missing, modelVersion: model.version };
@@ -228,7 +244,7 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
     add('MANIFEST.json', sources.get('MANIFEST.json'));
 
     step('Writing the ZIP file...');
-    await pipeline(zipStream(entries), fs.createWriteStream(temporary));
+    await pipeline(zipStream(entries.map(e => ({ name: `${folder}/${e.name}`, file: e.file, size: e.size }))), fs.createWriteStream(temporary));
     fs.renameSync(temporary, target);
     step('Done.');
     return { file: target, size: fs.statSync(target).size, manifest };
