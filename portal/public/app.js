@@ -11,6 +11,7 @@ import './handlers/drop.js';
 import './handlers/access.js';
 import './handlers/pipeline.js';
 import './handlers/ai.js';
+import './handlers/health.js';
 import './handlers/help.js';
 
 await start();

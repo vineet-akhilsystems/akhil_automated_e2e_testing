@@ -122,9 +122,10 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     const multi = plan.length > 1;
     const credentials = auth ? credentialsFor(environment) : null;
     const loginEnv = Object.fromEntries(Object.entries(loginSchema(environment?.productId)?.fields ?? {}).map(([key, variable]) => [variable, credentials?.[key] ?? '']));
+    const retries = Math.min(3, Math.max(0, Number.parseInt(options.retries ?? process.env.PORTAL_RETRIES ?? '1', 10) || 0));
     const caseTimeout = String(options.caseTimeoutMs ?? process.env.PORTAL_CASE_TIMEOUT_MS ?? '');
     const log = fs.openSync(path.join(dir, 'runner.log'), 'a');
-    const timing = { workers, shardCount: plan.length, caseTimeoutMs: Number(caseTimeout) || 120000, startedAt: new Date().toISOString(), finishedAt: null,
+    const timing = { workers, retries, shardCount: plan.length, caseTimeoutMs: Number(caseTimeout) || 120000, startedAt: new Date().toISOString(), finishedAt: null,
       shards: plan.map((cases, index) => ({ index, caseIds: cases.map(c => c.id), startedAt: null, finishedAt: null, exitCode: null })) };
     run.timing = summarizeTiming(run, timing); store.saveRun(run);
     const shardDir = i => multi ? path.join(dir, 'shards', String(i)) : dir;
@@ -138,7 +139,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
         CASES_FILE: path.join(sd, 'cases.json'), CASES: '', REG_RUN_ID: run.id, PORTAL_RUN_ID: run.id, PORTAL_MODULE_ID: run.module.id,
         PORTAL_RUN_DIR: sd, PORTAL_RUN_ROOT: dir, PORTAL_SHARD_INDEX: String(i), PORTAL_SHARD_COUNT: String(plan.length),
         PORTAL_REPORT_DIR: path.join(dir, 'report') + tag, PLAYWRIGHT_HTML_OUTPUT_DIR: path.join(dir, 'html') + tag,
-        PORTAL_CASE_TIMEOUT_MS: caseTimeout,
+        PORTAL_CASE_TIMEOUT_MS: caseTimeout, PORTAL_RETRIES: auth ? '0' : String(retries),
         PORTAL_AUTH_RUN: auth ? '1' : '', PAUSE_ON_FAIL: '', SLOWMO: '0', VIDEO: '', FORCE_COLOR: '0' };
     };
     const shardArgs = i => ['node_modules/@playwright/test/cli.js', 'test', '--config=playwright.config.ts',
@@ -192,6 +193,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
       logger?.(`[run ${run.id.slice(0, 8)}] Finished: ${run.status.toUpperCase()} (exit ${code ?? '-'})${counts ? ` | ${counts}` : ''}${run.error ? ` | ${run.error}` : ''}`, run.status === 'passed' ? 'stdout' : 'stderr');
       logger?.(`[run ${run.id.slice(0, 8)}] Full log: ${path.join(dir, 'runner.log')}`);
       fs.closeSync(log); active = null;
+      if (run.kind !== 'authentication') { try { Promise.resolve(options.onFinish?.(run)).catch(() => {}); } catch { /* an alert problem must never affect the queue */ } }
       if (!stopping) setImmediate(pump);
     };
     const settle = (i, code, error) => {

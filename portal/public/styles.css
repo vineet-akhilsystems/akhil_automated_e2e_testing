@@ -433,3 +433,19 @@ button:disabled,button.primary:disabled,button.danger:disabled,a.disabled{opacit
 @media(max-width:1250px){.page-heading:has(+ .module-tabs){height:108px}.page-heading:has(+ .module-tabs) .subtitle{-webkit-line-clamp:2}}
 /* no scroll boxes inside the page: tables flow with the page (wide tables still scroll sideways) */
 .table-scroll{max-height:none}
+
+/* Automation health, run alerts and schedules */
+.health-panel{padding:24px;margin:0 0 24px}.health-panel .panel-heading{padding:0;margin:0 0 4px}.health-panel>p{margin:8px 0 0}.health-panel h2{margin:0;font-size:17px}.health-panel h3{margin:22px 0 8px;font-size:14px}
+.health-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin:16px 0}
+.health-tiles>div{border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.health-tiles strong{font-size:24px;line-height:1.1}.health-tiles small{color:var(--muted)}.health-tiles small.up{color:var(--green)}.health-tiles small.down{color:var(--red)}
+.health-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.health-charts>div{display:flex;flex-direction:column;gap:6px}.spark{width:100%;height:56px}.spark-empty{height:56px;display:flex;align-items:center;color:var(--muted);font-size:13px}
+.health-table{width:100%;border-collapse:collapse;font-size:13px}.health-table th{text-align:left;color:var(--muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--border)}
+.health-table td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.flake-history{display:inline-flex;gap:3px}.fh{width:10px;height:18px;border-radius:3px;background:#d9dce6;display:inline-block}.fh-P{background:var(--green)}.fh-F{background:#e0a02f}.fh-X{background:var(--red)}
+.slow-list{list-style:none;margin:0;padding:0}.slow-list li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.health-panel.compact{padding:16px 24px}.health-panel.compact .health-tiles strong{font-size:20px}
+.alert-panel{padding:24px;margin:24px 0}.alert-panel h2{margin:0 0 6px;font-size:17px}.alert-panel h3{margin:18px 0 8px;font-size:14px}
+.alerts-form,.schedule-form{display:grid;gap:12px;max-width:640px;margin:12px 0}
+.day-picker{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:12px}.day-picker label{display:inline-flex;gap:6px;align-items:center;font-size:13px}

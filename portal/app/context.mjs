@@ -18,6 +18,8 @@ import { acquireLock } from './lock.mjs';
 import { createSessions } from '../services/session.mjs';
 import { createAccess } from '../services/access.mjs';
 import { createMembership } from '../services/membership.mjs';
+import { createNotifications } from '../notifications.mjs';
+import { createSchedules } from '../schedules.mjs';
 
 const now = () => new Date().toISOString();
 
@@ -54,7 +56,8 @@ export function createContext(options = {}) {
   const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? 'tests/modules/registration').split('/')), discoveryRoot: qaRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
-  const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor);
+  // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
+  const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor, { retries: options.retries, workers: options.workers, onFinish: run => notifications.runFinished(run) });
   const { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts } = createSessions({ store, users, token });
   const audit = user => ({ user: user.username, at: now() });
   const { accessFor, authorize, modulePermission, runPermission, enforce, pidOf, DENIED } = createAccess({ store, users, environments });
@@ -234,7 +237,16 @@ export function createContext(options = {}) {
   const sessionsService = { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts };
   const accessService = { accessFor, authorize, modulePermission, runPermission, enforce, pidOf, DENIED };
   const membership = { subjectOf, memberView, record, trail, inModule, parseGrant, parseRole, assertCovers, leadState, modulesWithLead, modulesReachable, keepingLeads, modulesOfScope, scopeAudit, isSelf, grantCap, grantNeed, assertWithinCap, teamMemberships, memberNames, assertTeamAdd, assertTeamManage, recordViaTeam, addMember, syncLegacyMembership, auditLeaderless };
+  const notifications = createNotifications(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
+  // A schedule starts a run of the module's approved, executable automated cases, as the person who created the schedule.
+  const startScheduled = async (schedule, owner) => {
+    const caseIds = store.cases(schedule.moduleId).filter(c => c.mode === 'automated' && c.enabled !== false && (c.reviewStatus ?? 'approved') === 'approved' && c.action !== 'unavailable').map(c => c.id);
+    check(caseIds.length > 0, 'This module has no approved automated cases to run.');
+    check(!store.runs().some(r => r.scheduleId === schedule.id && ['queued', 'running'].includes(r.status)), 'The previous scheduled run is still in progress.');
+    return createRun({ moduleId: schedule.moduleId, environmentId: schedule.environmentId, mode: 'automated', caseIds, name: `${schedule.name} (${new Date().toLocaleDateString()})` }, owner, { scheduleId: schedule.id });
+  };
+  const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
   const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, sendPack };
-  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
+  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, qaRoot, specRoot, helpers };
 }

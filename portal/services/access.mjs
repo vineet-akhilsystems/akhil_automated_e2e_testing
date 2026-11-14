@@ -80,6 +80,7 @@ export function createAccess({ store, users, environments }) {
     if (route === '/api/products' || route === '/api/environments') { authorize(user, route === '/api/products' ? 'product.create' : 'env.write', { platform: true }, acc); return acc; }
     if (route === '/api/directory' || route === '/api/teams') { authorize(user, 'members.manage', {}, acc); return acc; }
     if (/^\/api\/teams\/[\w-]+(\/members(\/[\w-]+)?)?$/.test(route)) { authorize(user, 'members.manage', {}, acc); return acc; } // ownership is checked in the handler
+    if (route === '/api/trends' || /^\/api\/schedules(\/[\w-]+)?$/.test(route)) return acc; // inline: filtered by module access / authorized in routes/health.mjs
     if (route === '/api/audit' || route === '/api/modules' || (route === '/api/runs' && method === 'POST')) return acc; // inline
     if ((m = /^\/api\/memberships\/([\w-]+)$/.exec(route))) {
       const ms = store.membership(m[1]);

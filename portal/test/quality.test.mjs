@@ -15,7 +15,7 @@ test('report separates assertion failures, assumptions, execution errors, blocke
   const statuses = ['PASS', 'FAIL', 'FAIL (assumed requirement)', 'ERROR', 'BLOCKED', 'OBSERVED', 'SKIPPED'];
   const cases = statuses.map((_, i) => c(`REG-${i + 1}`)); cases.push(c('REG-8'));
   const r = run(cases, statuses.map((status, i) => ({ id: cases[i].id, status, expected: 'Expected', actual: 'Actual', attachments: [] })));
-  assert.deepEqual(summarizeRun(r), { total: 8, recorded: 7, passed: 1, failed: 1, assumptions: 1, errors: 1, blocked: 1, observed: 1, skipped: 1, unexecuted: 1 });
+  assert.deepEqual(summarizeRun(r), { total: 8, flaky: 0, recorded: 7, passed: 1, failed: 1, assumptions: 1, errors: 1, blocked: 1, observed: 1, skipped: 1, unexecuted: 1 });
   const model = reportModel(r);
   assert.deepEqual(model.findings.map(f => f.kind), ['failure', 'assumption', 'execution', 'blocked']);
   assert.equal(model.cases[7].status, 'NOT EXECUTED');

@@ -18,7 +18,8 @@ export default defineConfig({
   // The portal parallelises with one process per independent case group (PORTAL_WORKERS) and passes --workers=1 to each;
   // within a process cases stay serial because registration cases share per-run files and the demo backend is slow.
   workers: 1,
-  retries: 0,
+  // The portal sets PORTAL_RETRIES (default 1). A case that fails then passes on retry is reported as flaky, never as a clean pass.
+  retries: Math.max(0, Number(process.env.PORTAL_RETRIES ?? 0) || 0),
   reporter: process.env.PORTAL_AUTH_RUN ? [['dot']] : [['list'], ['html', { open: 'never' }],
     // Registration-only summary/UHID reporter: skipped when the portal runs another module (PORTAL_MODULE_ID); unset keeps `npm run reg:*` behaviour.
     ...(!process.env.PORTAL_MODULE_ID || process.env.PORTAL_MODULE_ID === 'registration' ? [[`./${moduleDir('tests', 'registration')}/results-reporter.ts`] as [string]] : []),

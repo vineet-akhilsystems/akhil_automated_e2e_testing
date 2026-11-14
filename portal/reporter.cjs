@@ -2,6 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = class PortalReporter {
+  // Earlier attempts of a retried test, so a pass-on-retry keeps the evidence of why the first attempt failed.
+  attempts = new Map();
   onTestEnd(test, result) {
     const root = process.env.PORTAL_RUN_DIR;
     if (!root) return;
@@ -17,6 +19,13 @@ module.exports = class PortalReporter {
       name: a.name, path: path.relative(base, a.path).split(path.sep).join('/'), contentType: a.contentType,
     })).filter(a => !a.path.startsWith('../'));
     value.wallMs = result.duration;
+    const earlier = this.attempts.get(test.id) ?? [];
+    earlier.push({ attempt: result.retry + 1, status: value.status, actual: String(value.actual ?? '').slice(0, 400), mismatches: (value.mismatches ?? []).slice(0, 5) });
+    this.attempts.set(test.id, earlier);
+    value.attempts = earlier.length;
+    // Only a PASS that needed a retry is flaky; a case that failed every attempt is a real failure.
+    if (earlier.length > 1) value.attemptHistory = earlier;
+    if (earlier.length > 1 && value.status === 'PASS') value.flaky = true;
     value.startedAt = result.startTime?.toISOString?.();
     if (process.env.PORTAL_SHARD_INDEX !== undefined) value.shard = Number(process.env.PORTAL_SHARD_INDEX);
     value.evidenceWarnings = test.annotations.filter(a => a.type === 'evidence-warning').map(a => a.description);

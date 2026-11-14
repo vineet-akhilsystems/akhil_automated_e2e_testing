@@ -11,11 +11,12 @@ export function classification(result) {
   return ({ FAIL: 'failure', 'FAIL (assumed requirement)': 'assumption', ERROR: 'execution', BLOCKED: 'blocked' })[result?.status] ?? null;
 }
 export function summarizeRun(run) {
-  const counts = { total: run.cases.length, recorded: 0, passed: 0, failed: 0, assumptions: 0, errors: 0, blocked: 0, observed: 0, skipped: 0, unexecuted: 0 };
+  const counts = { total: run.cases.length, flaky: 0, recorded: 0, passed: 0, failed: 0, assumptions: 0, errors: 0, blocked: 0, observed: 0, skipped: 0, unexecuted: 0 };
   for (const c of run.cases) {
     const r = run.results.find(r => r.id === c.id);
     if (!r) { counts.unexecuted++; continue; }
     counts.recorded++;
+    if (r.flaky) counts.flaky++;
     const key = ({ PASS: 'passed', FAIL: 'failed', 'FAIL (assumed requirement)': 'assumptions', ERROR: 'errors', BLOCKED: 'blocked', OBSERVED: 'observed', SKIPPED: 'skipped' })[r.status];
     if (key) counts[key]++;
   }

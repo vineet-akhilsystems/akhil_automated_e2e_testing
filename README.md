@@ -23,6 +23,15 @@ Profiles are shared within the workspace. Developers, BAs and QA can create sepa
 
 Credentials are encrypted with AES-256-GCM in `.portal/environment-settings.json`; the server key is `.portal/environment-settings.key`. Both stay outside reports, run snapshots and source control. Restrict filesystem access to the portal data directory and back up both files together. Encryption does not protect against someone who can read both the server key and settings file. Login recordings and raw worker output are suppressed to prevent password disclosure; login failures give a Settings troubleshooting message. The login adapter supports Augastam's username/password, tenant, facility and role flow. Adding another website URL does not create browser automation for a different product or an SSO/OTP flow.
 
+## Automation health: retries, trends, alerts and schedules
+
+- **Retries and flaky cases.** Automated runs retry a failing case once (`PORTAL_RETRIES`, 0-3, default 1). A case that fails and then passes is recorded as PASS with a **Flaky - passed on attempt 2** badge, and the first attempt's evidence is kept (`attemptHistory`). A case that fails every attempt stays a failure. Retries re-execute the case, so a case that creates data may create it twice; set `PORTAL_RETRIES=0` to switch retries off.
+- **Trends.** Overview (whole product) and each module's Test cases tab show pass rate and duration across the last 30 automated runs, flaky and changed cases with their recent results, and the slowest cases. Flaky means passed on retry, or failed again after recovering two or more times. Changed means one new failure in recent runs (a regression, or one that was fixed). Skipped, observed and blocked cases are not counted; manual and cancelled runs are ignored.
+- **Run alerts.** Settings > Run alerts posts a summary to a Slack/Teams/JSON webhook when an automated run ends (only on failures, errors or flaky cases; after every run; or never). The address is stored on the server and never returned to the browser. A failed delivery is logged and never affects the run.
+- **Scheduled runs.** Settings > Scheduled runs starts a module's approved, executable automated cases at a set time on chosen days, as the person who created the schedule, using a saved login profile. It runs while the portal is running, fires at most once per day and catches up after a restart the same day. The application login session must still be valid; if not, the schedule records "Could not start" with the reason.
+
+See `docs/competitor-gap-checklist.md` for what was compared and what remains.
+
 ## BA workflow
 
 1. Open **Module library**. Use **Add module** for Facility Setup, User Setup or another area of the product. Choose an area, a module name and a case prefix.

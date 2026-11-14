@@ -5,11 +5,13 @@ import { productName } from './workspace.js';
 import { can, isAdmin } from '../permissions.js';
 import { state } from '../state.js';
 import { aiPanelShell, loadAiPanel } from './ai-settings.js';
+import { automationShell, loadAutomationPanels } from './health.js';
 
 export function settingsPage() {
   return heading(`${productName()} configuration`, 'Settings', 'Named application login profiles for developers, BAs and QA.', isAdmin() ?'<button class="primary" data-action="new-environment">'+icon('plus')+' Add login profile</button>' : '')
     + '<div class="info-strip">'+icon('info')+'<div><strong>Shared workspace profiles</strong><p>Give each team member or test role a separate profile. Everyone with workspace access can use these profiles; they are not private user accounts. Passwords are encrypted on the server and never returned to the browser.</p><p>Login for ' + esc(productName()) + ' uses a username and password plus ' + esc(loginFieldsFor(state.productId).map(([, label]) => label.toLowerCase()).join(', ')) + '. Other websites and SSO/OTP flows need a compatible automation adapter.</p></div></div>'
     + environmentsPage(true)
+    + automationShell() + (setTimeout(loadAutomationPanels, 0), '')
     + aiPanelShell() + (setTimeout(loadAiPanel, 0), '')
     + '<div class="panel settings-guide"><h2>Run automation from the UI</h2><ol><li>Add or edit a login profile here.</li><li>Refresh application login and wait for success.</li><li>Open Module library, choose a module with automation connected and Run cases.</li><li>Select Automated browser run, your profile and cases, then Create run.</li><li>Use Test runs to view progress, cancel a run and download results or evidence.</li></ol><a href="#/modules">Open Module library</a></div>';
 }
