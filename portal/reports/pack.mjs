@@ -13,7 +13,7 @@ import { executionLogWorkbook, defectWorkbook } from './xlsx.mjs';
 import { summaryMarkdown, VERDICT_LABEL } from './markdown.mjs';
 import { redactRun } from './redact.mjs';
 import { toJunit } from '../compare.mjs';
-import { generatePdf } from '../pdf-report.mjs';
+import { generatePdf, rendererFingerprint } from '../pdf-report.mjs';
 import { zipStream } from '../zip.mjs';
 
 export const REPORTS = {
@@ -21,6 +21,8 @@ export const REPORTS = {
   bugs: { label: 'Bug report', files: ['02-Bug-Report.pdf', '02-Bugs.xlsx', '02-Bugs-for-Jira.csv'] },
   log: { label: 'Execution log', files: ['03-Execution-Log.xlsx'] },
 };
+/** The pack layout version. Raise it when the files or their content change, so cached packs are rebuilt. */
+export const PACK_FORMAT = 1;
 export const EVIDENCE = ['none', 'findings', 'final', 'all'];
 const EVIDENCE_TEXT = {
   none: 'no screenshots', findings: 'all screenshots of the listed findings',
@@ -56,10 +58,13 @@ export function normalizeRequest(raw) {
   return { reports: Object.keys(REPORTS).filter(k => raw.reports.includes(k)), filter: normalizeFilter(raw.filter), evidence: raw.evidence };
 }
 
-const fingerprintOf = (model, req) => createHash('sha256').update(JSON.stringify(model)).update(JSON.stringify(req)).digest('hex');
-/** Identifies a pack's content: the run's report model plus the normalized request. */
-export function packFingerprint(run, req) {
-  return fingerprintOf(reportModel(run), normalizeRequest(req));
+// Cached by model and renderer: a new pack layout (PACK_FORMAT) or a changed PDF renderer gives a new fingerprint.
+const fingerprintOf = (model, req, { format = PACK_FORMAT, renderer = rendererFingerprint } = {}) => createHash('sha256')
+  .update(JSON.stringify({ format, renderer })).update(JSON.stringify(model)).update(JSON.stringify(req)).digest('hex');
+/** Identifies a pack's content: the pack format, the PDF renderer, the run's report model and the normalized request.
+ * `versions` ({ format, renderer }) overrides the current ones (tests). */
+export function packFingerprint(run, req, versions) {
+  return fingerprintOf(reportModel(run), normalizeRequest(req), versions);
 }
 
 function assertReportable(run) {

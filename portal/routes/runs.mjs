@@ -122,9 +122,15 @@ export default async function handle(ctx, rc) {
           if (resource === 'files' && req.method === 'GET') {
             const runDir = queue.dirFor(id), target = path.resolve(runDir, decodeURIComponent(relative ?? ''));
             check(target.startsWith(runDir + path.sep), 'Invalid artifact path.', 403);
+            // Report packs (job records with server paths, partial .tmp-* files) have their own download route.
+            // Compared case-insensitively: on Windows "PACKS/x" is the same folder.
+            const inPacks = (root, file) => path.relative(root, file).split(path.sep)[0].toLowerCase() === 'packs';
+            check(!inPacks(runDir, target), 'Report packs are downloaded from the run\'s report pack list.', 403);
             check(/\.(png|zip|xlsx|json|md|log|pdf)$/.test(target), 'Unsupported artifact type.', 403);
             check(fs.existsSync(target), 'Artifact not found.', 404);
-            check(fs.realpathSync(target).startsWith(fs.realpathSync(runDir) + path.sep), 'Invalid artifact path.', 403);
+            const realRun = fs.realpathSync(runDir), realTarget = fs.realpathSync(target);
+            check(realTarget.startsWith(realRun + path.sep), 'Invalid artifact path.', 403);
+            check(!inPacks(realRun, realTarget), 'Report packs are downloaded from the run\'s report pack list.', 403);
             return await file(res, target, url.searchParams.has('download'));
           }
         }

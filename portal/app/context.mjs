@@ -61,7 +61,7 @@ export function createContext(options = {}) {
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
   const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor, { retries: options.retries, workers: options.workers, onFinish: run => notifications.runFinished(run) });
-  const reportJobs = createReportJobs({ store, dirFor: queue.dirFor, logger });
+  const reportJobs = createReportJobs({ store, dirFor: queue.dirFor, logger, ...options.reportJobOptions }); // reportJobOptions: test seam (build, maxRunning)
   const { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts } = createSessions({ store, users, token });
   const audit = user => ({ user: user.username, at: now() });
   const { accessFor, authorize, modulePermission, runPermission, enforce, pidOf, DENIED } = createAccess({ store, users, environments });

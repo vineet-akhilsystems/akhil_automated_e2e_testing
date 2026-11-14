@@ -12,9 +12,12 @@ const pending = new Map();
 // a run with no screenshots gets 90 s, a 1,000-screenshot run gets 90 s + 1,000 x 500 ms = 590 s.
 // Measured: a 957-screenshot run (262 cases) renders in about 290 s, so this leaves about 2x headroom.
 export const pdfTimeoutMs = screenshots => 90000 + 500 * Math.max(0, Number(screenshots) || 0);
-// The summary PDF embeds no screenshots, so only it gets the base limit; this takes the EFFECTIVE mode.
-export const pdfScreenshotsFor = (mode, model) => (mode === 'summary' ? 0 : model.evidenceCounts?.totalScreenshots);
-const rendererFingerprint = createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'portal/report_pdf.py'))).digest('hex');
+// The screenshots the renderer can embed, counted from the model's own rows (a narrowed model keeps the whole run's
+// evidenceCounts, so those must not drive its limit). Takes the EFFECTIVE mode: summary embeds none, bugs embeds the
+// listed findings' screenshots, full (and the default report) every listed case's.
+const imageCount = rows => (rows ?? []).reduce((n, r) => n + (r?.attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/')).length, 0);
+export const pdfScreenshotsFor = (mode, model) => (mode === 'summary' ? 0 : imageCount(mode === 'bugs' ? model.findings : model.cases));
+export const rendererFingerprint = createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'portal/report_pdf.py'))).digest('hex');
 const MODES = ['full', 'bugs', 'summary'];
 export function generatePdf(run, runDir, options = {}) {
   check(run.kind !== 'authentication', 'Application login runs do not have bug reports.', 409);

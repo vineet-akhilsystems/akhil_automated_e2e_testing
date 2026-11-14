@@ -25,7 +25,7 @@ export default async function handle(ctx, rc) {
   if (m[2] === 'report-pack' && req.method === 'POST') {
     const body = await readJson(req);
     const request = normalizeRequest(body);
-    const job = reportJobs.start(run, request, rc.user.displayName || rc.user.username);
+    const job = reportJobs.start(run, request, rc.user.displayName || rc.user.username, rc.user.username);
     ctx.helpers.runEvent(rc.user, 'run.report-pack', run, { reports: request.reports, filter: applyFilter(reportModel(run), request.filter).description });
     return json(res, 202, { id: job.id });
   }

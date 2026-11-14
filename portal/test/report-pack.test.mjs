@@ -8,8 +8,9 @@ import { boot, signedIn, makeUser, until } from './support.mjs';
 import { createReportJobs } from '../reports/jobs.mjs';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
-import { REPORTS, safeSegment, normalizeRequest, packFingerprint, estimatePack, buildPack } from '../reports/pack.mjs';
+import { REPORTS, PACK_FORMAT, safeSegment, normalizeRequest, packFingerprint, estimatePack, buildPack } from '../reports/pack.mjs';
 import { readZip } from '../zip.mjs';
+import { generatePdf, pdfTimeoutMs, pdfScreenshotsFor, rendererFingerprint } from '../pdf-report.mjs';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -433,7 +434,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generatePdf, pdfTimeoutMs } from '../pdf-report.mjs';
 
 const pdfScript = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'report_pdf.py');
 const py = process.env.PORTAL_PYTHON ?? 'python';
@@ -901,7 +901,7 @@ async function jobWorld(t, extra = {}) {
   f.store.saveRun(run);
   return { f, admin, run, runDir: f.queue.dirFor('rp-job-run') };
 }
-const finished = (client, runId, id) => until(async () => { const r = await client.request(`/api/runs/${runId}/report-packs/${id}`); return r.value.status !== 'running' ? r.value : null; });
+const finished = (client, runId, id) => until(async () => { const r = await client.request(`/api/runs/${runId}/report-packs/${id}`); return !['running', 'queued'].includes(r.value.status) ? r.value : null; });
 
 test('estimate returns counts and 400 for unknown report or evidence level', async t => {
   const { admin } = await jobWorld(t);
@@ -938,9 +938,10 @@ test('identical concurrent requests return the same job id, and a finished ident
   const { admin } = await jobWorld(t);
   const [a, b] = await Promise.all([1, 2].map(() => admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY)));
   assert.equal(a.value.id, b.value.id);
+  await finished(admin, 'rp-job-run', a.value.id); // one active pack per user and run: a different request waits for this one
   const other = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', { ...LOG_ONLY, evidence: 'none' });
   assert.notEqual(other.value.id, a.value.id);
-  await finished(admin, 'rp-job-run', a.value.id); await finished(admin, 'rp-job-run', other.value.id);
+  await finished(admin, 'rp-job-run', other.value.id);
   assert.equal((await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY)).value.id, a.value.id);
   assert.equal((await admin.request('/api/runs/rp-job-run/report-packs')).value.length, 2);
 });
@@ -1129,24 +1130,35 @@ test('the bugs PDF of a 1000-case run embeds exactly the screenshots of its find
   assert.equal(Number(o.stdout.trim()), findingShots, 'one embedded image per finding screenshot, none for the 100 passing cases that also have files');
 });
 
-test('generatePdf enforces the base time limit only for the effective summary mode', async () => {
+const tempDirSync = t => tempDir(t, 'pack-limit-');
+test('generatePdf bases the time limit on the listed rows\' screenshots and gives the effective summary mode the base limit', async t => {
+  const shots = n => Array.from({ length: n }, (_, i) => ({ name: `s${i}`, path: `artifacts/s${i}.png`, contentType: 'image/png' }));
   const run = pdfRun(), seen = {};
-  const model = { ...reportModel(run), evidenceCounts: { ...reportModel(run).evidenceCounts, totalScreenshots: 2000 } };
+  run.results[0].attachments = shots(30); run.results[1].attachments = shots(2); run.results[2].attachments = shots(5); // P-1 passed, P-2 and P-3 failed
+  const whole = reportModel(run);
+  // The whole run's count must not drive the limit: a narrowed model keeps evidenceCounts from the whole run.
+  const model = { ...whole, evidenceCounts: { ...whole.evidenceCounts, totalScreenshots: 2000 } };
+  const only3 = applyFilter(whole, { caseIds: ['P-3'] }), narrowed = { ...model, cases: only3.cases, findings: only3.findings };
   const saved = process.env.PORTAL_PYTHON;
   process.env.PORTAL_PYTHON = 'no-such-interpreter-for-limit-test'; // spawn fails right after the limit is computed
   try {
-    const limit = async options => { let ms; await assert.rejects(generatePdf(run, tempDirSync(), { model, ...options, onLimit: v => { ms = v; } })); return ms; };
+    const limit = async options => { let ms; await assert.rejects(generatePdf(run, tempDirSync(t), { model, ...options, onLimit: v => { ms = v; } })); return ms; };
     seen.summaryOption = await limit({ mode: 'summary' });
     seen.summaryFromModel = await limit({ model: { ...model, report: { mode: 'summary' } } });
     seen.bugs = await limit({ mode: 'bugs' });
     seen.full = await limit({ mode: 'full' });
+    seen.narrowedBugs = await limit({ mode: 'bugs', model: narrowed });
+    seen.default = await limit({ model: undefined });
   } finally { if (saved === undefined) delete process.env.PORTAL_PYTHON; else process.env.PORTAL_PYTHON = saved; }
   assert.equal(seen.summaryOption, 90000);
   assert.equal(seen.summaryFromModel, 90000);
-  assert.equal(seen.bugs, pdfTimeoutMs(2000));
-  assert.equal(seen.full, pdfTimeoutMs(2000));
+  assert.equal(seen.bugs, pdfTimeoutMs(7), 'the findings\' screenshots');
+  assert.equal(seen.full, pdfTimeoutMs(37), 'every listed case\'s screenshots');
+  assert.equal(seen.narrowedBugs, pdfTimeoutMs(5));
+  assert.equal(seen.default, pdfTimeoutMs(37), 'the default PDF (no mode) is the full report');
+  assert.equal(pdfScreenshotsFor('bugs', narrowed), 5);
+  assert.equal(pdfScreenshotsFor('summary', model), 0);
 });
-const tempDirSync = () => fs.mkdtempSync(path.join(os.tmpdir(), 'pack-limit-'));
 
 // ---- Final fix wave: verdict, filters, new failures, plain-word counts, previous run ----
 import { previousRun } from '../compare.mjs';
@@ -1258,4 +1270,157 @@ test('previousRun only compares runs of the same mode', () => {
   assert.equal(previousRun(runs, runs[4]).id, 'a2');
   assert.equal(previousRun(runs, runs[3]).id, 'm1');
   assert.equal(previousRun(runs, runs[1]), null);
+});
+
+// ---- Final fix wave: build queue, bounded stop, startup cleanup, fingerprint, files route ----
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const BUSY = 'A report pack is already being built for this run. Wait for it to finish.';
+// Jobs whose builds wait until the test releases them (builds[i].resolve()).
+function heldJobs(t, options = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-queue-'));
+  const runs = [mkRun({ id: 'q-run-1' }), mkRun({ id: 'q-run-2' })];
+  const builds = [];
+  const build = ({ run, req, onProgress }) => new Promise((resolve, reject) => {
+    onProgress?.('Building...');
+    builds.push({ runId: run.id, req, resolve: () => resolve({ file: path.join(dir, run.id, 'packs', 'x.zip'), size: 1, manifest: {} }), reject });
+  });
+  const jobs = createReportJobs({ store: { runs: () => runs, run: id => runs.find(r => r.id === id) }, dirFor: id => path.join(dir, id), build, ...options });
+  t.after(async () => { // release every build, including queued ones that start while releasing
+    for (let i = 0; i < 6; i++) { for (const b of builds) b.resolve(); await tick(); }
+    await jobs.stop({ waitMs: 2000 });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  return { jobs, runs, builds, dir };
+}
+const NONE = { ...LOG_ONLY, evidence: 'none' }, ALL = { ...LOG_ONLY, evidence: 'all' };
+
+test('at most two packs build at once; a third waits as queued, is listed, and starts when one finishes', async t => {
+  const { jobs, runs, builds } = heldJobs(t);
+  const a = jobs.start(runs[0], LOG_ONLY, 'Ann', 'ann'), b = jobs.start(runs[0], NONE, 'Bob', 'bob'), c3 = jobs.start(runs[1], ALL, 'Cat', 'cat');
+  await tick();
+  assert.deepEqual([a.status, b.status, c3.status], ['running', 'running', 'queued']);
+  assert.deepEqual(c3.progress, ['Waiting for another report to finish']);
+  assert.equal(builds.length, 2);
+  assert.equal(jobs.list('q-run-2').find(j => j.id === c3.id).status, 'queued');
+  assert.equal(jobs.get('q-run-2', c3.id).status, 'queued');
+  builds[1].resolve();
+  await until(() => c3.status === 'running' && builds.length === 3);
+  assert.equal(jobs.get('q-run-1', b.id).status, 'done');
+  assert.equal(a.status, 'running', 'the first build is still going');
+  assert.equal(builds[2].runId, 'q-run-2');
+  builds[0].resolve(); builds[2].resolve();
+  await until(() => a.status === 'done' && c3.status === 'done');
+});
+
+test('queued builds start in the order they were requested', async t => {
+  const { jobs, runs, builds } = heldJobs(t, { maxRunning: 1 });
+  const order = [jobs.start(runs[0], LOG_ONLY, 'A', 'a'), jobs.start(runs[0], NONE, 'B', 'b'), jobs.start(runs[0], ALL, 'C', 'c')];
+  await tick();
+  assert.deepEqual(order.map(j => j.status), ['running', 'queued', 'queued']);
+  for (let i = 0; i < 3; i++) {
+    await until(() => builds.length === i + 1);
+    assert.equal(builds[i].req.evidence, order[i].request.evidence);
+    builds[i].resolve();
+  }
+  await until(() => order.every(j => j.status === 'done'));
+});
+
+test('two identical requests while the first is still running return the same job id', async t => {
+  const { jobs, runs, builds } = heldJobs(t);
+  const a = jobs.start(runs[0], LOG_ONLY, 'Ann', 'ann');
+  await tick();
+  assert.equal(a.status, 'running');
+  const again = jobs.start(runs[0], structuredClone(LOG_ONLY), 'Ann', 'ann'), other = jobs.start(runs[0], LOG_ONLY, 'Bob', 'bob');
+  assert.equal(again.id, a.id); assert.equal(other.id, a.id);
+  assert.equal(builds.length, 1, 'one build, and nothing was finished to reuse');
+  assert.equal(jobs.list('q-run-1').length, 1);
+});
+
+test('one active pack per user and run: a different request is refused with 409', async t => {
+  const { jobs, runs, builds } = heldJobs(t);
+  const a = jobs.start(runs[0], LOG_ONLY, 'Ann', 'ann');
+  assert.throws(() => jobs.start(runs[0], NONE, 'Ann', 'ann'), e => e.status === 409 && e.message === BUSY);
+  assert.notEqual(jobs.start(runs[1], NONE, 'Ann', 'ann').id, a.id, 'another run is fine');
+  const bob = jobs.start(runs[0], NONE, 'Bob', 'bob');
+  assert.notEqual(bob.id, a.id, 'another user is fine');
+  await tick();
+  // A queued job counts as active too.
+  const queued = jobs.start(runs[0], ALL, 'Cat', 'cat');
+  assert.equal(queued.status, 'queued');
+  assert.throws(() => jobs.start(runs[0], { ...LOG_ONLY, reports: ['bugs'] }, 'Cat', 'cat'), e => e.status === 409);
+  builds[0].resolve();
+  await until(() => a.status === 'done');
+  const next = jobs.start(runs[0], { ...LOG_ONLY, reports: ['summary'] }, 'Ann', 'ann');
+  assert.ok(next.id !== a.id && next.id !== queued.id, 'after it finished the user can build another');
+});
+
+test('stop waits at most the given time for a hung build', async t => {
+  const dir = tempDir(t, 'pack-hung-'), runs = [mkRun({ id: 'h-run' })];
+  const jobs = createReportJobs({ store: { runs: () => runs, run: id => runs.find(r => r.id === id) }, dirFor: id => path.join(dir, id), build: () => new Promise(() => {}) });
+  const job = jobs.start(runs[0], LOG_ONLY, 'T', 't');
+  await tick();
+  assert.equal(job.status, 'running');
+  const started = Date.now();
+  await jobs.stop({ waitMs: 150 });
+  assert.ok(Date.now() - started < 2000, `stop took ${Date.now() - started} ms`);
+  // The abandoned record is still 'running' on disk; the next start turns it into an error.
+  const again = createReportJobs({ store: { runs: () => runs, run: id => runs.find(r => r.id === id) }, dirFor: id => path.join(dir, id) });
+  assert.equal(again.get('h-run', job.id).status, 'error');
+});
+
+test('startup removes partial pack files and work folders, keeps finished packs, and fails queued jobs', t => {
+  const dir = tempDir(t, 'pack-clean-'), packs = path.join(dir, 'r1', 'packs');
+  fs.mkdirSync(path.join(packs, '.tmp-0b1c', 'data'), { recursive: true });
+  fs.writeFileSync(path.join(packs, '.tmp-0b1c', 'data', 'results.json'), '{}');
+  fs.writeFileSync(path.join(packs, '.tmp-9f8e.zip'), 'partial');
+  fs.writeFileSync(path.join(packs, 'registration_2026-11-14_run-r1_abcdef12.zip'), 'zip');
+  fs.writeFileSync(path.join(packs, 'q-1.json'), JSON.stringify({ id: 'q-1', runId: 'r1', status: 'queued', startedAt: '2026-11-14T10:00:00.000Z', finishedAt: null, progress: ['Waiting for another report to finish'], request: LOG_ONLY }));
+  const runs = [{ id: 'r1' }];
+  const jobs = createReportJobs({ store: { runs: () => runs, run: id => runs.find(r => r.id === id) }, dirFor: id => path.join(dir, id) });
+  assert.deepEqual(fs.readdirSync(packs).sort(), ['q-1.json', 'registration_2026-11-14_run-r1_abcdef12.zip']);
+  const job = jobs.get('r1', 'q-1');
+  assert.equal(job.status, 'error'); assert.match(job.error, /restarted/); assert.ok(job.finishedAt);
+});
+
+test('the pack fingerprint covers the pack format and the PDF renderer', t => {
+  const { run } = packFixture(t);
+  const req = { reports: ['log'], filter: {}, evidence: 'none' };
+  const a = packFingerprint(run, req);
+  assert.equal(PACK_FORMAT, 1);
+  assert.match(rendererFingerprint, /^[0-9a-f]{64}$/);
+  assert.equal(a, packFingerprint(structuredClone(run), req));
+  assert.equal(a, packFingerprint(run, req, { format: PACK_FORMAT, renderer: rendererFingerprint }));
+  assert.notEqual(a, packFingerprint(run, req, { format: PACK_FORMAT + 1 }));
+  assert.notEqual(a, packFingerprint(run, req, { renderer: 'another renderer' }));
+});
+
+test('the route answers 409 for a second different pack by the same user while one is building', async t => {
+  const holds = [];
+  const build = ({ onProgress }) => new Promise(resolve => { onProgress('Building...'); holds.push(resolve); });
+  const { admin } = await jobWorld(t, { reportJobOptions: { build } });
+  const a = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY);
+  assert.equal(a.status, 202, JSON.stringify(a.value));
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-pack', 'POST', LOG_ONLY)).value.id, a.value.id);
+  const b = await admin.request('/api/runs/rp-job-run/report-pack', 'POST', NONE);
+  assert.equal(b.status, 409); assert.equal(b.value.error, BUSY);
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-packs')).value.length, 1);
+  await until(() => holds.length === 1);
+  holds[0]({ file: 'gone.zip', size: 0, manifest: {} });
+  assert.equal((await finished(admin, 'rp-job-run', a.value.id)).status, 'done');
+  assert.equal((await admin.request('/api/runs/rp-job-run/report-pack', 'POST', NONE)).status, 202);
+  await until(() => holds.length === 2);
+  holds[1]({ file: 'gone.zip', size: 0, manifest: {} });
+});
+
+test('the run files route never serves anything under packs/', async t => {
+  const { admin, runDir } = await jobWorld(t);
+  fs.mkdirSync(path.join(runDir, 'packs'), { recursive: true }); fs.mkdirSync(path.join(runDir, 'artifacts'), { recursive: true });
+  fs.writeFileSync(path.join(runDir, 'packs', 'job-1.json'), JSON.stringify({ result: { file: 'C:/server/path.zip' } }));
+  fs.writeFileSync(path.join(runDir, 'packs', '.tmp-1.zip'), 'partial');
+  fs.writeFileSync(path.join(runDir, 'artifacts', 'ok.json'), '{}');
+  assert.equal((await admin.request('/api/runs/rp-job-run/files/artifacts/ok.json')).status, 200);
+  for (const p of ['packs/job-1.json', 'packs/.tmp-1.zip', 'packs%2Fjob-1.json', 'artifacts%2F..%2Fpacks%2Fjob-1.json', 'PACKS/job-1.json', './packs/job-1.json']) {
+    const r = await admin.request(`/api/runs/rp-job-run/files/${p}`);
+    assert.ok([403, 404].includes(r.status), `${p}: ${r.status}`);
+  }
 });

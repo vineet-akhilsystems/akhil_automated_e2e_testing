@@ -147,6 +147,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       portal.schedules.begin();
     });
     let closing = false;
-    for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { if (closing) return; closing = true; await portal.close(); process.exit(0); });
+    // close() waits a bounded time for report pack builds; a second Ctrl+C (or SIGTERM) stops at once.
+    for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => {
+      if (closing) { console.log('Stopping now without waiting for work in progress.'); process.exit(1); }
+      closing = true;
+      await portal.close(); process.exit(0);
+    });
   }
 }
