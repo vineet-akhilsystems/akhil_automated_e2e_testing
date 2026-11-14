@@ -6,6 +6,12 @@ export const VERDICT_LABEL = {
   'release-with-known-issues': 'Release with known issues', release: 'Release',
 };
 
+// Plain words for the summarizeRun() count keys.
+const COUNT_LABEL = {
+  total: 'Total cases', recorded: 'Recorded results', passed: 'Passed', failed: 'Failed', assumptions: 'Assumed-rule failures', errors: 'Execution issues',
+  blocked: 'Blocked', observed: 'Observed (not a pass)', skipped: 'Skipped', unexecuted: 'Not executed', flaky: 'Flaky (passed on retry)',
+};
+
 export function summaryMarkdown(summary) {
   const v = summary.verdict, c = summary.counts ?? {};
   const out = [`**Suggested verdict: ${VERDICT_LABEL[v.value] ?? v.value}**`, ''];
@@ -14,7 +20,7 @@ export function summaryMarkdown(summary) {
   out.push('', `Scope: ${t(summary.scope)}`);
   if (summary.filterNote) out.push(`Filter: ${t(summary.filterNote)}`);
   out.push('', '## Counts', '');
-  for (const [k, val] of Object.entries(c)) out.push(`- ${k}: ${val}`);
+  for (const [k, val] of Object.entries(c)) out.push(`- ${COUNT_LABEL[k] ?? t(k)}: ${val}`);
   out.push(`- Pass rate (executed, non-quarantined): ${summary.passRate == null ? 'n/a' : `${summary.passRate}%`}`);
   out.push('', '## Open bugs by severity', '');
   const sev = Object.entries(summary.openBugsBySeverity);

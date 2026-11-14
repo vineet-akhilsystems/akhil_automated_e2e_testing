@@ -24,7 +24,7 @@ export const PACK_PRESETS = {
   custom: { label: 'Custom', hint: 'Choose reports, filters and evidence yourself.', reports: [], filter: {}, evidence: 'findings' },
 };
 
-const LIST_KEYS = ['classes', 'priorities', 'suites', 'requirements', 'severities', 'owners', 'caseIds'];
+const LIST_KEYS = ['classes', 'priorities', 'suites', 'requirements', 'severities', 'owners', 'variants', 'caseIds'];
 // Text boxes take comma or newline separated values; checkbox groups already give arrays.
 const toList = v => (Array.isArray(v) ? v : String(v ?? '').split(/[,\n]/)).map(x => String(x).trim()).filter(Boolean);
 

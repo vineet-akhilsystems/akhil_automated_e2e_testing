@@ -6,7 +6,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { check } from '../registry.mjs';
 import { reportModel, safeReportText, TERMINAL } from '../quality.mjs';
-import { applyFilter, normalizeFilter } from './filter.mjs';
+import { applyFilter, normalizeFilter, isOpenFailure } from './filter.mjs';
 import { buildSummary } from './summary.mjs';
 import { jiraCsv } from './csv.mjs';
 import { executionLogWorkbook, defectWorkbook } from './xlsx.mjs';
@@ -73,9 +73,12 @@ function prepare(run, rawReq, previous) {
   const req = normalizeRequest(rawReq);
   const model = reportModel(run);
   const prevModel = previous ? reportModel(previous) : null;
-  const ctx = req.filter.newFailuresOnly && prevModel ? { previousFailedIds: new Set(prevModel.cases.filter(r => r.findingKind).map(r => r.id)) } : {};
-  return { req, model, prevModel, listing: applyFilter(model, req.filter, ctx) };
+  // Same definition of a failure as the summary comparison (isOpenFailure), so both agree on what is new.
+  const ctx = req.filter.newFailuresOnly && prevModel ? { previousFailedIds: new Set(prevModel.cases.filter(isOpenFailure).map(r => r.id)) } : {};
+  const note = req.filter.newFailuresOnly && !prevModel ? NO_PREVIOUS : undefined;
+  return { req, model, prevModel, note, listing: applyFilter(model, req.filter, ctx) };
 }
+const NO_PREVIOUS = 'No previous run to compare with; every failure counts as new.';
 
 const images = attachments => (attachments ?? []).filter(a => String(a?.contentType ?? '').startsWith('image/'));
 // 'final': a listed finding keeps all its screenshots; any other listed case keeps the one named like "Final result", else its last.
@@ -138,11 +141,11 @@ const pdfScreenshots = (req, listing) => (req.reports.includes('bugs') ? listing
 /** A cheap preview of a pack: no rendering, no image reads (file sizes from fs.statSync only).
  * Throws the same HttpError(413) as buildPack when the pack would be too large for one ZIP. */
 export function estimatePack(run, rawReq, { runDir, previous } = {}) {
-  const { req, listing } = prepare(run, rawReq, previous);
+  const { req, listing, note } = prepare(run, rawReq, previous);
   const plan = planEvidence(listing, req.evidence, runDir);
   checkSize(plan);
   const seconds = 5 + 0.5 * pdfScreenshots(req, listing) + 0.01 * listing.cases.length;
-  return { cases: listing.cases.length, findings: listing.findings.length, screenshots: plan.selected, bytes: plan.bytes, seconds: Math.round(seconds * 100) / 100 };
+  return { cases: listing.cases.length, findings: listing.findings.length, screenshots: plan.selected, bytes: plan.bytes, seconds: Math.round(seconds * 100) / 100, ...(note ? { note } : {}) };
 }
 
 const localDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -152,7 +155,7 @@ const sha256File = file => new Promise((resolve, reject) => {
   fs.createReadStream(file).on('data', chunk => hash.update(chunk)).on('end', () => resolve(hash.digest('hex'))).on('error', reject);
 });
 
-function readme({ model, listing, summary, req, files, plan, who, generatedAt }) {
+function readme({ model, listing, summary, req, files, plan, who, generatedAt, note }) {
   const t = safeReportText, run = model.run;
   const lines = [model.title, '', `Report pack for run "${run.name}" (${run.id})`, `Module: ${run.module}`, `Environment: ${run.environment}`, `Run status: ${run.status}`,
     `Generated: ${generatedAt} by ${who}`, '', 'WHAT IS INSIDE', '', '- 00-README.txt: this file'];
@@ -162,6 +165,7 @@ function readme({ model, listing, summary, req, files, plan, who, generatedAt })
     '- MANIFEST.json: every other file with its size and SHA-256 checksum, written last');
   if (plan.missing.length) lines.push('', `${plan.missing.length} screenshot file(s) could not be included; MANIFEST.json lists them under missingEvidence.`);
   lines.push('', 'FILTER USED', '', `Filter: ${t(listing.description)}`, `Listed: ${listing.shown} of ${listing.total} cases.`);
+  if (note) lines.push(note);
   if (!listing.shown) lines.push('No cases match this filter. The report files list no cases; the totals below still cover the whole run.');
   lines.push('', 'TOTALS (WHOLE RUN, UNFILTERED)', '', `cases: ${model.counts.total}`, ...Object.entries(model.totalsByClass).map(([k, v]) => `${k}: ${v}`));
   lines.push('', `Suggested verdict: ${VERDICT_LABEL[summary.verdict.value] ?? t(summary.verdict.value)}`,
@@ -181,7 +185,7 @@ function readme({ model, listing, summary, req, files, plan, who, generatedAt })
 export async function buildPack({ run, runDir, req: rawReq, who, previous, now = () => new Date(), onProgress }) {
   const step = text => onProgress?.(text);
   step('Preparing the report data...');
-  const { req, model, prevModel, listing } = prepare(run, rawReq, previous);
+  const { req, model, prevModel, listing, note } = prepare(run, rawReq, previous);
   const fingerprint = fingerprintOf(model, req);
   const date = now(), generatedAt = date.toISOString(), by = safeReportText(String(who || 'Unknown').replace(/\s+/g, ' ').trim().slice(0, 200));
   // One summary from the whole run's totals, shared by the summary PDF/Markdown and the execution log.
@@ -220,7 +224,7 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
     step('Adding the run data...');
     put('data/results.json', JSON.stringify(redactRun(run), null, 2));
     put('data/junit.xml', toJunit(run));
-    put('00-README.txt', readme({ model, listing, summary, req, files, plan, who: by, generatedAt }));
+    put('00-README.txt', readme({ model, listing, summary, req, files, plan, who: by, generatedAt, note }));
 
     const entries = [];
     const add = (name, file) => entries.push({ name, file, size: fs.statSync(file).size });

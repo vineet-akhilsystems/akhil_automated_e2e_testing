@@ -1,10 +1,12 @@
 // Pure report-row filtering. Totals are never filtered: callers keep model.counts / totalsByClass as-is.
 const CLASSES = ['failed', 'review', 'execution', 'blocked', 'passed', 'observed', 'skipped', 'not-executed', 'flaky', 'quarantined'];
-const LIST_KEYS = { classes: 'Result', priorities: 'Priority', suites: 'Suite', requirements: 'Requirement', severities: 'Severity', owners: 'Owner', caseIds: 'Cases' };
+const LIST_KEYS = { classes: 'Result', priorities: 'Priority', suites: 'Suite', requirements: 'Requirement', severities: 'Severity', owners: 'Owner', variants: 'Variant', caseIds: 'Cases' };
 const BOOL_KEYS = { assumedOnly: 'Assumed rules only', newFailuresOnly: 'New failures only', missingEvidenceOnly: 'Missing evidence only' };
-const MAX_LIST = 200, MAX_TEXT = 200;
+const MAX_LIST = 200, MAX_TEXT = 200, MAX_ITEM = 200;
 const KIND_CLASS = { failure: 'failed', assumption: 'review', execution: 'execution', blocked: 'blocked' };
 const STATUS_CLASS = { PASS: 'passed', OBSERVED: 'observed', SKIPPED: 'skipped', 'NOT EXECUTED': 'not-executed' };
+// Text dimensions compare case-insensitively against one row field; classes and case ids are exact.
+const TEXT_FIELDS = { priorities: 'priority', suites: 'suite', severities: 'severity', owners: 'owner', variants: 'variant' };
 
 export const PRESETS = {
   bugs: { label: 'Bugs', filter: { classes: ['failed', 'review'] } },
@@ -14,7 +16,14 @@ export const PRESETS = {
   everything: { label: 'Everything', filter: {} },
 };
 
-const strList = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string').map(x => x.trim()).filter(Boolean))].slice(0, MAX_LIST) : [];
+/** An open failure: a failed assertion or an assumed-rule failure that is not quarantined. The summary comparison and newFailuresOnly share it. */
+export const isOpenFailure = row => (row?.findingKind === 'failure' || row?.findingKind === 'assumption') && !row.quarantined;
+
+// Same split as a case's requirement links (quality.mjs requirementsIn): comma, semicolon or newline.
+const requirementIds = value => String(value ?? '').split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+const lower = v => String(v ?? '').toLowerCase();
+
+const strList = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string').map(x => x.trim().slice(0, MAX_ITEM).trim()).filter(Boolean))].slice(0, MAX_LIST) : [];
 
 export function normalizeFilter(raw) {
   const out = {};
@@ -55,21 +64,19 @@ export function applyFilter(model, filter, ctx = {}) {
   const rows = model.cases ?? [];
   const active = Object.keys(f).length > 0;
   if (!active) return { cases: rows, findings: model.findings ?? [], shown: rows.length, total: rows.length, active, description: 'All cases' };
-  const sets = {};
-  for (const k of Object.keys(LIST_KEYS)) if (f[k]) sets[k] = new Set(f[k]);
+  const classes = f.classes && new Set(f.classes), caseIds = f.caseIds && new Set(f.caseIds);
+  const requirements = f.requirements && new Set(f.requirements.map(lower));
+  const textSets = Object.entries(TEXT_FIELDS).filter(([k]) => f[k]).map(([k, field]) => [field, new Set(f[k].map(lower))]);
   const needle = f.text?.toLowerCase();
   const prev = ctx.previousFailedIds;
   const test = row => {
-    if (sets.classes) { const rc = rowClasses(row); if (![...sets.classes].some(c => rc.has(c))) return false; }
-    if (sets.priorities && !sets.priorities.has(row.priority)) return false;
-    if (sets.suites && !sets.suites.has(row.suite)) return false;
-    if (sets.requirements && !sets.requirements.has(row.requirement)) return false;
-    if (sets.severities && !sets.severities.has(row.severity)) return false;
-    if (sets.owners && !sets.owners.has(row.owner)) return false;
-    if (sets.caseIds && !sets.caseIds.has(row.id)) return false;
+    if (classes) { const rc = rowClasses(row); if (![...classes].some(c => rc.has(c))) return false; }
+    for (const [field, set] of textSets) if (!set.has(lower(row[field]))) return false;
+    if (requirements && !requirementIds(row.requirement).some(id => requirements.has(id))) return false;
+    if (caseIds && !caseIds.has(row.id)) return false;
     if (f.mode && row.mode !== f.mode) return false;
     if (f.assumedOnly && !row.assumed) return false;
-    if (f.newFailuresOnly && (!row.findingKind || prev?.has(row.id))) return false;
+    if (f.newFailuresOnly && (!isOpenFailure(row) || prev?.has(row.id))) return false;
     if (f.missingEvidenceOnly && !(row.executed && !row.screenshotCount)) return false;
     if (needle && ![row.id, row.title, row.requirement].some(v => String(v ?? '').toLowerCase().includes(needle))) return false;
     return true;

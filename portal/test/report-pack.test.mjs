@@ -123,10 +123,11 @@ test('text matches id, title and requirement case-insensitively', () => {
   assert.deepEqual(ids(applyFilter(filterModel(), { text: 'req-a-4' })), ['A-4']);
 });
 
-test('newFailuresOnly uses previousFailedIds', () => {
+test('newFailuresOnly uses previousFailedIds and counts only open failed and assumed-rule cases', () => {
+  // A-4 (execution issue) and A-6 (quarantined) are not new failures: same definition as the summary comparison.
   const r = applyFilter(filterModel(), { newFailuresOnly: true }, { previousFailedIds: new Set(['A-2']) });
-  assert.deepEqual(ids(r), ['A-3', 'A-4', 'A-6']);
-  assert.deepEqual(ids(applyFilter(filterModel(), { newFailuresOnly: true })), ['A-2', 'A-3', 'A-4', 'A-6']);
+  assert.deepEqual(ids(r), ['A-3']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { newFailuresOnly: true })), ['A-2', 'A-3']);
 });
 
 test('caseIds restricts to the list', () => {
@@ -1146,3 +1147,115 @@ test('generatePdf enforces the base time limit only for the effective summary mo
   assert.equal(seen.full, pdfTimeoutMs(2000));
 });
 const tempDirSync = () => fs.mkdtempSync(path.join(os.tmpdir(), 'pack-limit-'));
+
+// ---- Final fix wave: verdict, filters, new failures, plain-word counts, previous run ----
+import { previousRun } from '../compare.mjs';
+
+// statuses: one recorded result per entry; notRun: extra cases with no result at all.
+const vModel = (statuses, runStatus = 'failed', notRun = 0) => reportModel({ ...mkRun({ status: runStatus }), triage: {},
+  cases: [...statuses.map((_, i) => c(`V-${i}`)), ...Array.from({ length: notRun }, (_, i) => c(`N-${i}`))],
+  results: statuses.map((s, i) => ({ id: `V-${i}`, status: s, expected: 'e', actual: 'a', attachments: [] })) });
+
+test('a cancelled, interrupted or error run is never a suggested Release', () => {
+  for (const status of ['cancelled', 'interrupted', 'error']) {
+    const v = suggestVerdict(vModel(Array(5).fill('PASS'), status, 995));
+    assert.equal(v.value, 'needs-triage', status);
+    assert.ok(v.reasons.some(r => r.includes(status) && /not every case/i.test(r)), `${status}: ${v.reasons.join(' | ')}`);
+    assert.ok(v.reasons.join(' ').includes('suggestion'));
+  }
+  assert.equal(suggestVerdict(vModel(['PASS'], 'passed')).value, 'release');
+});
+
+test('a run where no counted case was executed needs triage', () => {
+  for (const statuses of [['OBSERVED', 'SKIPPED'], ['SKIPPED'], ['OBSERVED']]) {
+    const v = suggestVerdict(vModel(statuses, 'passed'));
+    assert.equal(v.value, 'needs-triage', statuses.join());
+    assert.ok(v.reasons.some(r => /no case was executed and verified/i.test(r)), v.reasons.join(' | '));
+  }
+  assert.equal(suggestVerdict(vModel([], 'passed', 3)).value, 'needs-triage');
+});
+
+test('a blocking failure in a cancelled run is still Do not release', () => {
+  const m = reportModel({ ...mkRun({ status: 'cancelled' }), cases: [c('V-0')], results: [{ id: 'V-0', status: 'FAIL', expected: 'e', actual: 'a', attachments: [] }], triage: { 'V-0': { severity: 'Critical' } } });
+  assert.equal(suggestVerdict(m).value, 'do-not-release');
+});
+
+test('a Release reason points to cases that were not executed or not verified', () => {
+  const v = suggestVerdict(vModel(['PASS', 'PASS', 'OBSERVED'], 'passed', 2));
+  assert.equal(v.value, 'release');
+  assert.ok(v.reasons.some(r => r.includes('3 cases were not executed or not verified; see Not tested')), v.reasons.join(' | '));
+  const clean = suggestVerdict(vModel(['PASS', 'PASS'], 'passed'));
+  assert.ok(!clean.reasons.some(r => /not executed or not verified/.test(r)));
+});
+
+test('requirement filter matches any id of a multi-id requirement', () => {
+  const m = { cases: [fr('R-1', { requirement: 'REQ-1, REQ-2;REQ-3\nREQ-4' }), fr('R-2', { requirement: 'REQ-30' }), fr('R-3', { requirement: '' })], findings: [] };
+  assert.deepEqual(ids(applyFilter(m, { requirements: ['REQ-3'] })), ['R-1']);
+  assert.deepEqual(ids(applyFilter(m, { requirements: ['req-4', 'REQ-30'] })), ['R-1', 'R-2']);
+  assert.deepEqual(ids(applyFilter(m, { requirements: ['REQ-1, REQ-2'] })), []);
+});
+
+test('text filter dimensions compare case-insensitively', () => {
+  assert.deepEqual(ids(applyFilter(filterModel(), { severities: ['high'] })), ['A-6']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { severities: ['NOT ASSESSED'] })), ['A-2']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { suites: ['rules'] })), ['A-3']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { owners: ['ba'] })), ['A-4']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { priorities: ['p2'] })), ['A-3']);
+});
+
+test('variants filter matches the case variant and is described', () => {
+  const m = { cases: [fr('V-1', { variant: 'Adult' }), fr('V-2', { variant: 'Newborn' }), fr('V-3', { variant: '' })], findings: [] };
+  assert.deepEqual(normalizeFilter({ variants: [' Adult ', 3] }), { variants: ['Adult'] });
+  const r = applyFilter(m, { variants: ['adult', 'NEWBORN'] });
+  assert.deepEqual(ids(r), ['V-1', 'V-2']);
+  assert.equal(r.description, 'Variant: adult, NEWBORN');
+  const model = reportModel({ ...mkRun(), cases: [c('V-1', { registrationType: 'Adult' }), c('V-2')], results: [], triage: {} });
+  assert.deepEqual(ids(applyFilter(model, { variants: ['Adult'] })), ['V-1']);
+});
+
+test('normalizeFilter caps every list item at 200 characters', () => {
+  const huge = 'x'.repeat(10 * 1024 * 1024);
+  const n = normalizeFilter({ suites: [huge], requirements: [huge], owners: [huge], caseIds: [huge], variants: [huge] });
+  for (const k of ['suites', 'requirements', 'owners', 'caseIds', 'variants']) assert.equal(n[k][0].length, 200, k);
+});
+
+test('newFailuresOnly in a pack uses the summary definition of a failure for the previous run', async t => {
+  const { run, runDir } = packFixture(t);
+  // P-3 was an execution issue before and is a failed assertion now: it is a new failure (the summary also counts it).
+  const previous = mkRun({ id: 'rp-prev', cases: [c('P-2'), c('P-3')], results: [{ id: 'P-2', status: 'FAIL', attachments: [] }, { id: 'P-3', status: 'ERROR', attachments: [] }], triage: {} });
+  const req = { reports: ['log'], filter: { newFailuresOnly: true }, evidence: 'none' };
+  assert.equal(estimatePack(run, req, { runDir, previous }).cases, 1);
+  const out = await buildPack({ run, runDir, previous, req, who: 'T', now: fixedNow });
+  const wb = await rdr(openPack(out.file).get('03-Execution-Log.xlsx')());
+  assert.equal(wb.getWorksheet('Results').getRow(2).getCell(1).value, 'P-3');
+  assert.equal(estimatePack(run, req, { runDir, previous }).note, undefined);
+});
+
+test('newFailuresOnly without a previous run says every failure counts as new', async t => {
+  const { run, runDir } = packFixture(t);
+  const req = { reports: ['log'], filter: { newFailuresOnly: true }, evidence: 'none' };
+  const est = estimatePack(run, req, { runDir });
+  assert.equal(est.cases, 2);
+  assert.equal(est.note, 'No previous run to compare with; every failure counts as new.');
+  const out = await buildPack({ run, runDir, req, who: 'T', now: fixedNow });
+  assert.match(openPack(out.file).get('00-README.txt')().toString('utf8'), /No previous run to compare with; every failure counts as new\./);
+  assert.equal(estimatePack(run, { ...req, filter: {} }, { runDir }).note, undefined);
+});
+
+test('Markdown counts use plain words, not internal key names', () => {
+  const { model, listing } = rendererFixture();
+  const md = summaryMarkdown(buildSummary(model, listing));
+  assert.match(md, /- Not executed: \d+/);
+  assert.match(md, /- Assumed-rule failures: 1/);
+  assert.match(md, /- Execution issues: 0/);
+  assert.match(md, /- Total cases: 4/);
+  assert.ok(!/- (unexecuted|assumptions|errors|recorded|total):/.test(md), md);
+});
+
+test('previousRun only compares runs of the same mode', () => {
+  const r = (id, mode, at) => ({ id, kind: 'tests', mode, status: 'failed', module: { id: 'reg' }, environmentId: 'uat', createdAt: at, finishedAt: at });
+  const runs = [r('a1', 'automated', '2026-11-01'), r('m1', 'manual', '2026-11-02'), r('a2', 'automated', '2026-11-03'), r('m2', 'manual', '2026-11-04'), r('a3', 'automated', '2026-11-05')];
+  assert.equal(previousRun(runs, runs[4]).id, 'a2');
+  assert.equal(previousRun(runs, runs[3]).id, 'm1');
+  assert.equal(previousRun(runs, runs[1]), null);
+});

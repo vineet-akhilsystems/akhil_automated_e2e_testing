@@ -3,10 +3,10 @@ import { safeReportText } from './quality.mjs';
 const BAD = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 const state = r => (!r ? 'absent' : r.status === 'PASS' ? 'pass' : BAD.has(r.status) ? 'fail' : 'other');
 
-/** The finished automated run of the same module and environment that ended just before `run`. */
+/** The finished run of the same mode (automated or manual), module and environment that ended just before `run`. */
 export function previousRun(runs, run) {
   const done = new Set(['passed', 'failed', 'error', 'blocked']);
-  return runs.filter(r => r.id !== run.id && r.kind === 'tests' && r.mode === 'automated' && done.has(r.status) && r.module?.id === run.module?.id && r.environmentId === run.environmentId
+  return runs.filter(r => r.id !== run.id && r.kind === 'tests' && r.mode === run.mode && done.has(r.status) && r.module?.id === run.module?.id && r.environmentId === run.environmentId
       && String(r.finishedAt ?? r.createdAt) < String(run.finishedAt ?? run.createdAt))
     .sort((a, b) => String(b.finishedAt ?? b.createdAt).localeCompare(String(a.finishedAt ?? a.createdAt)))[0] ?? null;
 }

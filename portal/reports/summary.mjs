@@ -1,13 +1,18 @@
 // Pure report summary. The verdict is only a suggestion for a human release decision.
+import { isOpenFailure as failing } from './filter.mjs';
+
 export const DEFAULT_CRITERIA = { blockSeverities: ['Critical', 'High'], maxExecutionIssues: 0, requireTriage: true };
 
 const COUNTED = new Set(['PASS', 'FAIL', 'FAIL (assumed requirement)', 'ERROR']);
-const failing = row => (row.findingKind === 'failure' || row.findingKind === 'assumption') && !row.quarantined;
+const UNVERIFIED = new Set(['NOT EXECUTED', 'SKIPPED', 'OBSERVED', 'BLOCKED']);
+// A run that stopped early: its remaining cases were never verified.
+const INCOMPLETE = ['cancelled', 'interrupted', 'error'];
+const counted = row => row.executed && !row.quarantined && COUNTED.has(row.rawStatus);
 
 function passRateOf(model) {
   let passed = 0, denom = 0;
   for (const row of model.cases ?? []) {
-    if (!row.executed || row.quarantined || !COUNTED.has(row.rawStatus)) continue;
+    if (!counted(row)) continue;
     denom++;
     if (row.rawStatus === 'PASS') passed++;
   }
@@ -16,6 +21,7 @@ function passRateOf(model) {
 
 export function suggestVerdict(model, criteria = DEFAULT_CRITERIA) {
   const crit = { ...DEFAULT_CRITERIA, ...criteria };
+  const rows = model.cases ?? [];
   const open = (model.findings ?? []).filter(f => !f.quarantined);
   const failures = open.filter(f => f.kind === 'failure');
   const blocking = failures.filter(f => crit.blockSeverities.includes(f.severity));
@@ -25,12 +31,17 @@ export function suggestVerdict(model, criteria = DEFAULT_CRITERIA) {
   const note = 'This is a suggestion to support a human release decision, not an approval.';
   if (blocking.length) return { value: 'do-not-release', reasons: [`${blocking.length} open failed check(s) at blocking severity (${crit.blockSeverities.join(', ')}): ${blocking.map(f => f.caseId).join(', ')}.`, note] };
   const triageReasons = [];
+  const status = model.run?.status;
+  if (INCOMPLETE.includes(status)) triageReasons.push(`The run ended as ${status}, so not every case was verified. Suggest re-running or reviewing the cases that did not run before any release decision.`);
+  if (!rows.some(counted)) triageReasons.push('No case was executed and verified (no pass, failure, assumed-rule failure or execution issue was recorded), so the results cannot support a release.');
   if (crit.requireTriage && untriaged.length) triageReasons.push(`${untriaged.length} failed check(s) have no severity assessed: ${untriaged.map(f => f.caseId).join(', ')}.`);
   if (execution.length > crit.maxExecutionIssues) triageReasons.push(`${execution.length} case(s) had execution issues (allowed: ${crit.maxExecutionIssues}).`);
   if (blocked.length) triageReasons.push(`${blocked.length} case(s) were blocked.`);
   if (triageReasons.length) return { value: 'needs-triage', reasons: [...triageReasons, note] };
   if (open.length) return { value: 'release-with-known-issues', reasons: [`${open.length} open finding(s) remain, none at blocking severity.`, note] };
-  return { value: 'release', reasons: ['No open findings were recorded in the executed checks.', note] };
+  const unverified = rows.filter(r => !r.executed || UNVERIFIED.has(r.rawStatus) || r.assumed).length;
+  return { value: 'release', reasons: ['No open findings were recorded in the executed checks.',
+    ...(unverified ? [`${unverified} case${unverified === 1 ? ' was' : 's were'} not executed or not verified; see Not tested.`] : []), note] };
 }
 
 export function buildSummary(model, listing, opts = {}) {
@@ -50,10 +61,10 @@ export function buildSummary(model, listing, opts = {}) {
   ].filter(([n]) => n > 0).map(([n, label]) => `${n} case(s) ${label}`);
   let comparison = null;
   if (opts.previous) {
-    const was = new Set(), now = new Set();
+    const was = new Set();
     for (const r of opts.previous.cases ?? []) if (failing(r)) was.add(r.id);
     let newlyFailing = 0;
-    for (const r of rows) if (failing(r)) { now.add(r.id); if (!was.has(r.id)) newlyFailing++; }
+    for (const r of rows) if (failing(r) && !was.has(r.id)) newlyFailing++;
     const passingNow = new Set(rows.filter(r => r.rawStatus === 'PASS').map(r => r.id));
     let fixed = 0;
     for (const id of was) if (passingNow.has(id)) fixed++;
