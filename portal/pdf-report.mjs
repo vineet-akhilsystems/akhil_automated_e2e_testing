@@ -4,6 +4,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { ROOT, HttpError, check } from './registry.mjs';
 import { reportModel, TERMINAL } from './quality.mjs';
+import { buildSummary } from './reports/summary.mjs';
+import { applyFilter } from './reports/filter.mjs';
 
 const pending = new Map();
 // The renderer's time grows with the screenshots it embeds, so the limit does too:
@@ -11,10 +13,15 @@ const pending = new Map();
 // Measured: a 957-screenshot run (262 cases) renders in about 290 s, so this leaves about 2x headroom.
 export const pdfTimeoutMs = screenshots => 90000 + 500 * Math.max(0, Number(screenshots) || 0);
 const rendererFingerprint = createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'portal/report_pdf.py'))).digest('hex');
+const MODES = ['full', 'bugs', 'summary'];
 export function generatePdf(run, runDir, options = {}) {
   check(run.kind !== 'authentication', 'Application login runs do not have bug reports.', 409);
   check(TERMINAL.includes(run.status), 'Finish or close this run before downloading its final report.', 409);
-  const model = options.model ?? reportModel(run), mode = options.mode ?? model.report?.mode;
+  if (options.mode !== undefined) check(MODES.includes(options.mode), 'Unknown report mode.', 400);
+  const base = options.model ?? reportModel(run), mode = options.mode ?? base.report?.mode;
+  check(mode === undefined || MODES.includes(mode), 'Unknown report mode.', 400);
+  const withSummary = mode === 'summary' && !base.summary ? { ...base, summary: buildSummary(base, applyFilter(base, {})) } : base;
+  const model = mode === undefined ? base : { ...withSummary, report: { ...(base.report ?? {}), mode } };
   const prefix = mode ?? 'bug-report';
   const fingerprint = createHash('sha256').update(rendererFingerprint + JSON.stringify({ mode: mode ?? null, name: options.name ?? null }) + JSON.stringify(model)).digest('hex');
   const key = `${runDir}:${fingerprint}`;

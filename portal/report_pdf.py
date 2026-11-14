@@ -529,6 +529,12 @@ def more_note(story, hidden):
         story.append(p(f'...and {hidden} more', 'small'))
 
 
+def short(value, limit):
+    """Clamp free text on the one-page summary; short suffix so the page stays bounded."""
+    value = clean(value)
+    return value if len(value) <= limit else value[:max(0, limit - 4)] + ' ...'
+
+
 def verdict_banner(summary, limit=None):
     """Always worded as a suggestion; a person confirms the release decision."""
     verdict = summary.get('verdict') or {}
@@ -542,7 +548,7 @@ def verdict_banner(summary, limit=None):
     sub = ParagraphStyle('VerdictSub', fontName=FONT, fontSize=8, leading=12, textColor=WHITE, splitLongWords=True)
     cell = [Paragraph(escape(f'Suggested verdict: {label}'), head),
             Paragraph(escape('This is a suggestion only. A person must confirm the release decision.'), sub)]
-    cell += [Paragraph(escape(cut(clean(r), 240)), sub) for r in reasons]
+    cell += [Paragraph(escape(short(r, 200)), sub) for r in reasons]
     banner = Table([[cell]], colWidths=[BODY_WIDTH])
     banner.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), color), ('LEFTPADDING', (0, 0), (-1, -1), 14),
                                 ('RIGHTPADDING', (0, 0), (-1, -1), 14), ('TOPPADDING', (0, 0), (-1, -1), 10), ('BOTTOMPADDING', (0, 0), (-1, -1), 10)]))
@@ -553,46 +559,50 @@ def summary_story(model, pages, limit):
     """One page. Lists are cut to `limit` entries with an '...and N more' line."""
     summary = model.get('summary') or {}
     counts = model['counts']
+    k = 1 if limit >= 3 else 0.5  # tighter text caps when lists are already cut
     note = (model.get('report') or {}).get('filterNote') or summary.get('filterNote')
+    model = {**model, 'title': short(model.get('title', ''), int(120 * k)), 'run': {**model['run'], 'module': short(model['run'].get('module', ''), 60)}}
     story = [Dest('summary', 'Summary', 0, pages), Hero(model), Spacer(1, 10)]
     if note:
-        story.append(p(note, 'small'))
+        story.append(p(short(note, int(300 * k)), 'small'))
     if summary.get('verdict'):
-        story += [verdict_banner(summary, 2), Spacer(1, 6)]
+        story += [verdict_banner(summary, 2 if limit >= 3 else min(limit, 1)), Spacer(1, 6)]
     not_tested = summary.get('notTested') or []
     if not_tested:
         story.append(p('Not tested or not a pass', 'h3t'))
-        story += [p(x, 'small') for x in not_tested[:limit]]
+        story += [p(short(x, 160), 'small') for x in not_tested[:limit]]
         more_note(story, len(not_tested) - limit)
     story += [Spacer(1, 6), metric_grid(counts), Spacer(1, 6)]
     rate = summary.get('passRate')
     story.append(p(f"{counts.get('passed', 0)} of {counts.get('total', 0)} selected cases passed" + (f' (pass rate {rate}% of executed counted cases).' if rate is not None else '.'), 'small'))
     story.append(StackedBar(outcome_segments(counts), f"Outcome of {counts['total']} selected cases"))
     if summary.get('scope'):
-        story.append(p(f"Scope: {summary['scope']}", 'small'))
+        story.append(p('Scope: ' + short(summary['scope'], int(200 * k)), 'small'))
     bugs = summary.get('openBugsBySeverity') or {}
     ordered = [s for s in SEVERITY_ORDER if s in bugs] + sorted(s for s in bugs if s not in SEVERITY_ORDER)
     story.append(p('Open bugs by severity', 'h3t'))
     if ordered:
-        rows = [[p(s, 'small'), p(str(bugs[s]), 'small')] for s in ordered[:limit]]
-        story.append(table(rows, [BODY_WIDTH - 60, 60], compact=True))
+        rows = [[p(short(s, 40), 'small'), p(short(bugs[s], 10), 'small')] for s in ordered[:limit]]
+        if rows:
+            story.append(table(rows, [BODY_WIDTH - 60, 60], compact=True))
         more_note(story, len(ordered) - limit)
     else:
         story.append(p('No open bugs recorded.', 'small'))
     risks = summary.get('risks') or []
     if risks:
         story.append(p('Risks', 'h3t'))
-        story += [p(cut(x, 220), 'small') for x in risks[:limit]]
+        story += [p(short(x, 160), 'small') for x in risks[:limit]]
         more_note(story, len(risks) - limit)
     comparison = summary.get('comparison')
     if comparison:
         prev_rate = comparison.get('passRate')
         story.append(p('Compared with the previous run', 'h3t'))
-        story.append(p(f"Previous pass rate: {'not available' if prev_rate is None else str(prev_rate) + '%'}. Newly failing: {comparison.get('newlyFailing', 0)}. Fixed: {comparison.get('fixed', 0)}.", 'small'))
+        story.append(p(short(f"Previous pass rate: {'not available' if prev_rate is None else str(prev_rate) + '%'}. Newly failing: {comparison.get('newlyFailing', 0)}. Fixed: {comparison.get('fixed', 0)}.", 200), 'small'))
     return story
 
 
 def build_story(model, root, prev, pages, limit=8):
+    # `limit` only applies to summary mode (list truncation); other modes ignore it.
     """prev: page numbers from the previous layout pass (for the index); pages: filled by Dest markers in this pass."""
     run, counts = model['run'], model['counts']
     findings, cases = model.get('findings') or [], model.get('cases') or []
@@ -678,6 +688,8 @@ def build_story(model, root, prev, pages, limit=8):
     scope = run.get('scope')
     if scope:
         story.append(p(f"Scope: {scope['plannedCases']} cases selected from {scope['enabledCases']} enabled ({scope['repositoryCases']} defined). {scope['disabledCases']} disabled cases were outside this run.", 'small'))
+    elif mode == 'bugs':
+        story.append(p('Scope: the findings of the selected cases. The full case count was not captured for this run.', 'small'))
     else:
         story.append(p('Scope: the selected cases listed in the appendix. The full case count was not captured for this run.', 'small'))
     story.append(p(model.get('scopeNote', ''), 'small'))
@@ -768,10 +780,17 @@ def render(model, output, root):
     if (model.get('report') or {}).get('mode') == 'summary':
         # Exactly one page: shrink the lists until the content fits.
         Screenshot.draw_images = False
+        summary = model.get('summary')
+        if not summary or not summary.get('verdict'):
+            raise SystemExit('Summary PDF requires model.summary with a verdict; none was provided.')
+        fits = False
         for limit in (8, 5, 3, 2, 1, 0):
             if build(io.BytesIO(), {}, {}, limit) == 1:
+                fits = True
                 break
         Screenshot.draw_images = True
+        if not fits:
+            raise SystemExit('Summary PDF could not be fitted on one page even with every list cut; not writing a multi-page summary.')
         build(str(output), {}, {}, limit)
         return
     prev = {}

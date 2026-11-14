@@ -511,3 +511,58 @@ test('generatePdf options: mode-prefixed file, summary uses a one-page PDF, defa
   const bugs = await generatePdf(run, runDir, { mode: 'bugs', model: packModel(run, 'bugs') });
   assert.match(path.basename(bugs), /^bugs-/);
 });
+
+// ---- Task 5 fixes: bounded summary, validated mode, loud failures ----
+const pageCount = file => {
+  const o = spawnSync(py, ['-I', '-c', 'import sys, pypdf; print(len(pypdf.PdfReader(sys.argv[1]).pages))', file], { encoding: 'utf8' });
+  assert.equal(o.status, 0, o.stderr);
+  return Number(o.stdout);
+};
+
+test('summary mode is one page even with 2,000-character title, filter note, scope and 300 long lines', { skip: pdfSkip }, () => {
+  const long = 'W'.repeat(60) + ' lorem ipsum '.repeat(160);
+  const model = packModel(pdfRun(), 'summary');
+  model.title = long.slice(0, 2000);
+  model.report.filterNote = long.slice(0, 2000);
+  model.summary.scope = long.slice(0, 2000);
+  model.summary.notTested = Array.from({ length: 300 }, () => long.slice(0, 600));
+  model.summary.risks = Array.from({ length: 300 }, () => long.slice(0, 600));
+  model.summary.verdict.reasons = Array.from({ length: 20 }, () => long.slice(0, 600));
+  model.summary.comparison = { passRate: 50, newlyFailing: 3, fixed: 2 };
+  assert.equal(renderPack(model).pages, 1);
+});
+
+test('summary mode fails loudly when the model has no summary', { skip: pdfSkip }, () => {
+  const model = packModel(pdfRun(), 'summary');
+  delete model.summary;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-nosum-'));
+  const r = spawnSync(py, [pdfScript, '--output', path.join(dir, 'o.pdf'), '--assets-dir', dir], { input: JSON.stringify(model), encoding: 'utf8' });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /requires model\.summary/);
+  assert.ok(!fs.existsSync(path.join(dir, 'o.pdf')));
+});
+
+test('generatePdf mode option: summary without a model is one page, bad modes rejected, option overrides model.report.mode', { skip: pdfSkip }, async () => {
+  const run = pdfRun(), runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-mode-'));
+  const summary = await generatePdf(run, runDir, { mode: 'summary' });
+  assert.match(path.basename(summary), /^summary-/);
+  assert.equal(pageCount(summary), 1);
+  for (const bad of ['../x', 'Summary', '', 'full/../x']) await assert.rejects(async () => generatePdf(run, runDir, { mode: bad }), /Unknown report mode/);
+  const conflicting = packModel(run, 'full');
+  const overridden = await generatePdf(run, runDir, { mode: 'summary', model: conflicting });
+  assert.equal(pageCount(overridden), 1);
+  const noModelBugs = await generatePdf(run, runDir, { mode: 'bugs' });
+  assert.match(path.basename(noModelBugs), /^bugs-/);
+  assert.ok(pageCount(noModelBugs) > 1);
+});
+
+test('bugs mode still embeds finding screenshots', { skip: pdfSkip }, async () => {
+  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-shot-'));
+  fs.mkdirSync(path.join(runDir, 'artifacts'));
+  const draw = 'import sys\nfrom PIL import Image, ImageDraw\nim = Image.new("RGB", (1600, 900), "white"); g = ImageDraw.Draw(im)\nfor y in range(0, 900, 40): g.rectangle((40, y, 1500, y + 18), fill=(40, 60, 120))\nim.save(sys.argv[1] + "/artifacts/s.png")';
+  assert.equal(spawnSync(py, ['-I', '-c', draw, runDir], { encoding: 'utf8' }).status, 0);
+  const run = pdfRun();
+  run.results[2].attachments = [{ name: 's.png', path: 'artifacts/s.png', contentType: 'image/png' }];
+  const file = await generatePdf(run, runDir, { mode: 'bugs' });
+  assert.ok((fs.readFileSync(file).toString('latin1').match(/\/Subtype \/Image/g) ?? []).length >= 1);
+});
