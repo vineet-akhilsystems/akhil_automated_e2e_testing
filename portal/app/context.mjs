@@ -54,7 +54,8 @@ export function createContext(options = {}) {
   // Startup housekeeping (never blocks the server): fingerprint older uploads, then re-queue extractions left 'pending' by a restart.
   setImmediate(() => { intake.backfill().catch(() => {}).then(() => intake.resume()).catch(() => {}); });
   const jobs = new Map();
-  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? 'tests/modules/registration').split('/')), discoveryRoot: qaRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
+  const knowledgeRoot = path.resolve(options.knowledgeRoot ?? ROOT);
+  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, knowledgeRootDir: knowledgeRoot, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? 'tests/modules/registration').split('/')), discoveryRoot: qaRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
@@ -252,6 +253,6 @@ export function createContext(options = {}) {
   const tickets = createTickets(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
   const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
-  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
+  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, qaRoot, specRoot, helpers };
 }

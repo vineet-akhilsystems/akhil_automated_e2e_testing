@@ -38,6 +38,22 @@ Credentials are encrypted with AES-256-GCM in `.portal/environment-settings.json
 
 See `docs/competitor-gap-checklist.md` for what was compared and what remains.
 
+## Senior-tester agent: tester knowledge, risk-first drafting and a reviewer pass
+
+When the coding agent analyses a module's files it no longer works from the documents alone. It is briefed as a senior tester and given a **tester knowledge pack**: plain markdown that a person keeps up to date.
+
+| File | What it holds | Who edits it |
+|---|---|---|
+| `qa/knowledge/mindset.md` | How an experienced tester thinks (risk first, boundaries, state, persistence, pairs, silent failures). Shared by every module. | Administrator |
+| `qa/knowledge/domain/<product>.md` | Domain practice for the product (patient identity, minors, billing, consent, audit, roles). **`augastam.md` is a draft** for a senior tester to correct. Falls back to `domain/default.md`. | Administrator |
+| `qa/knowledge/modules/<module>.md` | Lessons for one module: defect patterns found, confirmed rules, what is undefined, ranked risks. `registration.md` is built from `rules.md` and the 11 confirmed bug reports. | Module lead (Module > **Tester knowledge** tab) |
+
+- **Guidance, not requirements.** A fact that rests only on these notes is marked `basis: experience`, its automated expectation is forced to `assumed: true`, and the draft says a business analyst must confirm it. Uploaded files stay the only source of confirmed rules. If notes and files disagree, the files win and the disagreement goes to open questions.
+- **Risk first.** Before writing cases the agent lists 5-12 ranked risks (impact, likelihood, what covers each). Every case says which risk it covers. The Review queue shows the risk, whether it is confirmed by a source file or tester experience, and the reviewer's note; the Intake tab shows the risks table.
+- **Reviewer pass.** After the draft, a second agent run reviews it like a senior reviewer (duplicates, vague expected results, missing reopen-and-verify checks, missing valid partner cases, guessed expectations, priorities, gaps). The portal applies the review in code: it can improve cases, drop at most half, and add at most 8; every case still lands as a draft that a person approves. If the reviewer fails or is switched off the first draft is kept. Turn it off per analysis with the checkbox on the Intake tab, or globally with `AGENT_CRITIC=0`. It uses extra AI allowance.
+- **Budget.** The pack is capped (mindset 6k, domain 8k, module 8k characters) so the brief stays small.
+- The next step that is not built yet is the learning loop: turning rejected cases and real defects from run results into lessons automatically. Today a lead adds lessons by hand.
+
 ## BA workflow
 
 1. Open **Module library**. Use **Add module** for Facility Setup, User Setup or another area of the product. Choose an area, a module name and a case prefix.

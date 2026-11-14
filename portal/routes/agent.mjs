@@ -37,7 +37,7 @@ export default async function handle(ctx, rc) {
             const body = await readJson(req);
             check(body.kind !== 'automation' || acc.module(module).has('case.review'), 'Only a tester or administrator can ask for an automation proposal.', 403);
             if (body.kind === 'automation') automationGate();
-            const job = await agent.start({ module, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', fileIds: Array.isArray(body.fileIds) ? body.fileIds.slice(0, 500) : undefined, force: body.force === true, user });
+            const job = await agent.start({ module, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', fileIds: Array.isArray(body.fileIds) ? body.fileIds.slice(0, 500) : undefined, force: body.force === true, critic: body.critic !== false, user });
             inModule(user, 'agent.start', mid, { jobId: job.id, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', ...(body.force === true ? { force: true } : {}) });
             return json(res, 202, { id: job.id });
           }

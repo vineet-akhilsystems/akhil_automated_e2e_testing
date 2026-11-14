@@ -10,6 +10,7 @@ import { accessPage, loadMembers, membersPage } from './pages/members.js';
 import { modulesPage, overviewPage } from './pages/modules.js';
 import { afterRoute, loadPipeline } from './pages/pipeline.js';
 import { reviewPage } from './pages/review.js';
+import { knowledgePage, loadKnowledge } from './pages/knowledge.js';
 import { runDetailPage, runsPage } from './pages/runs.js';
 import { environmentsPage, researchPage, settingsPage } from './pages/settings.js';
 import { sharedPage } from './pages/shared.js';
@@ -22,7 +23,7 @@ import { currentModule, state } from './state.js';
 
 
 export const notFoundPage = () => `${heading('Not found', 'We could not find that page', 'The address may be wrong, or the item may have been deleted.')}<div class="panel">${empty('Nothing here', 'Check the address, or go back to the Module library to find what you need.', '<a class="button-link" href="#/modules">Open Module library</a>')}</div>`;
-const MODULE_TABS = [undefined, '', 'cases', 'intake', 'review', 'ai', 'coverage', 'members'];
+const MODULE_TABS = [undefined, '', 'cases', 'intake', 'review', 'ai', 'knowledge', 'coverage', 'members'];
 
 export async function renderRoute() {
   if (!state.data) return;
@@ -41,6 +42,7 @@ export async function renderRoute() {
 async function loadRouteData(generation) {
   if (state.route[0] === 'modules' && state.route[1]) state.cases = await api(`/api/modules/${state.route[1]}/cases`);
   if (state.route[0] === 'modules' && state.route[2] === 'coverage' && state.data.capabilities?.coverage) state.coverage = await api(`/api/modules/${state.route[1]}/coverage?environmentId=${encodeURIComponent(state.coverageEnvironment ?? state.data.environments[0]?.id ?? '')}`);
+  if (state.route[0] === 'modules' && state.route[2] === 'knowledge') await loadKnowledge(state.route[1]);
   if (state.route[0] === 'runs' && state.route[1]) state.runDetail = await api(`/api/runs/${state.route[1]}`);
   if (state.route[0] === 'modules' && state.route[2] === 'intake') await loadIntake(state.route[1]);
   if (state.route[0] === 'modules' && (state.route[2] === 'intake' || state.route[2] === 'review')) loadAgent(state.route[1]);
@@ -60,6 +62,7 @@ export function renderPage() {
            : sub === 'ai' ? aiStudioPage()
            : sub === 'intake' ? intakePage()
            : sub === 'review' ? reviewPage()
+           : sub === 'knowledge' ? knowledgePage()
            : sub === 'members' ? membersPage()
            : MODULE_TABS.includes(sub) ? casesPage()
            : notFoundPage();

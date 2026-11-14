@@ -1355,8 +1355,8 @@
     "referenceLines": [
       "3. `reference/`: the production Registration module (fields.ts, registration.page.ts, case-runner.ts, cases.spec.ts, workflow-runner.ts). Copy its conventions, helper imports (tests/fixtures/*), environment variables and result shape."
     ],
-    "registrationBriefSha256": "d614075530b99d3671d680373b5b0f968e53925978082c154c5e7640cdf52757",
-    "billingBriefSha256": "002671f9259dbaad13ef90fa9741df1b09f7199c63921c3cf376d46bf0c5e0eb",
+    "registrationBriefSha256": "c78682a91801e4d7cae7c10bb299084583619d97ad52004ee59da75f52e66862",
+    "billingBriefSha256": "b918d6ba2c540a3b336299c1c1af1c372e471e7a1f0a48aabd76b73f447f11d0",
     "registrationAutomationBriefSha256": "ec8a1307f375c80648fb2d15db7184fa22af3497bac93c9658e9a36276ab3c67",
     "readinessRegistrationEmpty": {
       "stages": [

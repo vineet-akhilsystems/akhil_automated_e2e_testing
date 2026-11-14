@@ -455,3 +455,10 @@ button:disabled,button.primary:disabled,button.danger:disabled,a.disabled{opacit
 .copy-box{width:100%;font-size:12px;margin-top:6px}.run-insight details{margin:6px 0}.run-insight summary{cursor:pointer;padding:4px 0}
 
 [data-tk][hidden]{display:none !important}
+
+/* Tester knowledge, risks and reviewer notes */
+.knowledge-layer,.knowledge-used{padding:24px;margin:0 0 24px}.knowledge-layer h2,.knowledge-used h2{margin:0 0 4px;font-size:17px}.knowledge-layer .panel-heading{padding:0;margin:0 0 12px}
+.knowledge-text{width:100%;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;border:1px solid var(--border);border-radius:10px;padding:14px;resize:vertical;background:#fff;color:inherit;margin-bottom:10px}
+.knowledge-text[readonly]{background:#f7f8fc}
+.case-context{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+.agent-critic{display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:13px}.check-line{display:flex;gap:8px;align-items:center;font-size:13px}

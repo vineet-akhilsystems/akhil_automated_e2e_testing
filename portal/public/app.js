@@ -12,6 +12,7 @@ import './handlers/access.js';
 import './handlers/pipeline.js';
 import './handlers/ai.js';
 import './handlers/health.js';
+import './handlers/knowledge.js';
 import './handlers/help.js';
 
 await start();

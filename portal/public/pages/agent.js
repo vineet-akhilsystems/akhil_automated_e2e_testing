@@ -44,6 +44,7 @@ export async function openAgentJob(moduleId, kind, jobId) {
 export async function startAgent(kind, force = false) {
   const m = currentModule(), body = { agent: agentChoice(), kind };
   if (force) body.force = true;
+  if (kind === 'analyze') body.critic = state.agentCritic !== false;
   if (kind === 'analyze') { const ids = [...state.intakeSel ?? []].filter(id => state.intake?.files?.some(f => f.id === id)); if (ids.length) body.fileIds = ids; }
   let r;
   try { r = await api(`/api/modules/${m.id}/agent/jobs`, 'POST', body); }
@@ -111,6 +112,7 @@ function agentPanelInner(m, kind) {
       : !st ? '<div class="tiny muted" role="status">Checking which agents are installed…</div>'
       : `<fieldset class="agent-picker"><legend class="visually-hidden">Choose the coding agent</legend>${agents.map(a => `<label class="agent-card ${a.id === choice ? 'active' : ''} ${a.available ? '' : 'off'}"><input type="radio" name="agent-${kind}" value="${esc(a.id)}" data-agent-pick data-fid="pick-${esc(a.id)}" ${a.id === choice ? 'checked' : ''} ${a.available && !running ? '' : 'disabled'}><span><strong>${esc(a.label || agentName(a.id))}</strong><span class="tiny ${a.available ? 'agent-ok' : 'muted'}">${a.available ? `Available${a.version ? ` · ${esc(a.version)}` : ''}` : 'Not installed'}${a.note ? ` · ${esc(a.note)}` : ''}</span></span></label>`).join('') || '<span class="tiny muted">No coding agents were reported by the server.</span>'}</fieldset>`)
     + (!auto && canGo && nFiles ? `<div class="tiny muted">${nSel ? `${nSel} ticked file${nSel === 1 ? '' : 's'} will be analyzed.` : 'All files in this module will be analyzed. Tick files in the table above to choose only some.'}</div>` : '')
+    + (!auto && canGo ? `<label class="check-line agent-critic"><input type="checkbox" data-agent-critic ${state.agentCritic === false ? '' : 'checked'}> Include a reviewer pass: a second agent checks the draft like a senior reviewer (takes longer and uses more of your AI allowance)</label>` : '')
     + `<div class="flex agent-actions">${canGo ? `<button class="primary" type="button" data-action="agent-start" data-kind="${kind}" data-fid="start" ${!choice || running || reason ? 'disabled' : ''}>${icon('sparkle')} ${running ? 'Running…' : esc(label)}</button>` : `<span class="tiny muted">You can watch but not start jobs.</span>`}${canGo && running ? `<button type="button" data-action="agent-cancel" data-kind="${kind}" data-fid="cancel">Cancel</button>` : ''}${canGo && reason ? `<span class="tiny muted">${esc(reason)}</span>` : ''}</div>`
     + (gate ? gate.html : '')
     + (info ? `<div class="info-strip agent-info" role="status">${icon('info')}<div><strong>Nothing new to analyse</strong><p>${esc(info)}</p></div>${canGo ? `<button type="button" class="small" data-action="agent-force" data-kind="${kind}" data-fid="force">Run anyway</button>` : ''}</div>` : '')

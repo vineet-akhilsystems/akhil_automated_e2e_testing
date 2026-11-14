@@ -6,6 +6,8 @@ import { check, HttpError, adapters, ROOT } from './registry.mjs';
 import { pluginFor, plugins } from './modules/index.mjs';
 import { classifySource } from './readiness.mjs';
 import { createAiPolicy, friendlyModel, tokensOf } from './ai-policy.mjs';
+import { loadKnowledge, knowledgeSection } from './knowledge.mjs';
+import { critiqueInstructions, applyCritique } from './critique.mjs';
 
 // Runs the user's own coding agent CLI (Claude Code or Codex) inside a locked-down workspace folder.
 // The agent never gets portal credentials or network access to the portal. It reads files we place in
@@ -40,10 +42,12 @@ const safeName = s => String(s).replace(/[^\w.-]+/g, '_').replace(/^\.+/, '').sl
 const MAX_FILE_CHARS = 300_000, MAX_LOG = 400, MAX_OUTPUT = 2 * 1024 * 1024;
 
 const MANUAL_CASE_SCHEMA = `{ "title": "string", "category": "suite or feature", "priority": "P0|P1|P2|P3", "preconditions": "string", "requirement": "id or short ref", "source": "file name",
-              "mode": "manual", "steps": [{ "action": "what the tester does", "expected": "what should happen" }] }`;
+              "mode": "manual", "risk": "the risk this case covers, in a few words", "basis": "source (a file in input/ confirms the expectation) or experience (tester judgment only)",
+              "steps": [{ "action": "what the tester does", "expected": "what should happen" }] }`;
 
 const SCHEMA = `{
   "summary": "string - what this module does, in plain words (3-8 sentences)",
+  "risks": [{ "risk": "what could go wrong and who is harmed", "impact": "high|medium|low", "likelihood": "high|medium|low", "coverage": "which cases cover it, or why it is not covered", "source": "file name or 'tester experience'" }],
   "fields": [{ "name": "string", "type": "text|number|date|select|boolean|...", "required": true, "description": "string", "source": "file name" }],
   "rules": [{ "text": "a business rule or validation", "source": "file name" }],
   "flows": [{ "name": "string", "steps": ["step 1", "step 2"], "source": "file name" }],
@@ -55,7 +59,7 @@ const SCHEMA = `{
 const RESTART_MESSAGE = 'The portal restarted while this job was running. Retry it.';
 
 const AUTOMATED_CASE_SCHEMA = `{ "title": "string", "category": "suite or feature", "priority": "P0|P1|P2|P3", "source": "file name",
-              "mode": "automated", "action": "one key of input/adapter-schema.json actions", "base": "optional key of adapter-schema.json bases", "registrationType": "optional entry of variants",
+              "mode": "automated", "risk": "the risk this case covers", "basis": "source or experience", "action": "one key of input/adapter-schema.json actions", "base": "optional key of adapter-schema.json bases", "registrationType": "optional entry of variants",
               "input": { "<field key from adapter-schema.json fields>": "text or boolean" },
               "expected": { "outcome": "one of adapter-schema.json outcomes", "values": {}, "fieldErrors": {}, "toastContains": "optional", "assumed": true },
               "steps": [{ "action": "what the tester does", "expected": "what should happen" }] }`;
@@ -98,7 +102,7 @@ input/previous-insights.json holds the insights saved as version ${version}. Eve
 - Sources marked "unchanged" need re-reading only to check a contradiction.
 `;
 
-export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion, skippedUnchanged = false }) {
+export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion, skippedUnchanged = false, knowledge = null }) {
   const common = `# Test Studio agent brief
 
 You are helping a QA team build automated tests for the **${module.name}** module (${module.area}) of Augastam EMR.
@@ -110,7 +114,7 @@ You are running inside a sandbox folder. Work ONLY inside it. You have no intern
 - Do not write passwords, tokens or personal data into your output. Use synthetic data only (names like Agent / Testing / User{{seqWord}}, phones like {{phone}}).
 - Keep wording short and plain. The readers are business analysts.
 - Videos and images have no real extracted text (see input/MANIFEST.json). Entries with "extract": "partial" are video keyframe indexes only: there is no transcript, so never derive rules or expected results from the text index.${hasVisuals ? ' Use only what is visible in their listed images (see the section on screenshots below).' : ' The visuals were NOT interpreted.'} Say what is missing in openQuestions and ask for a transcript.
-${kind === 'analyze' && hasVisuals ? VISUALS : ''}`;
+${kind === 'analyze' && hasVisuals ? VISUALS : ''}${kind === 'analyze' ? knowledgeSection(knowledge) : ''}`;
   if (kind === 'automation') return `${common}
 ## Your task: build the module automation adapter (a proposal; nothing is installed or run)
 You are an expert Playwright TypeScript engineer writing the automation package for the **${module.name}** (\`${module.id}\`) module.
@@ -145,7 +149,7 @@ Use only those file names, flat (no sub-folders). Do not claim anything was run;
 When done, reply with one short sentence.
 `;
   const schema = hasAdapterSchema ? `{
-  "summary": "string", "fields": [...], "rules": [...], "flows": [...], "edgeCases": [...], "openQuestions": [...],
+  "summary": "string", "risks": [...], "fields": [...], "rules": [...], "flows": [...], "edgeCases": [...], "openQuestions": [...],
   "suggestedSetup": { "moduleUrl": "optional page path such as /billing", "variants": ["optional tab or variant labels"] },
   "cases": [ manual case or automated case, see below ]
 }
@@ -168,7 +172,7 @@ ${schema}
 
 ${hasPrevious ? `\n## ${mergeSection(previousVersion ?? 1)}${skippedUnchanged ? '- To save time and cost the text and images of "unchanged" sources are NOT included (their manifest entry says "omitted"). Treat the previous insights as the record of what they say; do not guess beyond it.\n' : ''}\n` : ''}A lead confirms "suggestedSetup" later; it is never applied automatically, so leave it out when the material does not say.
 
-Derive roughly 15-40 high-value cases across these buckets (prefer fewer good cases over many shallow ones, and say so in openQuestions if the material cannot support more):
+${knowledge?.text ? `Think like the senior tester described above. Decide the RISKS first: write 5-12 ranked entries in "risks" (what could go wrong, who is harmed, impact, likelihood, which cases cover it, or why it is not covered). Then write cases for the highest risks. Every case needs "risk" (which risk it covers) and "basis" ("source" when a file in input/ confirms the expectation, "experience" when it comes from tester judgment or the notes above). Cases with basis "experience" must be honest about it in their steps and, when automated, carry "assumed": true.\n\n` : ''}Derive roughly 15-40 high-value cases across these buckets (prefer fewer good cases over many shallow ones, and say so in openQuestions if the material cannot support more):
 1. Happy path and persistence (P0): valid creation, values persisted after reopen.
 2. Mandatory fields and whitespace bypass (P1): empty and whitespace-only values on required fields.
 3. Boundary values and format validation (P1/P2): min-1, min, max, max+1 lengths, invalid prefixes, stripped characters versus inline errors.
@@ -200,9 +204,11 @@ export function copyDiscovery(src, dest, moduleId) {
   return files > 0;
 }
 
-export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir, { db: store.db }) }) {
+export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, knowledgeRootDir = ROOT, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir, { db: store.db }) }) {
   const root = path.join(dataDir, 'agent');
   const jobs = new Map();
+  // Not persisted with the job: the knowledge text used for it, and the model plan, so the reviewer pass can reuse them.
+  const packs = new Map(), plans = new Map();
   let detected = null, detectedAt = 0, closed = false;
   const timers = new Map();
   // Jobs are kept in sqlite so history survives restarts. Log lines are saved shortly after they appear (debounced).
@@ -349,7 +355,9 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
       }
       hasDiscovery = copyDiscovery(path.join(discoveryRoot, String(module.id), 'discovery'), path.join(ws, 'input', 'discovery'), module.id);
     }
-    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged) });
+    const pack = kind === 'analyze' ? loadKnowledge({ root: knowledgeRootDir, module }) : null;
+    if (pack) { packs.set(job.id, { ...pack, hasAdapterSchema }); job.knowledge = pack.files; if (job.stats) job.stats.knowledgeChars = pack.chars; }
+    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged), knowledge: pack });
     for (const f of ['INSTRUCTIONS.md', 'CLAUDE.md', 'AGENTS.md']) fs.writeFileSync(path.join(ws, f), brief);
     fs.writeFileSync(path.join(ws, 'input', 'MANIFEST.json'), JSON.stringify(manifest, null, 1));
     fs.writeFileSync(path.join(ws, 'mcp-none.json'), '{"mcpServers":{}}');
@@ -367,6 +375,51 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     return out;
   }
 
+  // Reviewer pass: a second agent run over the draft, applied deterministically (see critique.mjs).
+  // Any problem here leaves the original draft untouched: the reviewer can only make the result better, never block it.
+  async function reviewDraft(job, ws, body) {
+    job.reviewer = { ran: false };
+    if (!Array.isArray(body?.cases) || !body.cases.length) return body;
+    const pack = packs.get(job.id), plan = plans.get(job.id) ?? {}, def = AGENTS[job.agent];
+    try {
+      job.message = 'A reviewer is checking the draft cases'; push(job, 'Draft written. Starting the reviewer pass.'); persist(job);
+      const brief = critiqueInstructions({ module: store.module(job.moduleId), knowledge: knowledgeSection(pack), hasAdapterSchema: Boolean(pack?.hasAdapterSchema) });
+      for (const f of ['INSTRUCTIONS.md', 'CLAUDE.md', 'AGENTS.md']) fs.writeFileSync(path.join(ws, f), brief);
+      fs.copyFileSync(path.join(ws, 'output', 'insights.json'), path.join(ws, 'output', 'insights.draft.json'));
+      const reviewPlan = { ...plan, ...(plan.maxTurns ? { maxTurns: Math.min(plan.maxTurns, 24) } : {}) };
+      const scratch = {};
+      const code = await new Promise(resolve => {
+        const child = spawn(def.bin, shellArgs(def.args(ws, job.images ?? [], reviewPlan)), { cwd: ws, env: agentEnv(env), shell: process.platform === 'win32', windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+        job.child = child;
+        child.stdin.on('error', () => {}); child.stdin.end('Read INSTRUCTIONS.md in this folder and do the task it describes. Write output/review.json.');
+        const read = (stream, map) => { let buf = ''; stream.setEncoding('utf8'); stream.on('data', c => { buf += c; let i; while ((i = buf.indexOf('\n')) >= 0) { map(buf.slice(0, i)); buf = buf.slice(i + 1); } }); stream.on('end', () => buf && map(buf)); };
+        read(child.stdout, l => { if (job.agent === 'claude') captureUsage(scratch, l); push(job, job.agent === 'claude' ? describeClaude(l) : l); });
+        read(child.stderr, l => push(job, l));
+        const timer = setTimeout(() => { scratch.timedOut = true; child.kill(); }, Math.max(60_000, Math.floor(timeoutMs / 2)));
+        let settled = false;
+        const end = c => { if (settled) return; settled = true; clearTimeout(timer); resolve(c); };
+        child.on('error', () => end(-1)); child.on('exit', c => end(c ?? -1));
+      });
+      job.child = null;
+      if (job.status === 'cancelled') return body;
+      if (scratch.usage && job.usage) {
+        job.usage = { ...job.usage, inputTokens: (job.usage.inputTokens ?? 0) + (scratch.usage.inputTokens ?? 0), outputTokens: (job.usage.outputTokens ?? 0) + (scratch.usage.outputTokens ?? 0),
+          costUsd: job.usage.costUsd == null && scratch.usage.costUsd == null ? null : (job.usage.costUsd ?? 0) + (scratch.usage.costUsd ?? 0), turns: (job.usage.turns ?? 0) + (scratch.usage.turns ?? 0) };
+      }
+      const file = path.join(ws, 'output', 'review.json');
+      if (code !== 0 || !fs.existsSync(file) || fs.statSync(file).size > MAX_OUTPUT) { job.reviewer = { ran: false, note: scratch.timedOut ? 'The reviewer pass took too long and was skipped.' : 'The reviewer pass did not finish, so the first draft was kept.' }; return body; }
+      const applied = applyCritique(body, JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')));
+      if (applied.skipped) { job.reviewer = { ran: false, note: applied.skipped }; return body; }
+      job.reviewer = { ran: true, stats: applied.stats, summary: applied.body.critic.summary };
+      push(job, `Reviewer: kept ${applied.stats.kept}, improved ${applied.stats.improved}, dropped ${applied.stats.dropped}, added ${applied.stats.added}${applied.stats.dropGuard ? ' (it asked to drop too many cases, so none were dropped)' : ''}.`);
+      return applied.body;
+    } catch (e) {
+      job.child = null; job.reviewer = { ran: false, note: 'The reviewer pass failed, so the first draft was kept.' };
+      push(job, `Reviewer pass skipped: ${String(e.message ?? e).slice(0, 160)}`);
+      return body;
+    }
+  }
+
   async function finish(job, ws, kind, user, code) {
     try {
       if (job.status === 'cancelled' || job.status === 'interrupted') return;
@@ -377,10 +430,11 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
         check(fs.existsSync(file), 'The agent finished without writing output/insights.json.');
         check(fs.statSync(file).size <= MAX_OUTPUT, 'The agent output is too large.');
         // Agents on Windows (PowerShell's Set-Content -Encoding UTF8) can prefix the file with a byte-order mark, which JSON.parse rejects.
-        const body = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+        let body = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+        if (job.critic !== false) { body = await reviewDraft(job, ws, body); if (job.status === 'cancelled') return; }
         const saved = ingest({ store, module: store.module(job.moduleId), body, user, mode: `agent:${job.agent}`, coveredFileIds: job.coveredFileIds });
         job.result = { insightId: saved.id, version: saved.version, draftCases: saved.draftCases, automatedDrafts: saved.automatedDrafts ?? 0, skipped: saved.skipped, duplicates: saved.duplicates };
-        job.status = 'done'; job.message = `Done. ${saved.draftCases} draft case(s) are waiting in the Review queue.`;
+        job.status = 'done'; job.message = `Done. ${saved.draftCases} draft case(s) are waiting in the Review queue.${job.reviewer?.ran ? ` A reviewer pass improved ${job.reviewer.stats.improved}, dropped ${job.reviewer.stats.dropped} and added ${job.reviewer.stats.added}.` : job.reviewer?.note ? ` ${job.reviewer.note}` : ''}`;
       } else {
         const files = listOutput(path.join(ws, 'output', 'automation'));
         check(files.length > 0, 'The agent finished without writing any files to output/automation/.');
@@ -421,7 +475,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     for (const j of jobs.values()) if (j.status === 'running' && Date.now() - Date.parse(j.startedAt) > timeoutMs + 120_000) { j.status = 'error'; j.message = 'This job stopped responding and was released.'; j.finishedAt = new Date().toISOString(); j.child?.kill(); persist(j); }
   }
 
-  async function start({ module, agent, kind = 'analyze', fileIds, user, force = false, retryOf }) {
+  async function start({ module, agent, kind = 'analyze', fileIds, user, force = false, retryOf, critic = true }) {
     check(Object.hasOwn(AGENTS, agent), 'Choose Claude Code or Codex.');
     check(['analyze', 'automation'].includes(kind), 'Unknown agent task.');
     releaseStale();
@@ -431,7 +485,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     const st = (await status()).agents.find(a => a.id === agent);
     check(st?.available, `${AGENTS[agent].label} is not installed on the portal server.`, 409);
     precheck(module, kind, fileIds, force);
-    const job = { id: randomUUID(), moduleId: module.id, kind, agent, status: 'running', startedAt: new Date().toISOString(), finishedAt: null, message: 'Preparing the workspace', createdBy: user.username, log: [], result: null, child: null, fileIds: fileIds?.length ? fileIds.map(String) : null, ...(retryOf ? { retryOf } : {}) };
+    const job = { id: randomUUID(), moduleId: module.id, kind, agent, status: 'running', startedAt: new Date().toISOString(), finishedAt: null, message: 'Preparing the workspace', createdBy: user.username, log: [], result: null, child: null, fileIds: fileIds?.length ? fileIds.map(String) : null, ...(retryOf ? { retryOf } : {}), ...(kind === 'analyze' ? { critic: critic !== false && env.AGENT_CRITIC !== '0' } : {}) };
     jobs.set(job.id, job); persist(job);
     // Return at once; preparing the workspace and the agent run continue in the background and report through the job.
     (async () => {
@@ -454,6 +508,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     const def = AGENTS[agent];
     // Model and step limit for THIS job, chosen from the preset and the real input size (see ai-policy.mjs).
     const plan = policy.route(kind, job.stats ?? {}, agent);
+    plans.set(job.id, plan);
     job.plan = { preset: plan.presetLabel, model: plan.model ? friendlyModel(plan.model) : 'Default', maxTurns: plan.maxTurns, why: plan.why };
     push(job, `Plan: ${plan.presetLabel} - ${job.plan.model}, up to ${plan.maxTurns} steps. ${plan.why}`);
     const child = spawn(def.bin, shellArgs(def.args(ws, job.images ?? [], plan)), { cwd: ws, env: agentEnv(env), shell: process.platform === 'win32', windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -492,7 +547,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     async retry({ module, id, user }) {
       const j = load(id); check(j && j.moduleId === module.id, 'Agent job not found.', 404);
       check(['interrupted', 'error'].includes(j.status), 'Only an interrupted or failed job can be retried.', 409);
-      return start({ module, agent: j.agent, kind: j.kind, fileIds: j.fileIds ?? undefined, user, force: true, retryOf: j.id });
+      return start({ module, agent: j.agent, kind: j.kind, fileIds: j.fileIds ?? undefined, user, force: true, retryOf: j.id, critic: j.critic !== false });
     },
     file(moduleId, id, rel) {
       const j = load(id); check(j && j.moduleId === moduleId && j.kind === 'automation' && j.result?.files && j.workspace, 'No proposal files for this job.', 404);

@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { risksPanel } from './knowledge.js';
 import { downloadLink, extractBadge, humanKey, kindInfo, normPct } from '../components/badges.js';
 import { $, badge, date, esc, formatBytes, icon } from '../components/dom.js';
 import { empty, heading, toast } from '../components/widgets.js';
@@ -50,7 +51,7 @@ function insightsPanel(m) {
   return `<section class="panel spaced-panel insights-panel" aria-labelledby="insights-title"><div class="panel-heading"><div><h2 id="insights-title">Insights${insightsVersion(d, meta)}</h2><span class="tiny muted">Created ${date(when)}${meta?.status && meta.status !== 'done' && meta.status !== 'ok' ? ` · ${esc(meta.status)}` : ''}</span></div><div class="flex">${badge(agentMode ? `Written by coding agent (${/codex/i.test(mode) ? 'codex' : /claude/i.test(mode) ? 'claude' : 'unknown'})` : mode === 'llm' ? 'Written by AI' : mode === 'assistant' ? 'Written by your assistant' : mode === 'heuristic' ? 'Rule-based (no AI)' : 'Unknown method', mode === 'llm' || mode === 'assistant' || agentMode ? 'purple' : 'orange')}</div></div>`
     + (mode === 'heuristic' ? '<div class="warning insights-warning">These insights came from fixed rules, not an AI model, because no AI key is set on the server. They are a starting point. Read them with care and expect gaps.</div>' : mode === 'llm' || mode === 'assistant' || agentMode ? '<div class="info-strip insights-note">' + icon('sparkle') + '<div><strong>Written by an AI model from your files</strong><p>Check the points against the source files before you rely on them.</p></div></div>' : '')
     + (!d ? '<div class="empty"><p>The insights text could not be loaded. Try again in a moment.</p></div>' : `<div class="insights-body"><div class="insight-block"><h3>Summary</h3><p>${esc(d.summary || 'No summary was produced.')}</p></div>${sections.map(([title, key]) => { const items = Array.isArray(d[key]) ? d[key] : []; return `<details class="insight-block" ${items.length && key !== 'sources' ? 'open' : ''}><summary><h3>${title}</h3><span class="count">${items.length}</span></summary>${items.length ? `<ul class="insight-list">${items.map(insightItem).join('')}</ul>` : '<p class="tiny muted">Nothing found.</p>'}</details>`; }).join('')}${historyHtml(m)}</div>`)
-    + '</section>';
+    + (d ? `<div class="insights-body">${risksPanel(d)}</div>` : '') + '</section>';
 }
 export function intakePage() {
   const m = currentModule();

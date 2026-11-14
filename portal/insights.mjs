@@ -154,14 +154,17 @@ export function buildDraftCases({ module, existingCases, specs, user, insightId,
   const at = new Date().toISOString();
   fresh.forEach((s, i) => {
     const common = { id: ids[i], title: s.title, category: s.category, priority: s.priority, preconditions: s.preconditions ?? '', requirement: s.requirement ?? '',
+      ...(s.risk ? { risk: s.risk } : {}), ...(s.basis ? { basis: s.basis } : {}), ...(s.reviewNote ? { reviewNote: s.reviewNote } : {}),
       reviewStatus: 'draft', origin: { type: 'intake', insightId, mode, source: s.source ?? '' }, createdBy: { user: user.username, at } };
-    const note = kind => `Draft from module intake (${mode}). Source: ${s.source || 'intake files'}. ${kind}`;
+    const note = kind => `Draft from module intake (${mode}). Source: ${s.source || 'intake files'}. ${s.basis === 'experience' ? 'Based on tester experience, not a source document: confirm the rule with the BA before approving. ' : ''}${kind}`;
     // An AI-written update may only target a record another case creates ({{name@CASE-ID}}), never a literal (real) patient id.
     const badTarget = s.target !== undefined && s.target !== '' && !TARGET_REF.test(String(s.target).trim());
     if (badTarget) fellBack++;
     if (!badTarget && module.adapter && typeof s.action === 'string' && plain(s.expected) && typeof s.expected.outcome === 'string') {
       try {
         const structured = Object.fromEntries(AUTOMATION_KEYS.filter(k => s[k] !== undefined).map(k => [k, s[k]]));
+        // An expectation that rests on experience alone is never presented as a confirmed rule.
+        if (s.basis === 'experience' && plain(structured.expected)) structured.expected = { ...structured.expected, assumed: true };
         cases.push(validateCase({ ...common, mode: 'automated', ...structured, steps: s.steps ?? [], notes: note('Automated draft: review the expected outcome before approving; it will not run until approved.') }, module));
         automated++; return;
       } catch { fellBack++; /* fall through to manual steps */ }
@@ -195,6 +198,24 @@ export async function analyseModule({ module, sources, existingCases, user, env 
 }
 
 // Structured automation fields from an outside agent. Anything malformed is dropped so the case falls back to manual steps.
+const LEVEL = v => (['high', 'medium', 'low'].includes(String(v).toLowerCase()) ? String(v).toLowerCase() : '');
+// Ranked risks the agent identified before writing cases. Anything malformed is dropped, never an error.
+export function cleanRisks(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 30).map(r => {
+    if (typeof r === 'string') return { risk: r.trim().slice(0, 500), impact: '', likelihood: '', coverage: '', source: '' };
+    if (!r || typeof r !== 'object' || typeof r.risk !== 'string') return null;
+    return { risk: r.risk.trim().slice(0, 500), impact: LEVEL(r.impact), likelihood: LEVEL(r.likelihood), coverage: String(r.coverage ?? '').trim().slice(0, 500), source: String(r.source ?? '').trim().slice(0, 300) };
+  }).filter(r => r?.risk);
+}
+function cleanCritic(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const s = v => String(v ?? '').trim();
+  return { summary: s(raw.summary).slice(0, 1500), dropped: (Array.isArray(raw.dropped) ? raw.dropped : []).slice(0, 40).map(d => ({ title: s(d?.title).slice(0, 200), reason: s(d?.reason).slice(0, 300) })),
+    missingRisks: (Array.isArray(raw.missingRisks) ? raw.missingRisks : []).slice(0, 12).map(r => s(r).slice(0, 400)).filter(Boolean),
+    stats: ['kept', 'improved', 'dropped', 'added'].reduce((o, k) => ({ ...o, [k]: Number(raw.stats?.[k]) || 0 }), { dropGuard: Boolean(raw.stats?.dropGuard) }) };
+}
+
 function automationSpec(c) {
   if (typeof c.action !== 'string' || !plain(c.expected) || !plain(c.input ?? {})) return {};
   if (!Object.values(c.input ?? {}).every(v => typeof v === 'string' || typeof v === 'boolean')) return {};
@@ -225,10 +246,12 @@ export function saveExternalInsights({ store, module, body, user, mode = 'assist
   const id = randomUUID();
   const specs = list(body.cases, 'cases').map(c => ({ title: textValue(c.title, 'Case title', 200, true), category: textValue(c.category ?? 'General', 'Suite', 120, true), priority: ['P0', 'P1', 'P2', 'P3'].includes(c.priority) ? c.priority : 'P2',
     preconditions: textValue(c.preconditions ?? '', 'preconditions', 1000), requirement: textValue(c.requirement ?? '', 'requirement', 200), source: textValue(c.source ?? '', 'source', 300),
+    risk: textValue(c.risk ?? '', 'risk', 300), basis: ['source', 'experience'].includes(c.basis) ? c.basis : '', reviewNote: textValue(c.reviewNote ?? '', 'review note', 400),
     steps: list(c.steps, 'steps').map(st => ({ action: textValue(st.action, 'Step action', 500, true), expected: textValue(st.expected ?? '', 'Step expected result', 500) })),
     ...automationSpec(c) }));
   const drafts = buildDraftCases({ module, existingCases: store.cases(mid), specs, user, insightId: id, mode });
   const doc = { id, moduleId: mid, createdAt: new Date().toISOString(), createdBy: user.username, mode, ...(model ? { model } : {}), status: 'done', summary: textValue(body.summary, 'Summary', 8000, true),
+    risks: cleanRisks(body.risks), ...(cleanCritic(body.critic) ? { critic: cleanCritic(body.critic) } : {}),
     fields: list(body.fields, 'fields').map(f => ({ name: textValue(f.name, 'Field name', 200, true), type: textValue(f.type ?? '', 'type', 80), required: Boolean(f.required), description: textValue(f.description ?? '', 'description', 1000), source: textValue(f.source ?? '', 'source', 300) })),
     rules: items(body.rules, 'rules'), edgeCases: items(body.edgeCases, 'edgeCases'), openQuestions: items(body.openQuestions, 'openQuestions'),
     flows: list(body.flows, 'flows').map(f => ({ name: textValue(f.name, 'Flow name', 200, true), steps: list(f.steps, 'flow steps').map(x => textValue(x, 'Flow step', 500, true)), source: textValue(f.source ?? '', 'source', 300) })),
