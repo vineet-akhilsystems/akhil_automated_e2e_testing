@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { reportModel } from '../quality.mjs';
 import { redactRun } from '../reports/redact.mjs';
+import { PRESETS, normalizeFilter, applyFilter } from '../reports/filter.mjs';
 import { boot } from './support.mjs';
 
 const require = createRequire(import.meta.url);
@@ -74,4 +75,84 @@ test('JUnit names and headers never contain tokens placed in case titles, run, m
   assert.equal(junit.status, 200);
   const raw = junit.value.toString();
   assert.ok(!raw.includes('abc.def')); assert.ok(!raw.includes('hunter2'));
+});
+
+// ---- Task 2: report filters ----
+
+const fr = (id, extra = {}) => ({ id, caseId: id, title: `Title ${id}`, suite: 'Validation', priority: 'P1', mode: 'automated', requirement: `REQ-${id}`, rawStatus: 'PASS', findingKind: null, flaky: false, quarantined: false, assumed: false, severity: 'Not applicable', owner: 'Unassigned', executed: true, screenshotCount: 1, ...extra });
+const filterModel = () => ({
+  counts: { total: 6, passed: 1 },
+  totalsByClass: { failed: 2 },
+  cases: [
+    fr('A-1'),
+    fr('A-2', { rawStatus: 'FAIL', findingKind: 'failure', priority: 'P0', severity: 'Not assessed', screenshotCount: 0 }),
+    fr('A-3', { rawStatus: 'FAIL (assumed requirement)', findingKind: 'assumption', assumed: true, priority: 'P2', suite: 'Rules' }),
+    fr('A-4', { rawStatus: 'ERROR', findingKind: 'execution', owner: 'BA' }),
+    fr('A-5', { rawStatus: 'NOT EXECUTED', executed: false, screenshotCount: 0, flaky: true }),
+    fr('A-6', { rawStatus: 'FAIL', findingKind: 'failure', priority: 'P0', severity: 'High', quarantined: true, title: 'Mobile Number rule' }),
+  ],
+  findings: [{ caseId: 'A-2' }, { caseId: 'A-3' }, { caseId: 'A-4' }, { caseId: 'A-6' }],
+});
+const ids = r => r.cases.map(x => x.id);
+
+test('bugs preset keeps only failed and review rows', () => {
+  const r = applyFilter(filterModel(), PRESETS.bugs.filter);
+  assert.deepEqual(ids(r), ['A-2', 'A-3', 'A-6']);
+  assert.deepEqual(r.findings.map(f => f.caseId), ['A-2', 'A-3', 'A-6']);
+  assert.equal(r.shown, 3); assert.equal(r.total, 6); assert.equal(r.active, true);
+});
+
+test('dimensions combine with AND and values with OR', () => {
+  const r = applyFilter(filterModel(), { classes: ['failed', 'review'], priorities: ['P0', 'P2'] });
+  assert.deepEqual(ids(r), ['A-2', 'A-3', 'A-6']);
+  const r2 = applyFilter(filterModel(), { classes: ['failed', 'review'], priorities: ['P0'] });
+  assert.deepEqual(ids(r2), ['A-2', 'A-6']);
+  assert.equal(r2.description, 'Result: failed, review; Priority: P0');
+  assert.deepEqual(ids(applyFilter(filterModel(), { classes: ['quarantined', 'flaky'] })), ['A-5', 'A-6']);
+  assert.deepEqual(ids(applyFilter(filterModel(), PRESETS['needs-triage'].filter)), ['A-2']);
+});
+
+test('text matches id, title and requirement case-insensitively', () => {
+  assert.deepEqual(ids(applyFilter(filterModel(), { text: 'a-3' })), ['A-3']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { text: 'MOBILE number' })), ['A-6']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { text: 'req-a-4' })), ['A-4']);
+});
+
+test('newFailuresOnly uses previousFailedIds', () => {
+  const r = applyFilter(filterModel(), { newFailuresOnly: true }, { previousFailedIds: new Set(['A-2']) });
+  assert.deepEqual(ids(r), ['A-3', 'A-4', 'A-6']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { newFailuresOnly: true })), ['A-2', 'A-3', 'A-4', 'A-6']);
+});
+
+test('caseIds restricts to the list', () => {
+  assert.deepEqual(ids(applyFilter(filterModel(), { caseIds: ['A-1', 'A-5', 'ZZ'] })), ['A-1', 'A-5']);
+});
+
+test('assumedOnly, missingEvidenceOnly and mode filters', () => {
+  assert.deepEqual(ids(applyFilter(filterModel(), { assumedOnly: true })), ['A-3']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { missingEvidenceOnly: true })), ['A-2']);
+  assert.deepEqual(ids(applyFilter(filterModel(), { mode: 'manual' })), []);
+});
+
+test('empty filter is inactive and returns every row with shown === total', () => {
+  const r = applyFilter(filterModel(), {});
+  assert.equal(r.active, false); assert.equal(r.shown, 6); assert.equal(r.total, 6);
+  assert.equal(r.description, 'All cases'); assert.equal(r.cases.length, 6);
+  assert.equal(applyFilter(filterModel(), PRESETS.everything.filter).active, false);
+});
+
+test('normalizeFilter drops unknown keys, unknown classes and non-strings', () => {
+  const n = normalizeFilter({ classes: ['failed', 'bogus', 3], priorities: [' P0 ', null, ''], evil: 1, mode: 'weird', assumedOnly: 'yes', text: ` ${'x'.repeat(300)} `, owners: Array.from({ length: 300 }, (_, i) => `o${i}`) });
+  assert.deepEqual(n.classes, ['failed']); assert.deepEqual(n.priorities, ['P0']);
+  assert.ok(!('evil' in n)); assert.ok(!('mode' in n)); assert.ok(!('assumedOnly' in n));
+  assert.equal(n.text.length, 200); assert.equal(n.owners.length, 200);
+  assert.deepEqual(normalizeFilter(null), {}); assert.deepEqual(normalizeFilter('x'), {});
+  assert.equal(normalizeFilter({ mode: 'manual', newFailuresOnly: true }).mode, 'manual');
+});
+
+test('totals are never filtered', () => {
+  const m = filterModel(), before = structuredClone(m.counts);
+  const r = applyFilter(m, { classes: ['passed'] });
+  assert.equal(r.shown, 1); assert.equal(r.total, 6);
+  assert.deepEqual(m.counts, before); assert.equal(m.cases.length, 6);
 });
