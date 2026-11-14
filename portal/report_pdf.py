@@ -519,10 +519,87 @@ def severity_segments(findings):
     return [(s, tally[s], SEVERITY_COLOR.get(s, MUTED)) for s in ordered]
 
 
-def build_story(model, root, prev, pages):
+VERDICT_LABEL = {'release': 'Release', 'release-with-known-issues': 'Release with known issues',
+                 'do-not-release': 'Do not release', 'needs-triage': 'Needs triage'}
+VERDICT_COLOR = {'release': TEAL, 'release-with-known-issues': AMBER, 'do-not-release': RED, 'needs-triage': PURPLE}
+
+
+def more_note(story, hidden):
+    if hidden > 0:
+        story.append(p(f'...and {hidden} more', 'small'))
+
+
+def verdict_banner(summary, limit=None):
+    """Always worded as a suggestion; a person confirms the release decision."""
+    verdict = summary.get('verdict') or {}
+    value = verdict.get('value')
+    color = VERDICT_COLOR.get(value, MUTED)
+    label = VERDICT_LABEL.get(value, 'Needs triage')
+    reasons = list(verdict.get('reasons') or [])
+    if limit is not None and len(reasons) > limit:
+        reasons = reasons[:limit]
+    head = ParagraphStyle('VerdictHead', fontName=BOLD, fontSize=15, leading=20, textColor=WHITE)
+    sub = ParagraphStyle('VerdictSub', fontName=FONT, fontSize=8, leading=12, textColor=WHITE, splitLongWords=True)
+    cell = [Paragraph(escape(f'Suggested verdict: {label}'), head),
+            Paragraph(escape('This is a suggestion only. A person must confirm the release decision.'), sub)]
+    cell += [Paragraph(escape(cut(clean(r), 240)), sub) for r in reasons]
+    banner = Table([[cell]], colWidths=[BODY_WIDTH])
+    banner.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), color), ('LEFTPADDING', (0, 0), (-1, -1), 14),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 14), ('TOPPADDING', (0, 0), (-1, -1), 10), ('BOTTOMPADDING', (0, 0), (-1, -1), 10)]))
+    return banner
+
+
+def summary_story(model, pages, limit):
+    """One page. Lists are cut to `limit` entries with an '...and N more' line."""
+    summary = model.get('summary') or {}
+    counts = model['counts']
+    note = (model.get('report') or {}).get('filterNote') or summary.get('filterNote')
+    story = [Dest('summary', 'Summary', 0, pages), Hero(model), Spacer(1, 10)]
+    if note:
+        story.append(p(note, 'small'))
+    if summary.get('verdict'):
+        story += [verdict_banner(summary, 2), Spacer(1, 6)]
+    not_tested = summary.get('notTested') or []
+    if not_tested:
+        story.append(p('Not tested or not a pass', 'h3t'))
+        story += [p(x, 'small') for x in not_tested[:limit]]
+        more_note(story, len(not_tested) - limit)
+    story += [Spacer(1, 6), metric_grid(counts), Spacer(1, 6)]
+    rate = summary.get('passRate')
+    story.append(p(f"{counts.get('passed', 0)} of {counts.get('total', 0)} selected cases passed" + (f' (pass rate {rate}% of executed counted cases).' if rate is not None else '.'), 'small'))
+    story.append(StackedBar(outcome_segments(counts), f"Outcome of {counts['total']} selected cases"))
+    if summary.get('scope'):
+        story.append(p(f"Scope: {summary['scope']}", 'small'))
+    bugs = summary.get('openBugsBySeverity') or {}
+    ordered = [s for s in SEVERITY_ORDER if s in bugs] + sorted(s for s in bugs if s not in SEVERITY_ORDER)
+    story.append(p('Open bugs by severity', 'h3t'))
+    if ordered:
+        rows = [[p(s, 'small'), p(str(bugs[s]), 'small')] for s in ordered[:limit]]
+        story.append(table(rows, [BODY_WIDTH - 60, 60], compact=True))
+        more_note(story, len(ordered) - limit)
+    else:
+        story.append(p('No open bugs recorded.', 'small'))
+    risks = summary.get('risks') or []
+    if risks:
+        story.append(p('Risks', 'h3t'))
+        story += [p(cut(x, 220), 'small') for x in risks[:limit]]
+        more_note(story, len(risks) - limit)
+    comparison = summary.get('comparison')
+    if comparison:
+        prev_rate = comparison.get('passRate')
+        story.append(p('Compared with the previous run', 'h3t'))
+        story.append(p(f"Previous pass rate: {'not available' if prev_rate is None else str(prev_rate) + '%'}. Newly failing: {comparison.get('newlyFailing', 0)}. Fixed: {comparison.get('fixed', 0)}.", 'small'))
+    return story
+
+
+def build_story(model, root, prev, pages, limit=8):
     """prev: page numbers from the previous layout pass (for the index); pages: filled by Dest markers in this pass."""
     run, counts = model['run'], model['counts']
     findings, cases = model.get('findings') or [], model.get('cases') or []
+    report = model.get('report') or {}
+    mode = report.get('mode', 'full')
+    if mode == 'summary':
+        return summary_story(model, pages, limit)
     pg = lambda key: str(prev.get(key, '00'))
     ev = model.get('evidenceCounts') or {
         'executed': sum(1 for c in cases if c.get('executed')),
@@ -536,7 +613,12 @@ def build_story(model, root, prev, pages):
     case_target.update({c['id']: key_for('case', c['id']) for c in non_finding})
 
     # --- Page 1: cover + summary
-    story = [Dest('summary', 'Summary', 0, pages), Hero(model), Spacer(1, 16), metric_grid(counts), Spacer(1, 12)]
+    story = [Dest('summary', 'Summary', 0, pages), Hero(model), Spacer(1, 16)]
+    if report.get('filterNote'):
+        story += [p(report['filterNote'], 'small'), Spacer(1, 4)]
+    if mode == 'bugs' and (model.get('summary') or {}).get('verdict'):
+        story += [verdict_banner(model['summary']), Spacer(1, 10)]
+    story += [metric_grid(counts), Spacer(1, 12)]
     executed = ev['executed']
     story.append(p('At a glance', 'h2'))
     lines = [f"{counts.get('passed', 0)} of {executed} executed cases passed." if executed else 'No cases were executed.',
@@ -583,10 +665,13 @@ def build_story(model, root, prev, pages):
     else:
         story.append(p('No findings were recorded in this run.', 'box'))
     other = [[p('OTHER SECTIONS', 'label'), p('PAGE', 'label')]]
+    if mode == 'bugs':
+        non_finding = []
     if non_finding:
         other.append([rich(link('passed', f'Passed and observed cases ({len(non_finding)})'), 'small'), rich(link('passed', pg('passed')), 'small')])
-    other.append([rich(link('appendix', f'Appendix: all {len(cases)} selected cases'), 'small'), rich(link('appendix', pg('appendix')), 'small')])
-    story += [Spacer(1, 12), table(other, [BODY_WIDTH - 44, 44], header=True, compact=True)]
+    if mode != 'bugs':
+        other.append([rich(link('appendix', f'Appendix: all {len(cases)} selected cases'), 'small'), rich(link('appendix', pg('appendix')), 'small')])
+        story += [Spacer(1, 12), table(other, [BODY_WIDTH - 44, 44], header=True, compact=True)]
 
     story += [Spacer(1, 10), p('About this report', 'h3')]
     story.append(p(f"Screenshots: {ev['withScreenshots']} of {executed} executed case(s) have one ({ev['totalScreenshots']} in total). {ev['missingScreenshots']} without a screenshot, {ev['warnings']} with a capture warning.", 'small'))
@@ -618,6 +703,9 @@ def build_story(model, root, prev, pages):
             story += [CondPageBreak(260), Dest(key_for('case', c['id']), f"{c['id']} - {clean(c['title'])[:80]}", 1, pages), Spacer(1, 10), back_link(),
                       p(f"{c['id']} / {c['status']}", 'label'), p(c['title'], 'h2')]
             case_detail(story, c, root)
+
+    if mode == 'bugs':
+        return story
 
     # --- Appendix
     story += [PageBreak(), Dest('appendix', 'Appendix: all cases', 0, pages), back_link(), p('APPENDIX / ALL SELECTED CASES', 'label'), p('All cases', 'h1'),
@@ -659,7 +747,7 @@ def render(model, output, root):
         canvas.drawString(MARGIN, 26, f"Internal - run {run['id'][:8]} - generated {generated_at}")
         label = f"Page {document.page}" + (f" of {state['total']}" if state['total'] else '')
         canvas.drawRightString(WIDTH - MARGIN, 26, label)
-        if document.page > 1:
+        if document.page > 1 and (model.get('report') or {}).get('mode') != 'summary':
             right = WIDTH - MARGIN - pdfmetrics.stringWidth(label, FONT, 6.5) - 14
             left = right - pdfmetrics.stringWidth('Back to index', FONT, 6.5)
             canvas.setFillColor(PURPLE)
@@ -669,14 +757,23 @@ def render(model, output, root):
             canvas.showOutline()
         canvas.restoreState()
 
-    def build(target, prev, pages):
+    def build(target, prev, pages, limit=8):
         doc = SimpleDocTemplate(target, pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN, topMargin=70, bottomMargin=54,
                                 title=model['title'], author=model['preparedBy'], subject='Test findings, execution scope and reproduction evidence', pageCompression=1)
-        doc.build(build_story(model, root, prev, pages), onFirstPage=chrome, onLaterPages=chrome)
+        doc.build(build_story(model, root, prev, pages, limit), onFirstPage=chrome, onLaterPages=chrome)
         return doc.page
 
     # Layout passes find the index page numbers and the page total. They lay out every page but skip
     # drawing screenshots and write to memory; the final pass writes the file with the same layout.
+    if (model.get('report') or {}).get('mode') == 'summary':
+        # Exactly one page: shrink the lists until the content fits.
+        Screenshot.draw_images = False
+        for limit in (8, 5, 3, 2, 1, 0):
+            if build(io.BytesIO(), {}, {}, limit) == 1:
+                break
+        Screenshot.draw_images = True
+        build(str(output), {}, {}, limit)
+        return
     prev = {}
     Screenshot.draw_images = False
     try:

@@ -420,3 +420,94 @@ test('summaryMarkdown starts with the suggested verdict', () => {
   assert.match(md, /Open bugs/i);
   assert.ok(md.indexOf('Suggested verdict') < md.indexOf('Open bugs'));
 });
+
+// ---- Task 5: PDF modes ----
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { generatePdf } from '../pdf-report.mjs';
+
+const pdfScript = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'report_pdf.py');
+const py = process.env.PORTAL_PYTHON ?? 'python';
+const pdfDeps = spawnSync(py, ['-c', 'import reportlab, PIL'], { stdio: 'ignore' }).status === 0;
+const pdfPypdf = pdfDeps && spawnSync(py, ['-c', 'import pypdf'], { stdio: 'ignore' }).status === 0;
+const pdfSkip = (!pdfDeps && 'reportlab/Pillow not installed') || (!pdfPypdf && 'pypdf not installed');
+
+const pdfRun = () => mkRun({ cases: [c('P-1'), c('P-2'), c('P-3'), c('P-4')],
+  results: [{ id: 'P-1', status: 'PASS', expected: 'ok', actual: 'ok', attachments: [] }, { id: 'P-2', status: 'FAIL', expected: 'r', actual: 'a', attachments: [] },
+    { id: 'P-3', status: 'FAIL', expected: 'e', actual: 'a', attachments: [] }],
+  triage: { 'P-2': { severity: 'Low' }, 'P-3': { severity: 'High' } } });
+function packModel(run, mode, filter = {}) {
+  const base = reportModel(redactRun(run)), listing = applyFilter(base, filter);
+  const model = { ...base, cases: listing.cases, findings: listing.findings, report: { mode, filterNote: listing.active ? `Showing ${listing.shown} of ${listing.total} cases. Filter: ${listing.description}` : null } };
+  return { ...model, summary: buildSummary(base, listing) };
+}
+function renderPack(model) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-pdf-')), output = path.join(dir, 'out.pdf');
+  const r = spawnSync(py, [pdfScript, '--output', output, '--assets-dir', dir], { input: JSON.stringify(model), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const code = 'import sys, json, pypdf\nr = pypdf.PdfReader(sys.argv[1])\nprint(json.dumps({"pages": len(r.pages), "texts": [p.extract_text() for p in r.pages]}))';
+  const o = spawnSync(py, ['-I', '-c', code, output], { encoding: 'utf8' });
+  assert.equal(o.status, 0, o.stderr);
+  return JSON.parse(o.stdout);
+}
+
+test('summary mode renders exactly one page with a suggested verdict and not-tested lines', { skip: pdfSkip }, () => {
+  const info = renderPack(packModel(pdfRun(), 'summary'));
+  assert.equal(info.pages, 1);
+  const text = info.texts[0].replace(/\s+/g, ' ');
+  assert.match(text, /Suggested verdict: Do not release/);
+  assert.match(text, /person must confirm/);
+  assert.match(text, /1 case\(s\) not executed/);
+  assert.ok(text.indexOf('Suggested verdict') < text.indexOf('not executed'));
+  assert.ok(!/complian/i.test(text));
+});
+
+test('summary mode stays on one page with very long lists and truncates with "and N more"', { skip: pdfSkip }, () => {
+  const model = packModel(pdfRun(), 'summary');
+  model.summary.risks = Array.from({ length: 60 }, (_, i) => `Risk number ${i} is quarantined and long ${'text '.repeat(30)}`);
+  model.summary.notTested = Array.from({ length: 40 }, (_, i) => `${i + 1} case(s) not tested`);
+  model.summary.openBugsBySeverity = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`Sev${i}`, i + 1]));
+  const info = renderPack(model);
+  assert.equal(info.pages, 1);
+  assert.match(info.texts[0], /\.\.\.and \d+ more/);
+});
+
+test('bugs mode contains finding titles and no passed-case appendix', { skip: pdfSkip }, () => {
+  const model = packModel(pdfRun(), 'bugs');
+  const info = renderPack(model);
+  const text = info.texts.join('\n');
+  for (const f of model.findings) assert.ok(text.replace(/\s+/g, ' ').includes(f.title), `missing ${f.title}`);
+  assert.ok(info.pages > 1);
+  assert.ok(!text.includes('Appendix: all'));
+  assert.ok(!text.includes('Passed and observed cases'));
+  assert.match(text, /Suggested verdict/);
+  const full = renderPack({ ...model, report: { mode: 'full', filterNote: null } });
+  assert.ok(full.texts.join('\n').includes('Appendix'));
+});
+
+test('filter note appears on the first page in every mode', { skip: pdfSkip }, () => {
+  for (const mode of ['full', 'bugs', 'summary']) {
+    const model = packModel(pdfRun(), mode, { classes: ['failed'] });
+    assert.ok(model.report.filterNote);
+    const first = renderPack(model).texts[0].replace(/\s+/g, ' ');
+    assert.ok(first.includes('Showing 2 of 4 cases'), `${mode}: ${first.slice(0, 300)}`);
+  }
+});
+
+test('generatePdf options: mode-prefixed file, summary uses a one-page PDF, default name unchanged', { skip: pdfSkip }, async () => {
+  const run = pdfRun(), runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-gen-'));
+  const base = path.basename(await generatePdf(run, runDir));
+  assert.match(base, /^bug-report-[0-9a-f]{16}\.pdf$/);
+  const model = packModel(run, 'summary');
+  const file = await generatePdf(run, runDir, { mode: 'summary', model, name: 'x' });
+  assert.match(path.basename(file), /^summary-[0-9a-f]{16}\.pdf$/);
+  const again = await generatePdf(run, runDir, { mode: 'summary', model, name: 'x' });
+  assert.equal(again, file);
+  const other = await generatePdf(run, runDir, { mode: 'summary', model, name: 'y' });
+  assert.notEqual(other, file);
+  const bugs = await generatePdf(run, runDir, { mode: 'bugs', model: packModel(run, 'bugs') });
+  assert.match(path.basename(bugs), /^bugs-/);
+});

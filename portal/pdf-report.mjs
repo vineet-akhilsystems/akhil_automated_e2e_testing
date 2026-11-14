@@ -11,15 +11,17 @@ const pending = new Map();
 // Measured: a 957-screenshot run (262 cases) renders in about 290 s, so this leaves about 2x headroom.
 export const pdfTimeoutMs = screenshots => 90000 + 500 * Math.max(0, Number(screenshots) || 0);
 const rendererFingerprint = createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'portal/report_pdf.py'))).digest('hex');
-export function generatePdf(run, runDir) {
+export function generatePdf(run, runDir, options = {}) {
   check(run.kind !== 'authentication', 'Application login runs do not have bug reports.', 409);
   check(TERMINAL.includes(run.status), 'Finish or close this run before downloading its final report.', 409);
-  const model = reportModel(run), fingerprint = createHash('sha256').update(rendererFingerprint + JSON.stringify(model)).digest('hex');
+  const model = options.model ?? reportModel(run), mode = options.mode ?? model.report?.mode;
+  const prefix = mode ?? 'bug-report';
+  const fingerprint = createHash('sha256').update(rendererFingerprint + JSON.stringify({ mode: mode ?? null, name: options.name ?? null }) + JSON.stringify(model)).digest('hex');
   const key = `${runDir}:${fingerprint}`;
   if (pending.has(key)) return pending.get(key);
   const operation = (async () => {
     const directory = path.join(runDir, 'report'); fs.mkdirSync(directory, { recursive: true });
-    const target = path.join(directory, `bug-report-${fingerprint.slice(0, 16)}.pdf`);
+    const target = path.join(directory, `${prefix}-${fingerprint.slice(0, 16)}.pdf`);
     if (fs.existsSync(target)) return target;
     const temporary = path.join(directory, `${randomUUID()}.pdf`);
     try {
@@ -27,11 +29,12 @@ export function generatePdf(run, runDir) {
         const child = spawn(process.env.PORTAL_PYTHON ?? 'python', [path.join(ROOT, 'portal/report_pdf.py'), '--output', temporary, '--assets-dir', runDir], { cwd: ROOT, stdio: ['pipe', 'ignore', 'pipe'], windowsHide: true });
         let diagnostic = '';
         let spawnFailed = false;
-        const limitMs = pdfTimeoutMs(model.evidenceCounts?.totalScreenshots);
+        const screenshots = mode === 'summary' ? 0 : model.evidenceCounts?.totalScreenshots;
+        const limitMs = pdfTimeoutMs(screenshots);
         const timer = setTimeout(() => {
           spawnFailed = true; // the close event that follows the kill is not a renderer failure
           child.kill();
-          console.error(`PDF export timed out after ${Math.round(limitMs / 1000)} s (${model.evidenceCounts?.totalScreenshots ?? 0} screenshots) and was stopped.`);
+          console.error(`PDF export timed out after ${Math.round(limitMs / 1000)} s (${screenshots ?? 0} screenshots) and was stopped.`);
           reject(new HttpError(503, 'PDF generation took too long. Try again or export Excel.'));
         }, limitMs);
         child.stderr.on('data', chunk => { diagnostic = (diagnostic + chunk.toString()).slice(-6000); });
