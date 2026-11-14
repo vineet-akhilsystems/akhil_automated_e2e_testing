@@ -156,3 +156,62 @@ test('totals are never filtered', () => {
   assert.equal(r.shown, 1); assert.equal(r.total, 6);
   assert.deepEqual(m.counts, before); assert.equal(m.cases.length, 6);
 });
+
+// ---- Task 3: summary and suggested verdict ----
+import { DEFAULT_CRITERIA, suggestVerdict, buildSummary } from '../reports/summary.mjs';
+
+const sumModel = (specs, triage = {}) => reportModel({ ...mkRun(), cases: specs.map(s => c(s.id, s.assumed ? { expected: { outcome: 'x', assumed: true } } : {})),
+  results: specs.map(s => ({ id: s.id, status: s.status, expected: 'e', actual: 'a', attachments: [], ...(s.quarantined ? { quarantined: true } : {}) })), triage });
+const pass = id => ({ id, status: 'PASS' });
+const fail = (id, extra = {}) => ({ id, status: 'FAIL', ...extra });
+
+test('verdict release when everything passes', () => {
+  const v = suggestVerdict(sumModel([pass('S-1'), pass('S-2')]));
+  assert.equal(v.value, 'release');
+  assert.ok(v.reasons.join(' ').toLowerCase().includes('suggestion'));
+});
+test('verdict do-not-release for open Critical or High failure', () => {
+  const m = sumModel([pass('S-1'), fail('S-2')], { 'S-2': { severity: 'High' } });
+  assert.equal(suggestVerdict(m).value, 'do-not-release');
+  assert.deepEqual(DEFAULT_CRITERIA.blockSeverities, ['Critical', 'High']);
+});
+test('verdict needs-triage for untriaged failure, execution issue or blocked case', () => {
+  assert.equal(suggestVerdict(sumModel([fail('S-1')])).value, 'needs-triage');
+  assert.equal(suggestVerdict(sumModel([{ id: 'S-1', status: 'ERROR' }])).value, 'needs-triage');
+  assert.equal(suggestVerdict(sumModel([{ id: 'S-1', status: 'BLOCKED' }])).value, 'needs-triage');
+});
+test('verdict release-with-known-issues for triaged non-blocking failure', () => {
+  const m = sumModel([pass('S-1'), fail('S-2')], { 'S-2': { severity: 'Low' } });
+  assert.equal(suggestVerdict(m).value, 'release-with-known-issues');
+});
+test('quarantined failure does not block but appears in risks', () => {
+  const m = sumModel([pass('S-1'), fail('S-2', { quarantined: true })], { 'S-2': { severity: 'Critical' } });
+  const s = buildSummary(m, applyFilter(m, {}));
+  assert.equal(s.verdict.value, 'release');
+  assert.deepEqual(s.openBugsBySeverity, {});
+  assert.ok(s.risks.some(r => r.includes('S-2')));
+});
+test('pass rate uses run totals when a filter is active', () => {
+  const m = sumModel([pass('S-1'), pass('S-2'), pass('S-3'), fail('S-4')], { 'S-4': { severity: 'Low' } });
+  const s = buildSummary(m, applyFilter(m, { classes: ['failed'] }));
+  assert.equal(s.passRate, 75);
+  assert.equal(s.filterNote, 'Showing 1 of 4 cases. Filter: Result: failed');
+  assert.equal(s.counts, m.counts);
+});
+test('filterNote is null when inactive; passRate null with no executed rows', () => {
+  const m = sumModel([{ id: 'S-1', status: 'NOT EXECUTED' }]);
+  const s = buildSummary(m, applyFilter(m, {}));
+  assert.equal(s.filterNote, null); assert.equal(s.passRate, null); assert.equal(s.comparison, null);
+});
+test('comparison counts newly failing and fixed versus previous model', () => {
+  const prev = sumModel([fail('S-1'), fail('S-2'), pass('S-3'), pass('S-4')]);
+  const cur = sumModel([pass('S-1'), fail('S-2'), fail('S-3'), pass('S-4')]);
+  const s = buildSummary(cur, applyFilter(cur, {}), { previous: prev });
+  assert.deepEqual(s.comparison, { passRate: 50, newlyFailing: 1, fixed: 1 });
+});
+test('a 100% pass run with 3 not-executed cases lists them in notTested', () => {
+  const m = sumModel([pass('S-1'), pass('S-2'), { id: 'S-3', status: 'NOT EXECUTED' }, { id: 'S-4', status: 'NOT EXECUTED' }, { id: 'S-5', status: 'NOT EXECUTED' }]);
+  const s = buildSummary(m, applyFilter(m, {}));
+  assert.equal(s.passRate, 100);
+  assert.ok(s.notTested.some(t => t.includes('3') && /not executed/i.test(t)));
+});
