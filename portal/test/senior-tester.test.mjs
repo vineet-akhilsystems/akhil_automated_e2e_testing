@@ -214,3 +214,35 @@ test('API: everyone with module access can read the pack; leads edit lessons; on
   assert.equal((await admin.request('/api/modules/nope/knowledge')).status, 404);
   assert.ok(f);
 });
+
+// Shapes the real agent wrote in a live run: {"rule": ...}, flows as one sentence, fields with "mandatory", risks as plain strings, steps as strings.
+test('saving tolerates the natural variants real agents write, keeps what it understands and reports what it skipped', async t => {
+  const root = tempRoot(t);
+  const odd = { summary: 'Billing.', risks: ['Wrong total', { risk: 'Rounding', impact: 'high' }, 42],
+    rules: [{ rule: 'Total must be at least 1.', source: 'rules.txt' }, 'Tax is added.', { nothing: true }, null],
+    fields: [{ name: 'Total', mandatory: true }, 'Customer', { type: 'text' }],
+    flows: ['Create invoice, add items, save, reopen.', { name: 'Refund', steps: 'Open invoice; click refund; confirm' }, { source: 'x' }],
+    edgeCases: ['Zero total', ''], openQuestions: [{ question: 'Is tax rounded per line?' }],
+    cases: [{ title: 'Zero total is rejected', steps: ['Enter 0', { step: 'Save', result: 'blocked' }, { nope: 1 }], basis: 'weird' }, { category: 'no title' }, 'not an object'] };
+  const { b } = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', odd); }, root);
+  const job = await run(b, { critic: false });
+  assert.equal(job.status, 'done', job.message);
+  const ins = (await b.request('/api/modules/billing/insights')).value;
+  assert.deepEqual(ins.rules.map(r => r.text), ['Total must be at least 1.', 'Tax is added.']);
+  assert.deepEqual(ins.fields.map(f => [f.name, f.required]), [['Total', true], ['Customer', false]]);
+  assert.deepEqual(ins.flows.map(f => [f.name, f.steps.length]), [['Create invoice, add items, save, reopen', 1], ['Refund', 3]]);
+  assert.deepEqual(ins.openQuestions.map(q => q.text), ['Is tax rounded per line?']);
+  assert.deepEqual(ins.risks.map(r => r.risk), ['Wrong total', 'Rounding']);
+  assert.ok(ins.ingestNotes.some(n => /rule/.test(n)) && ins.ingestNotes.some(n => /case/.test(n)) && ins.ingestNotes.some(n => /flow/.test(n)));
+  const cases = (await b.request('/api/modules/billing/cases')).value;
+  assert.equal(cases.length, 1); assert.deepEqual(cases[0].steps.map(s => s.action), ['Enter 0, then save']); assert.equal(cases[0].steps[0].expected, 'blocked');
+  assert.equal(cases[0].reviewStatus, 'draft');
+});
+
+test('an analysis with nothing usable in it is still an error and saves nothing', async t => {
+  const root = tempRoot(t);
+  const { b } = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', { summary: '', cases: [{ nothing: 1 }], rules: [null] }); }, root);
+  const job = await run(b, { critic: false });
+  assert.equal(job.status, 'error'); assert.match(job.message, /no usable content/);
+  assert.equal((await b.request('/api/modules/billing/cases')).value.length, 0);
+});

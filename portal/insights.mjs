@@ -235,30 +235,70 @@ function cleanSuggestedSetup(raw) {
 }
 
 // coveredFileIds (optional): the files this analysis really read; default is every stored file that is not still being processed.
+// A manual step needs an expected result. Agents often list bare actions: fold an action with no result into the next step
+// ("Enter 0, then Save"), and let the last step carry the case's own expected text (or its title) rather than lose the whole case.
+export function foldSteps(steps, caseExpected, title) {
+  const out = []; let pending = '';
+  for (const st of steps) {
+    const action = pending ? `${pending}, then ${st.action.charAt(0).toLowerCase()}${st.action.slice(1)}` : st.action;
+    if (st.expected) { out.push({ action: action.slice(0, 500), expected: st.expected }); pending = ''; } else pending = action;
+  }
+  if (pending) out.push({ action: pending.slice(0, 500), expected: caseExpected || `Result matches the case: ${title}`.slice(0, 500) });
+  return out;
+}
+
 export function saveExternalInsights({ store, module, body, user, mode = 'assistant', model, coveredFileIds }) {
   const mid = module.id;
   check(body && typeof body === 'object', 'Insights must be a JSON object.');
-  const list = (v, n) => { check(v === undefined || Array.isArray(v), `${n} must be a list.`); return (v ?? []).slice(0, 500); };
-  const items = (v, n) => list(v, n).map(x => typeof x === 'string' ? { text: textValue(x, n, 2000, true), source: '' } : { text: textValue(x?.text, n, 2000, true), source: textValue(x?.source ?? '', 'source', 300) });
+  // Agents and assistants phrase things in natural variants (a rule as {"rule": "..."}, a flow as one sentence, a step as a string).
+  // One odd entry must not throw away a whole analysis: understand what can be understood, skip the rest, and say what was skipped.
+  const notes = [];
+  const clip = (v, n) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '').trim().slice(0, n);
+  const arr = (v, n) => { if (v === undefined || v === null) return []; if (!Array.isArray(v)) { notes.push(`${n} was not a list and was skipped.`); return []; } return v.slice(0, 500); };
+  const textOf = x => typeof x === 'string' ? x : x && typeof x === 'object' ? [x.text, x.rule, x.description, x.statement, x.question, x.name, x.title].find(v => typeof v === 'string' && v.trim()) ?? '' : '';
+  const skipped = (n, label) => { if (n) notes.push(`${n} ${label} ${n === 1 ? 'entry' : 'entries'} could not be understood and ${n === 1 ? 'was' : 'were'} skipped.`); };
+  const items = (v, n) => { const out = []; let dropped = 0; for (const x of arr(v, n)) { const t = clip(textOf(x), 2000); if (t) out.push({ text: t, source: clip(x?.source, 300) }); else dropped++; } skipped(dropped, n); return out; };
+  const stepList = v => Array.isArray(v) ? v.map(x => clip(textOf(x), 500)).filter(Boolean) : typeof v === 'string' ? v.split(/\n+|;\s*|\.\s+(?=[A-Z0-9])/).map(x => clip(x, 500)).filter(Boolean) : [];
   const files = store.intakeFiles(mid);
   const coveredSet = coveredFileIds ? new Set(coveredFileIds) : null;
   const suggestedSetup = cleanSuggestedSetup(body.suggestedSetup);
   const id = randomUUID();
-  const specs = list(body.cases, 'cases').map(c => ({ title: textValue(c.title, 'Case title', 200, true), category: textValue(c.category ?? 'General', 'Suite', 120, true), priority: ['P0', 'P1', 'P2', 'P3'].includes(c.priority) ? c.priority : 'P2',
-    preconditions: textValue(c.preconditions ?? '', 'preconditions', 1000), requirement: textValue(c.requirement ?? '', 'requirement', 200), source: textValue(c.source ?? '', 'source', 300),
-    risk: textValue(c.risk ?? '', 'risk', 300), basis: ['source', 'experience'].includes(c.basis) ? c.basis : '', reviewNote: textValue(c.reviewNote ?? '', 'review note', 400),
-    steps: list(c.steps, 'steps').map(st => ({ action: textValue(st.action, 'Step action', 500, true), expected: textValue(st.expected ?? '', 'Step expected result', 500) })),
-    ...automationSpec(c) }));
+  let badCases = 0;
+  const specs = arr(body.cases, 'cases').map(c => {
+    const title = c && typeof c === 'object' ? clip(c.title, 200) : '';
+    if (!title) { badCases++; return null; }
+    return { title, category: clip(c.category, 120) || 'General', priority: ['P0', 'P1', 'P2', 'P3'].includes(c.priority) ? c.priority : 'P2',
+      preconditions: clip(c.preconditions, 1000), requirement: clip(c.requirement, 200), source: clip(c.source, 300),
+      risk: clip(c.risk, 300), basis: ['source', 'experience'].includes(c.basis) ? c.basis : '', reviewNote: clip(c.reviewNote, 400),
+      steps: foldSteps(arr(c.steps, 'steps').map(st => typeof st === 'string' ? { action: clip(st, 500), expected: '' } : { action: clip(st?.action ?? st?.step, 500), expected: clip(st?.expected ?? st?.result, 500) }).filter(st => st.action), typeof c.expected === 'string' ? clip(c.expected, 500) : '', title),
+      ...automationSpec(c) };
+  }).filter(Boolean);
+  skipped(badCases, 'case');
   const drafts = buildDraftCases({ module, existingCases: store.cases(mid), specs, user, insightId: id, mode });
-  const doc = { id, moduleId: mid, createdAt: new Date().toISOString(), createdBy: user.username, mode, ...(model ? { model } : {}), status: 'done', summary: textValue(body.summary, 'Summary', 8000, true),
+  let badFields = 0, badFlows = 0;
+  const fields = arr(body.fields, 'fields').map(f => {
+    const name = clip(typeof f === 'string' ? f : f?.name ?? f?.field ?? f?.label, 200);
+    if (!name) { badFields++; return null; }
+    return { name, type: clip(f?.type, 80), required: Boolean(f?.required ?? f?.mandatory), description: clip(f?.description, 1000), source: clip(f?.source, 300) };
+  }).filter(Boolean);
+  skipped(badFields, 'field');
+  const flows = arr(body.flows, 'flows').map(f => {
+    const steps = typeof f === 'string' ? stepList(f) : stepList(f?.steps);
+    const name = clip(typeof f === 'string' ? f.split(/[.:\n]/)[0] : f?.name ?? f?.title, 200);
+    if (!name && !steps.length) { badFlows++; return null; }
+    return { name: name || 'Flow', steps, source: clip(f?.source, 300) };
+  }).filter(Boolean);
+  skipped(badFlows, 'flow');
+  const doc = { id, moduleId: mid, createdAt: new Date().toISOString(), createdBy: user.username, mode, ...(model ? { model } : {}), status: 'done', summary: clip(body.summary, 8000) || 'No summary was written.',
     risks: cleanRisks(body.risks), ...(cleanCritic(body.critic) ? { critic: cleanCritic(body.critic) } : {}),
-    fields: list(body.fields, 'fields').map(f => ({ name: textValue(f.name, 'Field name', 200, true), type: textValue(f.type ?? '', 'type', 80), required: Boolean(f.required), description: textValue(f.description ?? '', 'description', 1000), source: textValue(f.source ?? '', 'source', 300) })),
-    rules: items(body.rules, 'rules'), edgeCases: items(body.edgeCases, 'edgeCases'), openQuestions: items(body.openQuestions, 'openQuestions'),
-    flows: list(body.flows, 'flows').map(f => ({ name: textValue(f.name, 'Flow name', 200, true), steps: list(f.steps, 'flow steps').map(x => textValue(x, 'Flow step', 500, true)), source: textValue(f.source ?? '', 'source', 300) })),
+    fields, rules: items(body.rules, 'rule'), edgeCases: items(body.edgeCases, 'edge case'), openQuestions: items(body.openQuestions, 'open question'), flows,
     sources: files.map(f => ({ fileId: f.id, name: f.name, kind: f.kind, extract: f.extract, chars: f.chars ?? 0, note: f.extractNote ?? '' })),
     coveredSources: files.filter(f => coveredSet ? coveredSet.has(f.id) : f.extract !== 'pending').map(covers),
     ...(suggestedSetup ? { suggestedSetup } : {}),
+    ...(notes.length ? { ingestNotes: notes } : {}),
     draftCaseIds: drafts.cases.map(c => c.id), draftSkipped: drafts.skipped, draftDuplicates: drafts.duplicates, draftAutomated: drafts.automated };
+  // Tolerant is not the same as accepting nothing: an analysis with no summary and no content at all is still an error.
+  check(clip(body.summary, 8000) || specs.length || fields.length || flows.length || doc.rules.length || doc.edgeCases.length || doc.openQuestions.length || doc.risks.length, 'The analysis had no usable content.');
   const stored = store.transaction(() => { const saved = store.saveInsights(doc); drafts.cases.forEach(c => store.saveCase(mid, c)); return saved; });
-  return { id, version: stored.version, changeSummary: stored.changeSummary, mode, draftCases: drafts.cases.length, draftIds: drafts.cases.map(c => c.id), skipped: drafts.skipped, duplicates: drafts.duplicates, automatedDrafts: drafts.automated };
+  return { id, version: stored.version, changeSummary: stored.changeSummary, mode, draftCases: drafts.cases.length, draftIds: drafts.cases.map(c => c.id), skipped: drafts.skipped, duplicates: drafts.duplicates, automatedDrafts: drafts.automated, ...(notes.length ? { notes } : {}) };
 }
