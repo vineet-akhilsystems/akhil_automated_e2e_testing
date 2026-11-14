@@ -5,6 +5,8 @@
 const DONE = new Set(['passed', 'failed', 'error', 'blocked']);
 const BAD = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 const COUNTED = r => !['SKIPPED', 'OBSERVED', 'BLOCKED'].includes(r.status);
+// Quarantined cases are excluded from the pass rate (they gate nothing) but still tracked for flakiness.
+const GATING = r => COUNTED(r) && !r.quarantined;
 
 /** Finished automated test runs, oldest first. Manual, authentication, cancelled and interrupted runs are ignored. */
 export function finishedAutomatedRuns(runs) {
@@ -16,13 +18,13 @@ export function finishedAutomatedRuns(runs) {
 /** One point per run: pass rate over executed cases, duration, and counts. `limit` keeps the most recent points. */
 export function runTrend(runs, { limit = 30 } = {}) {
   const points = finishedAutomatedRuns(runs).map(run => {
-    const counted = run.results.filter(COUNTED);
+    const counted = run.results.filter(GATING);
     const passed = counted.filter(r => r.status === 'PASS').length;
     const wallMs = run.timing?.wallMs ?? (run.startedAt && run.finishedAt ? Date.parse(run.finishedAt) - Date.parse(run.startedAt) : null);
     return {
       runId: run.id, name: run.name, moduleId: run.module?.id, moduleName: run.module?.name, environmentName: run.environmentName,
       at: run.finishedAt ?? run.createdAt, status: run.status, executed: counted.length, passed,
-      failed: counted.filter(r => BAD.has(r.status)).length, flaky: run.results.filter(r => r.flaky).length,
+      failed: counted.filter(r => BAD.has(r.status)).length, flaky: run.results.filter(r => r.flaky).length, quarantinedFailing: run.results.filter(r => r.quarantined && BAD.has(r.status)).length,
       passRate: counted.length ? Math.round((passed / counted.length) * 1000) / 10 : null, wallMs: Number.isFinite(wallMs) ? wallMs : null,
     };
   });

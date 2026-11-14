@@ -130,13 +130,13 @@ document.addEventListener('click', async event => {
       state.selected.delete(id);
       await reload(); toast(`${id} deleted.`);
     }
-    if (['bulk-enable', 'bulk-disable', 'bulk-delete'].includes(action)) {
+    if (['bulk-enable', 'bulk-disable', 'bulk-delete', 'bulk-quarantine', 'bulk-release'].includes(action)) {
       const bulkAction = action.replace('bulk-', '');
       const ids = [...state.selected];
       if (bulkAction === 'delete' && !confirm(`Delete ${ids.length} selected case${ids.length === 1 ? '' : 's'}? They are removed from the library and this cannot be undone.`)) return;
       await api(`/api/modules/${currentModule().id}/cases/bulk`, 'POST', { action: bulkAction, caseIds: ids });
       if (bulkAction === 'delete') state.selected.clear();
-      await reload(); toast(`${ids.length} case(s) ${bulkAction}d.`);
+      await reload(); toast(`${ids.length} case(s) ${({ quarantine: 'quarantined', release: 'released from quarantine' })[bulkAction] ?? `${bulkAction}d`}.`);
     }
     if (action === 'add-input') $('#input-rows').insertAdjacentHTML('beforeend', inputRow(drafts.editorDraft.adapter));
     if (action === 'template-add-input') $('#input-rows').insertAdjacentHTML('beforeend', inputRow(adapterFor(drafts.templateModule)));
@@ -327,7 +327,7 @@ document.addEventListener('submit', async event => {
     if (form.id === 'run-form') {
       const caseIds = drafts.runDraft.cases.filter(c => c.mode === drafts.runDraft.mode && isApproved(c) && drafts.runDraft.selected.has(c.id)).map(c => c.id);
       if (!caseIds.length) throw new Error('Select at least one case for this run.');
-      const r = await api('/api/runs', 'POST', { name: f.get('run-name'), moduleId: drafts.runDraft.module.id, mode: drafts.runDraft.mode, environmentId: f.get('run-environment'), caseIds });
+      const r = await api('/api/runs', 'POST', { name: f.get('run-name'), moduleId: drafts.runDraft.module.id, mode: drafts.runDraft.mode, environmentId: f.get('run-environment'), caseIds, accessibility: f.get('run-a11y') === 'on' });
       closeDialog(); await reload(); location.hash = `/runs/${r.id}`; toast(r.mode === 'manual' ? 'Manual run opened. Record your results.' : 'Run added to the execution queue.');
     }
     if (form.id === 'template-form') {

@@ -3,6 +3,7 @@ import { execFileSync } from 'child_process';
 import { test, expect } from '../../fixtures/auth';
 import { CaseResult, RegCase, recordResult, runCase, blockedCaseResult } from './case-runner';
 import { captureEvidence } from '../../fixtures/evidence';
+import { scanAccessibility } from '../../fixtures/accessibility';
 import { moduleDir } from '../../shared/module-paths';
 
 // The expected-vs-actual report is written by tests/modules/registration/results-reporter.ts
@@ -53,6 +54,7 @@ test.describe('Registration cases', () => {
         await captureEvidence(page, info, c.id, 'Execution error');
       }
       await captureEvidence(page, info, c.id, `Final result ${r.status}`);
+      await scanAccessibility(page, info, c.id);
       recordResult(r);
       await info.attach(`${c.id}-result.json`, { body: JSON.stringify(r, null, 2), contentType: 'application/json' });
       info.annotations.push({ type: 'expected', description: r.expected }, { type: 'actual', description: r.actual });

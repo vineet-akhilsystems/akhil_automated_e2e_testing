@@ -60,8 +60,8 @@ function paintHealth({ trend, summary, flaky, slowest }, compact) {
 
 // ---- Settings: run alerts and scheduled runs (administrators) ----------------------------------------------------------
 
-export const automationShell = () => isAdmin() ? '<div class="panel alert-panel" id="alerts-panel"><p class="muted">Loading run alerts…</p></div><div class="panel alert-panel" id="schedules-panel"><p class="muted">Loading scheduled runs…</p></div>' : '';
-export function loadAutomationPanels() { loadAlerts(); loadSchedules(); }
+export const automationShell = () => isAdmin() ? '<div class="panel alert-panel" id="alerts-panel"><p class="muted">Loading run alerts…</p></div><div class="panel alert-panel" id="schedules-panel"><p class="muted">Loading scheduled runs…</p></div><div class="panel alert-panel" id="tickets-panel"><p class="muted">Loading defect tickets…</p></div>' : '';
+export function loadAutomationPanels() { loadAlerts(); loadSchedules(); loadTickets(); }
 
 const WHEN = [['failures', 'Only when a run has failures, errors or flaky cases'], ['always', 'After every automated run'], ['never', 'Never (alerts off)']];
 export async function loadAlerts() {
@@ -97,3 +97,74 @@ export async function loadSchedules() {
 /** Small badge for run results: shown beside a case that passed only after a retry. */
 export const flakyBadge = result => result?.flaky ? `<span class="badge orange" title="Failed first, then passed on retry. The pass is real but unreliable.">Flaky · passed on attempt ${Number(result.attempts) || 2}</span>` : '';
 export { can };
+
+// ---- Run page: failure groups with suggested fixes, and comparison with the previous run --------------------------------
+
+export function runInsightPanels(run) {
+  if (run.kind === 'authentication' || !['passed', 'failed', 'error', 'blocked'].includes(run.status)) return '';
+  const a11y = accessibilityPanel(run);
+  setTimeout(() => { loadFailures(run.id); loadCompare(run.id); }, 0);
+  return `${a11y}<div id="run-failures" class="panel run-insight"></div><div id="run-compare" class="panel run-insight"></div>`;
+}
+
+const CLASS_TONE = { session: 'orange', network: 'orange', data: 'orange', locator: 'orange', timeout: 'orange', assertion: 'fail', unknown: '' };
+async function loadFailures(runId) {
+  const node = document.getElementById('run-failures'); if (!node) return;
+  try {
+    const f = await api(`/api/runs/${runId}/failures`);
+    if (document.getElementById('run-failures') !== node) return;
+    if (!f.total) { node.remove(); return; }
+    node.innerHTML = `<div class="panel-heading"><h2>Why did it fail?</h2><span class="badge">${f.total} failing${f.total !== f.gating ? ` · ${f.total - f.gating} quarantined` : ''}</span></div>
+      <p class="postmortem">${esc(f.postmortem)}</p>${f.written ? `<div class="result-box"><strong>Post-mortem written by ${esc(f.written.by?.user ?? 'a team member')} · ${esc(when(f.written.at))}</strong>${esc(f.written.text)}</div>` : ''}
+      <h3>Failure groups</h3><ul class="group-list">${f.groups.map(g => `<li><span class="badge ${CLASS_TONE[g.class] ?? ''}">${esc(g.label)}</span> <strong>${g.count}</strong> case${g.count === 1 ? '' : 's'}<div class="tiny muted">${esc(g.hint)}</div><div class="tiny">${g.caseIds.slice(0, 12).map(id => `<span class="case-id">${esc(id)}</span>`).join(' ')}${g.caseIds.length > 12 ? ` +${g.caseIds.length - 12} more` : ''}</div></li>`).join('')}</ul>
+      ${f.clusters.some(c => c.count > 1) ? `<h3>Same message, several cases</h3><ul class="group-list">${f.clusters.filter(c => c.count > 1).slice(0, 5).map(c => `<li><strong>${c.count} cases</strong> <span class="muted">${esc(c.sample)}</span></li>`).join('')}</ul>` : ''}
+      ${f.suggestions.length ? `<h3>Suggested fixes (for a person to review)</h3><p class="tiny muted">These are rule-based hints, not changes. Nothing is edited automatically.</p><ul class="group-list">${f.suggestions.slice(0, 8).map(s => `<li><strong>${esc(s.caseId)}</strong> ${s.locator ? `<code>${esc(s.locator.locator)}</code><div class="tiny">${esc(s.locator.advice)}</div>` : '<div class="tiny">Slow or stuck step: check the screen, then try the healer agent.</div>'}<details><summary class="tiny">Ask the healer agent</summary><textarea readonly rows="2" class="copy-box">${esc(s.prompt)}</textarea></details></li>`).join('')}</ul>` : ''}`;
+  } catch (error) { node.innerHTML = `<h2>Why did it fail?</h2><p class="form-help">${esc(error.message)}</p>`; }
+}
+
+async function loadCompare(runId) {
+  const node = document.getElementById('run-compare'); if (!node) return;
+  try {
+    const c = await api(`/api/runs/${runId}/compare`);
+    if (document.getElementById('run-compare') !== node) return;
+    if (c.none) { node.innerHTML = '<div class="panel-heading"><h2>Compared with the previous run</h2></div><p class="muted">No earlier finished automated run of this module on this login profile to compare with.</p>'; return; }
+    const list = (title, items, tone) => items.length ? `<details ${tone === 'fail' ? 'open' : ''}><summary><span class="badge ${tone}">${items.length}</span> ${title}</summary><ul class="group-list">${items.slice(0, 20).map(i => `<li><strong>${esc(i.id)}</strong> <span class="muted">${esc(i.title)}</span>${i.nowMs ? ` <span class="tiny">${fmtMs(i.beforeMs)} → ${fmtMs(i.nowMs)}</span>` : ''}${i.status && i.status !== 'PASS' ? `<div class="tiny muted">${esc(i.actual)}</div>` : ''}</li>`).join('')}${items.length > 20 ? `<li class="tiny muted">+${items.length - 20} more</li>` : ''}</ul></details>` : '';
+    const d = c.head.passRate !== null && c.base.passRate !== null ? Math.round((c.head.passRate - c.base.passRate) * 10) / 10 : null;
+    node.innerHTML = `<div class="panel-heading"><h2>Compared with the previous run</h2><span class="badge">${esc(c.base.name)} · ${esc(when(c.base.at))}</span></div>
+      <p>Pass rate ${c.base.passRate ?? '—'}% → <strong>${c.head.passRate ?? '—'}%</strong>${d === null ? '' : ` (${d > 0 ? '+' : ''}${d} points)`} · duration ${fmtMs(c.base.wallMs)} → ${fmtMs(c.head.wallMs)}</p>
+      ${list('newly failing', c.newlyFailing, 'fail')}${list('fixed', c.fixed, 'green')}${list('still failing', c.stillFailing, 'orange')}${list('newly flaky', c.newlyFlaky, 'orange')}${list('much slower', c.slower, '')}${list('new cases', c.added, '')}${list('no longer in the run', c.removed, '')}
+      ${Object.values(c.counts).every(n => !n) ? '<p class="muted">Nothing changed between the two runs.</p>' : ''}`;
+  } catch (error) { node.innerHTML = `<h2>Compared with the previous run</h2><p class="form-help">${esc(error.message)}</p>`; }
+}
+
+export async function loadTickets() {
+  const node = document.getElementById('tickets-panel'); if (!node) return;
+  try {
+    const t = await api('/api/tickets/settings'), provider = t.provider ?? 'github';
+    node.innerHTML = `<h2>Defect tickets</h2><p class="form-help">Lets testers create a GitHub issue or Jira ticket from a finding on a run page, with the expected and actual result already filled in (credentials and tokens are removed). The access token is stored on the server and never shown again.</p>
+      <form id="tickets-form" class="alerts-form"><div class="form-field"><label for="tk-provider">Send tickets to</label><select id="tk-provider" name="provider" data-change="tickets-provider"><option value="github" ${provider === 'github' ? 'selected' : ''}>GitHub Issues</option><option value="jira" ${provider === 'jira' ? 'selected' : ''}>Jira Cloud</option></select></div>
+      <div data-tk="github" ${provider === 'github' ? '' : 'hidden'}><div class="form-field"><label for="tk-repo">Repository (owner/name)</label><input id="tk-repo" name="repo" placeholder="my-company/my-app" autocomplete="off"></div></div>
+      <div data-tk="jira" ${provider === 'jira' ? '' : 'hidden'} class="form-grid"><div class="form-field"><label for="tk-base">Jira address</label><input id="tk-base" name="baseUrl" placeholder="https://your-company.atlassian.net" autocomplete="off"></div><div class="form-field"><label for="tk-email">Account email</label><input id="tk-email" name="email" autocomplete="off"></div><div class="form-field"><label for="tk-project">Project key</label><input id="tk-project" name="projectKey" placeholder="QA" autocomplete="off"></div><div class="form-field"><label for="tk-type">Issue type</label><input id="tk-type" name="issueType" value="Bug"></div></div>
+      <div class="form-field"><label for="tk-token">Access token</label><input id="tk-token" name="token" type="password" autocomplete="new-password" placeholder="${t.hasSecret ? 'Saved. Paste a new token to replace it.' : 'Paste the token'}"></div>
+      <div class="flex"><button class="primary small" type="submit">Save</button>${t.configured ? '<button class="small quiet" type="button" data-action="tickets-clear">Turn off</button>' : ''}</div></form>
+      <p class="tiny muted">${t.configured ? `Tickets go to ${esc(t.target)}.` : 'Not set up yet: the Create ticket button will ask for this first.'}</p>`;
+  } catch (error) { node.innerHTML = `<h2>Defect tickets</h2><p class="form-help">${esc(error.message)}</p>`; }
+}
+
+// ---- Accessibility (optional per run; observed only) ---------------------------------------------------------------------
+const IMPACT = { critical: 'fail', serious: 'fail', moderate: 'orange', minor: '' };
+const ORDER = ['critical', 'serious', 'moderate', 'minor'];
+export const a11yCount = result => result?.accessibility?.violations?.length ?? 0;
+export const a11yBadge = result => result?.accessibility ? (a11yCount(result) ? `<span class="badge ${result.accessibility.violations.some(v => ['critical', 'serious'].includes(v.impact)) ? 'fail' : 'orange'}">${a11yCount(result)} accessibility issue${a11yCount(result) === 1 ? '' : 's'}</span>` : '<span class="badge green">No accessibility issues found</span>') : '';
+export const a11yDetails = result => a11yCount(result) ? `<div class="result-box"><strong>Accessibility issues on this screen</strong><ul>${result.accessibility.violations.map(v => `<li><span class="badge ${IMPACT[v.impact] ?? ''}">${esc(v.impact)}</span> ${esc(v.help)} <span class="muted">(${v.nodes} element${v.nodes === 1 ? '' : 's'}; ${esc(v.id)})</span> <a href="${esc(v.helpUrl)}" target="_blank" rel="noopener noreferrer">How to fix</a></li>`).join('')}</ul></div>` : '';
+function accessibilityPanel(run) {
+  const scanned = (run.results ?? []).filter(r => r.accessibility);
+  if (!run.accessibility && !scanned.length) return '';
+  if (!scanned.length) return '<div class="panel run-insight"><div class="panel-heading"><h2>Accessibility</h2></div><p class="muted">The accessibility check was requested, but no case produced a scan.</p></div>';
+  const byRule = new Map();
+  for (const r of scanned) for (const v of r.accessibility.violations) { const e = byRule.get(v.id) ?? { ...v, cases: new Set() }; e.cases.add(r.id); byRule.set(v.id, e); }
+  const rules = [...byRule.values()].sort((a, b) => ORDER.indexOf(a.impact) - ORDER.indexOf(b.impact) || b.cases.size - a.cases.size);
+  return `<div class="panel run-insight"><div class="panel-heading"><h2>Accessibility</h2><span class="badge">${scanned.length} screen${scanned.length === 1 ? '' : 's'} scanned</span></div>
+    <p class="tiny muted">Automated checks (WCAG 2 A and AA) find only part of the possible problems. They report what they see and never fail a case.</p>
+    ${rules.length ? `<ul class="group-list">${rules.slice(0, 12).map(v => `<li><span class="badge ${IMPACT[v.impact] ?? ''}">${esc(v.impact)}</span> <strong>${esc(v.help)}</strong> <span class="muted">in ${v.cases.size} case${v.cases.size === 1 ? '' : 's'}</span> <a href="${esc(v.helpUrl)}" target="_blank" rel="noopener noreferrer">How to fix</a></li>`).join('')}</ul>` : '<p>No issues were found by the automated checks on the screens scanned.</p>'}</div>`;
+}

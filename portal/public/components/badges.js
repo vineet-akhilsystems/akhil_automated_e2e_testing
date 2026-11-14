@@ -8,6 +8,10 @@ import { currentModule, state } from '../state.js';
 // ---------------------------------------------------------------------------
 const pendingCount = () => state.cases.filter(c => c.reviewStatus === 'draft').length;
 export function reviewBadge(c) {
+  if (c.quarantined) return `${badge('Quarantined', 'orange')}<span class="tiny muted">Runs, but its failures do not fail the run</span>${reviewBadgeBase(c)}`;
+  return reviewBadgeBase(c);
+}
+function reviewBadgeBase(c) {
   if (c.reviewStatus === 'draft') return `${badge('Needs review', 'orange')}<span class="tiny muted">Cannot run until approved</span>`;
   if (c.reviewStatus === 'rejected') return `${badge('Rejected', 'fail')}<span class="tiny muted">Cannot run</span>`;
   return '';

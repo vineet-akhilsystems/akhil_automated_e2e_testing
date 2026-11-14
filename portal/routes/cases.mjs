@@ -34,7 +34,7 @@ export default async function handle(ctx, rc) {
           if (resource === 'cases' && caseId === 'bulk' && req.method === 'POST') {
             const body = await readJson(req);
             check(Array.isArray(body.caseIds) && body.caseIds.length > 0 && body.caseIds.length <= 5000, 'Select between 1 and 5,000 cases.');
-            check(['enable', 'disable', 'delete', 'priority', 'category'].includes(body.action), 'Choose a supported bulk action.');
+            check(['enable', 'disable', 'quarantine', 'release', 'delete', 'priority', 'category'].includes(body.action), 'Choose a supported bulk action.');
             const ids = [...new Set(body.caseIds.map(x => textValue(x, 'Case ID', 80, true)))];
             const ignoreSet = new Set(ids);
             store.transaction(() => {
@@ -48,6 +48,7 @@ export default async function handle(ctx, rc) {
                 } else {
                   const next = structuredClone(existing);
                   if (body.action === 'enable' || body.action === 'disable') next.enabled = body.action === 'enable';
+                  if (body.action === 'quarantine' || body.action === 'release') next.quarantined = body.action === 'quarantine';
                   if (body.action === 'priority') { check(['P0', 'P1', 'P2', 'P3'].includes(body.value), 'Choose priority P0–P3.'); next.priority = body.value; }
                   if (body.action === 'category') next.category = textValue(body.value, 'Suite', 120, true);
                   if (!acc.module(module).has('case.review') && (next.reviewStatus ?? 'approved') !== 'draft') { next.reviewStatus = 'draft'; delete next.reviewedBy; }

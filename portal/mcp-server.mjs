@@ -126,6 +126,12 @@ const TOOLS = [
     run: async () => { const b = await api('GET', '/api/runs'); return Array.isArray(b) ? b.slice(0, 30) : b; } },
   { name: 'get_run', description: 'Get one run with per-case expected vs actual results.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' } } },
     run: ({ runId }) => api('GET', `/api/runs/${enc(runId)}`) },
+  { name: 'get_run_failures', description: 'For a finished run: failing cases grouped by cause (login/session, application error, test data, element not found, timeout, expected result not met), cases that failed with the same message, rule-based fix hints, and a plain-language summary. Read this before writing a post-mortem.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' } } },
+    run: ({ runId }) => api('GET', `/api/runs/${enc(runId)}/failures`) },
+  { name: 'compare_runs', description: 'What changed between a run and the previous finished automated run of the same module and login profile (or a run you name in "to"): newly failing, fixed, still failing, newly flaky, slower, added and removed cases.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' }, to: { type: 'string', description: 'Optional id of an older run of the same module to compare against.' } } },
+    run: ({ runId, to }) => api('GET', `/api/runs/${enc(runId)}/compare${to ? `?to=${enc(to)}` : ''}`) },
+  { name: 'save_run_postmortem', description: 'Save a short post-mortem for a finished run (plain language, at most 4000 characters): the likely cause, which failures share it, and what to do next. Shown on the run page as written by the assistant. Base it on get_run_failures and compare_runs; do not invent causes.', inputSchema: { type: 'object', required: ['runId', 'text'], properties: { runId: { type: 'string' }, text: { type: 'string' } } },
+    run: ({ runId, text }) => api('PUT', `/api/runs/${enc(runId)}/postmortem`, { text }) },
 ];
 
 const send = m => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...m }) + '\n');

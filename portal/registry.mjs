@@ -140,6 +140,8 @@ export function validateCase(raw, module) {
   c.preconditions = textValue(c.preconditions ?? '', 'Preconditions', 10000);
   c.requirement = textValue(c.requirement ?? '', 'Requirement reference', 500);
   c.enabled = c.enabled !== false;
+  // Quarantined cases still run and report, but their failures do not fail the run or gate a release. Stored only when true.
+  if (c.quarantined === true) c.quarantined = true; else delete c.quarantined;
   c.steps ??= [];
   check(Array.isArray(c.steps) && c.steps.length <= 100, 'A case can have up to 100 manual steps.');
   c.steps = c.steps.map(s => {

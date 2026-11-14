@@ -9,6 +9,11 @@ import { loginSchema } from './environment-settings.mjs';
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 const TERMINAL = new Set(['passed', 'failed', 'error', 'blocked', 'cancelled', 'interrupted']);
 
+/** Results that decide the run's status: quarantined cases still run and report, but cannot fail the run. */
+export const gating = run => (run.results ?? []).filter(r => !r.quarantined);
+/** The runner exits non-zero when any case fails; that alone must not fail a run whose only failures are quarantined. */
+export const onlyQuarantinedFailed = run => (run.results ?? []).some(r => r.quarantined && FAILED.has(r.status)) && !gating(run).some(r => FAILED.has(r.status));
+
 /** PORTAL_WORKERS (1-16) or min(4, cores). */
 export function defaultWorkers(env = process.env) {
   const cores = typeof os.availableParallelism === 'function' ? os.availableParallelism() : os.cpus().length;
@@ -91,7 +96,8 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
         try { const event = JSON.parse(line); byId.set(event.id, event); } catch { /* incomplete last line */ }
       }
     }
-    run.results = [...byId.values()];
+    const quarantined = new Set((run.cases ?? []).filter(c => c.quarantined).map(c => c.id));
+    run.results = [...byId.values()].map(r => (quarantined.has(r.id) && !r.quarantined ? { ...r, quarantined: true } : r));
   }
   // Timing recorded on run.timing (see summarizeTiming).
   function summarizeTiming(run, timing) {
@@ -139,7 +145,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
         CASES_FILE: path.join(sd, 'cases.json'), CASES: '', REG_RUN_ID: run.id, PORTAL_RUN_ID: run.id, PORTAL_MODULE_ID: run.module.id,
         PORTAL_RUN_DIR: sd, PORTAL_RUN_ROOT: dir, PORTAL_SHARD_INDEX: String(i), PORTAL_SHARD_COUNT: String(plan.length),
         PORTAL_REPORT_DIR: path.join(dir, 'report') + tag, PLAYWRIGHT_HTML_OUTPUT_DIR: path.join(dir, 'html') + tag,
-        PORTAL_CASE_TIMEOUT_MS: caseTimeout, PORTAL_RETRIES: auth ? '0' : String(retries),
+        PORTAL_CASE_TIMEOUT_MS: caseTimeout, PORTAL_RETRIES: auth ? '0' : String(retries), PORTAL_A11Y: run.accessibility ? '1' : '',
         PORTAL_AUTH_RUN: auth ? '1' : '', PAUSE_ON_FAIL: '', SLOWMO: '0', VIDEO: '', FORCE_COLOR: '0' };
     };
     const shardArgs = i => ['node_modules/@playwright/test/cli.js', 'test', '--config=playwright.config.ts',
@@ -181,11 +187,11 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
       }
       else if (run.results.length < planned.length) {
         run.status = 'error'; run.error = `Runner stopped after ${run.results.length} of ${planned.length} cases. See the runner log.`;
-      } else if (run.results.some(r => r.status === 'ERROR')) run.status = 'error';
-      else if (run.results.some(r => ['FAIL', 'FAIL (assumed requirement)'].includes(r.status))) run.status = 'failed';
-      else if (code !== 0) { run.status = 'error'; run.error = 'Runner exited unsuccessfully. Inspect the runner log.'; }
+      } else if (gating(run).some(r => r.status === 'ERROR')) run.status = 'error';
+      else if (gating(run).some(r => ['FAIL', 'FAIL (assumed requirement)'].includes(r.status))) run.status = 'failed';
+      else if (code !== 0 && !onlyQuarantinedFailed(run)) { run.status = 'error'; run.error = 'Runner exited unsuccessfully. Inspect the runner log.'; }
       else if (run.results.some(r => r.status === 'BLOCKED')) run.status = 'blocked';
-      else run.status = code === 0 && run.results.every(r => ['PASS', 'OBSERVED', 'SKIPPED'].includes(r.status)) ? 'passed' : 'failed';
+      else run.status = (code === 0 || onlyQuarantinedFailed(run)) && gating(run).every(r => ['PASS', 'OBSERVED', 'SKIPPED'].includes(r.status)) ? 'passed' : 'failed';
       run.exitCode = code; run.finishedAt = new Date().toISOString(); store.saveRun(run);
       logger?.(`[run ${run.id.slice(0, 8)}] Timing: ${(run.timing.wallMs / 1000).toFixed(1)}s wall, ${plan.length} worker(s), ${run.timing.cases.length} case(s)`);
       if (run.kind === 'authentication') fs.writeSync(log, `${run.status === 'passed' ? 'Application login completed.' : run.error ?? 'Application login stopped.'}\nLogin output, screenshots and traces are suppressed to protect credentials.\n`);

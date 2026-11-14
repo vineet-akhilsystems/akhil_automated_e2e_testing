@@ -7,6 +7,7 @@ import { readJson } from '../http/body.mjs';
 import { json, file } from '../http/respond.mjs';
 import { classification, TERMINAL } from '../quality.mjs';
 import { generatePdf } from '../pdf-report.mjs';
+import { toJunit } from '../compare.mjs';
 
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
@@ -87,7 +88,12 @@ export default async function handle(ctx, rc) {
           }
           if (resource === 'export' && req.method === 'GET') {
             const format = url.searchParams.get('format') ?? 'json';
-            check(['pdf', 'xlsx', 'json'].includes(format), 'Choose PDF, Excel or JSON export.');
+            check(['pdf', 'xlsx', 'json', 'junit'].includes(format), 'Choose PDF, Excel, JSON or JUnit export.');
+            if (format === 'junit') {
+              check(run.kind !== 'authentication', 'Login runs have no test results to export.');
+              res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Content-Disposition': `attachment; filename="${run.module.id}-${id.slice(0, 8)}-junit.xml"` });
+              res.end(toJunit(run)); return;
+            }
             if (format === 'pdf') {
               const target = await generatePdf(run, queue.dirFor(id));
               return await file(res, target, true, `${run.module.id}-bug-report-${id.slice(0, 8)}.pdf`);

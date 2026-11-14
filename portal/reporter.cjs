@@ -18,6 +18,8 @@ module.exports = class PortalReporter {
     value.attachments = result.attachments.filter(a => a.path).map(a => ({
       name: a.name, path: path.relative(base, a.path).split(path.sep).join('/'), contentType: a.contentType,
     })).filter(a => !a.path.startsWith('../'));
+    const a11y = result.attachments.find(a => a.name.endsWith('-a11y.json') && a.body);
+    if (a11y) { try { value.accessibility = JSON.parse(a11y.body.toString()); } catch { /* a bad scan file is ignored */ } }
     value.wallMs = result.duration;
     const earlier = this.attempts.get(test.id) ?? [];
     earlier.push({ attempt: result.retry + 1, status: value.status, actual: String(value.actual ?? '').slice(0, 400), mismatches: (value.mismatches ?? []).slice(0, 5) });

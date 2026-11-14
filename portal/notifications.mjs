@@ -28,8 +28,9 @@ export function createNotifications(store, { fetchImpl = globalThis.fetch, logge
 
   /** Short, human text plus a structured payload. `text` works for Slack and Teams; other receivers can read `run`. */
   function message(run) {
-    const counts = { passed: 0, failed: 0, errors: 0, flaky: 0 };
+    const counts = { passed: 0, failed: 0, errors: 0, flaky: 0, quarantined: 0 };
     for (const r of run.results ?? []) {
+      if (r.quarantined && r.status !== 'PASS') { counts.quarantined++; continue; }
       if (r.status === 'PASS') counts.passed++;
       else if (r.status === 'ERROR') counts.errors++;
       else if (['FAIL', 'FAIL (assumed requirement)'].includes(r.status)) counts.failed++;
@@ -37,9 +38,9 @@ export function createNotifications(store, { fetchImpl = globalThis.fetch, logge
     }
     const verdict = { passed: 'PASSED', failed: 'FAILED', error: 'ERROR', blocked: 'BLOCKED' }[run.status] ?? String(run.status).toUpperCase();
     const link = baseUrl() ? `${baseUrl()}/#/runs/${run.id}` : '';
-    const bad = (run.results ?? []).filter(r => ['FAIL', 'FAIL (assumed requirement)', 'ERROR'].includes(r.status)).slice(0, 5).map(r => `${r.id} ${r.title ?? ''}`.trim());
+    const bad = (run.results ?? []).filter(r => !r.quarantined && ['FAIL', 'FAIL (assumed requirement)', 'ERROR'].includes(r.status)).slice(0, 5).map(r => `${r.id} ${r.title ?? ''}`.trim());
     const text = [`Test run ${verdict}: ${run.name}`,
-      `${run.module?.name ?? run.module?.id} on ${run.environmentName ?? 'environment'}: ${counts.passed} passed, ${counts.failed} failed, ${counts.errors} errors${counts.flaky ? `, ${counts.flaky} flaky (passed only on retry)` : ''}`,
+      `${run.module?.name ?? run.module?.id} on ${run.environmentName ?? 'environment'}: ${counts.passed} passed, ${counts.failed} failed, ${counts.errors} errors${counts.flaky ? `, ${counts.flaky} flaky (passed only on retry)` : ''}${counts.quarantined ? `, ${counts.quarantined} quarantined (not counted)` : ''}`,
       ...(bad.length ? ['Needs attention: ' + bad.join('; ')] : []), ...(link ? [link] : [])].join('\n');
     return { text, run: { id: run.id, name: run.name, status: run.status, module: run.module?.id, environment: run.environmentName, ...counts, link, finishedAt: run.finishedAt } };
   }

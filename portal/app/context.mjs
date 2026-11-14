@@ -20,6 +20,7 @@ import { createAccess } from '../services/access.mjs';
 import { createMembership } from '../services/membership.mjs';
 import { createNotifications } from '../notifications.mjs';
 import { createSchedules } from '../schedules.mjs';
+import { createTickets } from '../tickets.mjs';
 
 const now = () => new Date().toISOString();
 
@@ -186,7 +187,7 @@ export function createContext(options = {}) {
     }
     const run = { id: randomUUID(), name: textValue(body.name, 'Run name', 200, true), environmentId: environment.id,
       environmentName: environment.name, environmentUrl: environment.url, mode: body.mode, kind: 'tests', productId, productName: productName(productId),
-      module: structuredClone(module), cases, results: [], status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
+      module: structuredClone(module), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
       scope: { repositoryCases: store.cases(module.id).length, enabledCases: store.cases(module.id).filter(c => c.enabled !== false).length,
         disabledCases: store.cases(module.id).filter(c => c.enabled === false).length, plannedCases: cases.length },
       requestedCount: new Set(requested).size, addedDependencies: cases.filter(c => !requested.includes(c.id)).map(c => c.id) };
@@ -239,14 +240,18 @@ export function createContext(options = {}) {
   const membership = { subjectOf, memberView, record, trail, inModule, parseGrant, parseRole, assertCovers, leadState, modulesWithLead, modulesReachable, keepingLeads, modulesOfScope, scopeAudit, isSelf, grantCap, grantNeed, assertWithinCap, teamMemberships, memberNames, assertTeamAdd, assertTeamManage, recordViaTeam, addMember, syncLegacyMembership, auditLeaderless };
   const notifications = createNotifications(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   // A schedule starts a run of the module's approved, executable automated cases, as the person who created the schedule.
-  const startScheduled = async (schedule, owner) => {
-    const caseIds = store.cases(schedule.moduleId).filter(c => c.mode === 'automated' && c.enabled !== false && (c.reviewStatus ?? 'approved') === 'approved' && c.action !== 'unavailable').map(c => c.id);
+  const startAll = async (target, owner, extra = {}) => {
+    const caseIds = store.cases(target.moduleId).filter(c => c.mode === 'automated' && c.enabled !== false && (c.reviewStatus ?? 'approved') === 'approved' && c.action !== 'unavailable').map(c => c.id);
     check(caseIds.length > 0, 'This module has no approved automated cases to run.');
-    check(!store.runs().some(r => r.scheduleId === schedule.id && ['queued', 'running'].includes(r.status)), 'The previous scheduled run is still in progress.');
-    return createRun({ moduleId: schedule.moduleId, environmentId: schedule.environmentId, mode: 'automated', caseIds, name: `${schedule.name} (${new Date().toLocaleDateString()})` }, owner, { scheduleId: schedule.id });
+    return createRun({ moduleId: target.moduleId, environmentId: target.environmentId, mode: 'automated', caseIds, name: target.name }, owner, extra);
   };
+  const startScheduled = async (schedule, owner) => {
+    check(!store.runs().some(r => r.scheduleId === schedule.id && ['queued', 'running'].includes(r.status)), 'The previous scheduled run is still in progress.');
+    return startAll({ moduleId: schedule.moduleId, environmentId: schedule.environmentId, name: `${schedule.name} (${new Date().toLocaleDateString()})` }, owner, { scheduleId: schedule.id });
+  };
+  const tickets = createTickets(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
-  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, sendPack };
-  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
+  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
+  return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, qaRoot, specRoot, helpers };
 }

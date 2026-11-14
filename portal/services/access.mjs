@@ -68,7 +68,7 @@ export function createAccess({ store, users, environments }) {
     return read ? 'module.view' : 'module.settings';
   }
   const runPermission = resource => resource === 'triage' ? 'triage.write' : resource === 'cancel' ? 'run.cancel'
-    : ['report', 'evidence', 'results', 'complete', 'rerun-failures'].includes(resource) ? 'run.start' : 'report.view';
+    : ['report', 'evidence', 'results', 'complete', 'rerun-failures'].includes(resource) ? 'run.start' : ['ticket', 'postmortem'].includes(resource) ? 'triage.write' : 'report.view';
   // Authorizes every /api route before its handler runs. Returns the per-request access context.
   // Routes that depend on the request body (POST /api/modules, POST /api/runs, audit) finish their own check inline.
   function enforce(user, method, route) {
@@ -80,7 +80,7 @@ export function createAccess({ store, users, environments }) {
     if (route === '/api/products' || route === '/api/environments') { authorize(user, route === '/api/products' ? 'product.create' : 'env.write', { platform: true }, acc); return acc; }
     if (route === '/api/directory' || route === '/api/teams') { authorize(user, 'members.manage', {}, acc); return acc; }
     if (/^\/api\/teams\/[\w-]+(\/members(\/[\w-]+)?)?$/.test(route)) { authorize(user, 'members.manage', {}, acc); return acc; } // ownership is checked in the handler
-    if (route === '/api/trends' || /^\/api\/schedules(\/[\w-]+)?$/.test(route)) return acc; // inline: filtered by module access / authorized in routes/health.mjs
+    if (route === '/api/ci/runs' || route === '/api/trends' || /^\/api\/schedules(\/[\w-]+)?$/.test(route)) return acc; // inline: filtered by module access / authorized in routes/health.mjs
     if (route === '/api/audit' || route === '/api/modules' || (route === '/api/runs' && method === 'POST')) return acc; // inline
     if ((m = /^\/api\/memberships\/([\w-]+)$/.exec(route))) {
       const ms = store.membership(m[1]);
