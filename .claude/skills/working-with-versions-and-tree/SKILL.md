@@ -52,7 +52,7 @@ Rules (enforced by `validateTree` in `portal/tree.mjs`): ids match `[A-Za-z0-9_-
 | Where do cases sit, what failed per area? | `get_tree` (`run: "latest"` or a run id) |
 | I changed these files, what else needs updating? | `check_change_impact` (or `npm run impact`; see `checking-change-impact`) |
 
-When drafting cases for a module with a tree, the analyze brief lists the node ids. A case may carry an optional `node`; the portal keeps a valid one only as `suggestedNode` and ignores an unknown id. A person places cases; nothing is auto-assigned.
+When drafting cases for a module with a tree, the portal sandbox agent's analyze brief lists the node ids (the MCP `save_insights` path does not, and ignores `node`). A case may carry an optional `node`; the portal keeps a valid one only as `suggestedNode` and ignores an unknown id. A person places cases; nothing is auto-assigned.
 
 ## Limits
 
