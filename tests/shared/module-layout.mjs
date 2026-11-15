@@ -8,10 +8,11 @@ import path from 'node:path';
 
 export const KINDS = ['qa', 'tests', 'portal'];
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
-// Directories under qa/ and tests/ that hold shared (not product-scoped) content.
+// Directories under qa/ and tests/ that hold shared (not product-scoped) content. "modules" is the old flat layout: a leftover folder of that name directly under qa/ or
+// tests/ on a checkout that pulled the move must never be read as a product (the layout guard test says to delete it).
 const RESERVED_BY_KIND = {
-  qa: ['knowledge', 'tools'],
-  tests: ['shared', 'fixtures', 'discovery', 'smoke'],
+  qa: ['knowledge', 'tools', 'modules'],
+  tests: ['shared', 'fixtures', 'discovery', 'smoke', 'modules'],
   portal: [],
 };
 export const RESERVED_PRODUCT_NAMES = [...new Set(Object.values(RESERVED_BY_KIND).flat())];

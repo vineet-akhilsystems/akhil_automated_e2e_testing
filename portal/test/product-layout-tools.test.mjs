@@ -43,9 +43,9 @@ test('automationFiles never hashes the old flat folders, for any product', t => 
   assert.deepEqual(automationFiles(root, 'augastam', 'foo'), []);
 });
 
-test('the shared folder names cannot be a product; automation versions fail loudly for them', t => {
+test('"modules" (the old flat layout) and the shared folder names cannot be a product; automation versions fail loudly for them', t => {
   const root = tempRoot(t);
-  for (const bad of ['tools', 'knowledge', 'shared', 'fixtures', 'discovery', 'smoke']) {
+  for (const bad of ['modules', 'tools', 'knowledge', 'shared', 'fixtures', 'discovery', 'smoke']) {
     assert.throws(() => resolveModuleFolder(root, 'qa', bad, 'x'), /reserved/, bad);
     assert.throws(() => automationFiles(root, bad, 'x'), /reserved/, bad);
   }
@@ -87,7 +87,7 @@ test('install-module-adapter --product installs into the product-scoped folders'
 
 test('install-module-adapter gives a plain InstallError for a reserved or malformed product', async t => {
   const s = proposal(t, { spec: 'tests/tools/bar/cases.spec.ts' });
-  for (const product of ['tools', 'Bad_Product']) {
+  for (const product of ['tools', 'modules', 'Bad_Product']) {
     await rejectsInstall(install(['--module', 'bar', '--product', product, '--from', s.from, '--dry-run'], s.opts), /--product/, product);
   }
 });

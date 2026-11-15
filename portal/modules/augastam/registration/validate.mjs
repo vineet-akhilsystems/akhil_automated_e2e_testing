@@ -11,7 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const ID_PROOF_FIXTURE = `${resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration')}/data/agent-test-id-proof.pdf`;
 
 // COMPATIBILITY (product-scoped layout, 2026-11-15): portal databases created before the move may still hold the old path in a case's
-// id_proof_file input. That one legacy value is accepted as the same fixture. Nothing else under the old qa/modules/ layout is mapped.
+// id_proof_file input. That one legacy value is accepted as the same fixture. Nothing else from the old flat layout is mapped.
 export const LEGACY_ID_PROOF_FIXTURE = 'qa/modules/registration/data/agent-test-id-proof.pdf';
 /** The current repo-relative fixture path for `value` (the current or the legacy string), else null. */
 export function resolveIdProofFixture(value) {
