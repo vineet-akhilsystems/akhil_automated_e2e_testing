@@ -357,13 +357,13 @@ function autoRoot(t) {
   put('tests/modules/other/o.ts', 'o');
   const store = openStore(data);
   t.after(() => { store.close(); fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(data, { recursive: true, force: true }); });
-  return { root, store, put, reg: (extra = {}) => registerAutomationVersion({ store, root, moduleId: 'm1', by: 'tester', ...extra }) };
+  return { root, store, put, reg: (extra = {}) => registerAutomationVersion({ store, root, productId: 'augastam', moduleId: 'm1', by: 'tester', ...extra }) };
 }
 
 test('automationFiles lists the included files sorted, forward-slash, without result, case, discovery or other-module folders', t => {
   const { root } = autoRoot(t);
-  assert.deepEqual(automationFiles(root, 'm1'), ['playwright.config.ts', 'qa/modules/m1/adapter.json', 'qa/modules/m1/versions/v.json', 'tests/fixtures/f.png', 'tests/modules/m1/a.spec.ts', 'tests/modules/m1/helpers/b.ts']);
-  assert.equal(fingerprintAutomation(root, 'missing-module').files.length, 2, 'a missing module still hashes playwright.config.ts and fixtures');
+  assert.deepEqual(automationFiles(root, 'augastam', 'm1'), ['playwright.config.ts', 'qa/modules/m1/adapter.json', 'qa/modules/m1/versions/v.json', 'tests/fixtures/f.png', 'tests/modules/m1/a.spec.ts', 'tests/modules/m1/helpers/b.ts']);
+  assert.equal(fingerprintAutomation(root, 'augastam', 'missing-module').files.length, 2, 'a missing module still hashes playwright.config.ts and fixtures');
 });
 
 test('same content gives the same number; CRLF and LF checkouts hash equal', t => {
@@ -372,9 +372,9 @@ test('same content gives the same number; CRLF and LF checkouts hash equal', t =
   assert.equal(first.number, 1); assert.equal(first.changedFiles.added.length, 6); assert.deepEqual(first.changedFiles.changed, []);
   assert.equal(reg({ note: 'ignored' }).number, 1);
   assert.equal(reg({ note: 'ignored' }).note, '');
-  const lfHash = fingerprintAutomation(root, 'm1').hash;
+  const lfHash = fingerprintAutomation(root, 'augastam', 'm1').hash;
   put('tests/modules/m1/a.spec.ts', 'export const a = 1;\r\n');
-  assert.equal(fingerprintAutomation(root, 'm1').hash, lfHash);
+  assert.equal(fingerprintAutomation(root, 'augastam', 'm1').hash, lfHash);
   assert.equal(reg().number, 1);
 });
 
@@ -437,7 +437,7 @@ test('two store handles on the same data directory: same content one number, new
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-shared-'));
   const A = openStore(data), B = openStore(data);
   t.after(() => { A.close(); B.close(); fs.rmSync(data, { recursive: true, force: true }); });
-  const reg = (store, by) => registerAutomationVersion({ store, root, moduleId: 'm1', by });
+  const reg = (store, by) => registerAutomationVersion({ store, root, productId: 'augastam', moduleId: 'm1', by });
   const first = reg(A, 'alice');
   assert.equal(reg(B, 'bob').number, 1);
   put('tests/modules/m1/a.spec.ts', 'content Y\n');
@@ -460,7 +460,7 @@ test('a stale writer colliding on the NUMBER with a different hash renumbers and
   put('tests/modules/m1/a.spec.ts', 'content Z\n');
   let stale = true;
   const staleStore = { ...store, transaction: fn => store.transaction(fn), latestAutomationVersion: m => { if (stale) { stale = false; return { number: 1, files: v1.files }; } return store.latestAutomationVersion(m); } };
-  const created = registerAutomationVersion({ store: staleStore, root, moduleId: 'm1', by: 'late' });
+  const created = registerAutomationVersion({ store: staleStore, root, productId: 'augastam', moduleId: 'm1', by: 'late' });
   assert.equal(created.number, 3);
   assert.equal(JSON.stringify(store.automationVersionByNumber('m1', 2)), before, 'v2 document untouched');
   assert.equal(store.automationVersionByNumber('m1', 2).hash, v2.hash); assert.equal(store.automationVersionByNumber('m1', 2).createdBy, 'tester');
@@ -473,7 +473,7 @@ test('a stale writer colliding on the HASH returns the existing version', t => {
   const v2 = reg();
   let misses = 2;
   const staleStore = { ...store, transaction: fn => store.transaction(fn), automationVersionByHash: (m, h) => (misses-- > 0 ? undefined : store.automationVersionByHash(m, h)), latestAutomationVersion: () => ({ number: 1, files: [] }) };
-  const got = registerAutomationVersion({ store: staleStore, root, moduleId: 'm1', by: 'late' });
+  const got = registerAutomationVersion({ store: staleStore, root, productId: 'augastam', moduleId: 'm1', by: 'late' });
   assert.equal(got.number, 2); assert.equal(got.hash, v2.hash); assert.equal(got.createdBy, 'tester');
   assert.equal(store.automationVersions('m1').length, 2);
 });
@@ -526,14 +526,14 @@ test('default git: paths with brackets, asterisks, spaces and quotes match liter
 // ---- fingerprint edge cases ----
 test('an unreadable listed file makes the fingerprint throw instead of silently changing the hash', t => {
   const { root, store } = autoRoot(t);
-  assert.throws(() => fingerprintAutomation(root, 'm1', { hashFile: () => { throw new Error('EBUSY'); } }), /EBUSY/);
-  assert.throws(() => registerAutomationVersion({ store, root, moduleId: 'm1', fingerprint: (r, m) => fingerprintAutomation(r, m, { hashFile: () => { throw new Error('EBUSY'); } }) }), /EBUSY/);
+  assert.throws(() => fingerprintAutomation(root, 'augastam', 'm1', { hashFile: () => { throw new Error('EBUSY'); } }), /EBUSY/);
+  assert.throws(() => registerAutomationVersion({ store, root, productId: 'augastam', moduleId: 'm1', fingerprint: (r, p, m) => fingerprintAutomation(r, p, m, { hashFile: () => { throw new Error('EBUSY'); } }) }), /EBUSY/);
   assert.equal(store.automationVersions('m1').length, 0);
 });
 
 test('CRLF is normalized for text extensions only; other files hash raw', t => {
   const { root, put } = autoRoot(t);
-  const digest = rel => fingerprintAutomation(root, 'm1').files.find(f => f.path === rel).sha256;
+  const digest = rel => fingerprintAutomation(root, 'augastam', 'm1').files.find(f => f.path === rel).sha256;
   put('tests/fixtures/data.bin', 'x\ny'); put('tests/fixtures/code.ts', 'x\ny');
   const [bin, ts] = [digest('tests/fixtures/data.bin'), digest('tests/fixtures/code.ts')];
   put('tests/fixtures/data.bin', 'x\r\ny'); put('tests/fixtures/code.ts', 'x\r\ny');
@@ -543,7 +543,7 @@ test('CRLF is normalized for text extensions only; other files hash raw', t => {
 test('the 500-file cap sets truncated and the version still registers', t => {
   const { root, put, reg } = autoRoot(t);
   for (let i = 0; i < 520; i++) put(`tests/shared/f${String(i).padStart(3, '0')}.txt`, String(i));
-  const fp = fingerprintAutomation(root, 'm1');
+  const fp = fingerprintAutomation(root, 'augastam', 'm1');
   assert.equal(fp.truncated, true); assert.equal(fp.files.length, 500);
   const v = reg(); assert.equal(v.number, 1); assert.equal(v.truncated, true); assert.equal(v.files.length, 500);
 });
@@ -553,13 +553,13 @@ test('symlinks are excluded', t => {
   put('tests/shared/real.ts', 'real');
   try { fs.symlinkSync(path.join(root, 'tests/shared/real.ts'), path.join(root, 'tests/shared/link.ts')); }
   catch (e) { return t.skip(`symlink creation is not permitted on this machine (${e.code})`); }
-  const files = automationFiles(root, 'm1');
+  const files = automationFiles(root, 'augastam', 'm1');
   assert.ok(files.includes('tests/shared/real.ts')); assert.ok(!files.includes('tests/shared/link.ts'));
 });
 
 test('module ids that escape the module folders return no files', t => {
   const { root } = autoRoot(t);
-  for (const id of ['../x', path.resolve(root), 'a/b', 'a\\b', '..', '']) assert.deepEqual(automationFiles(root, id), [], JSON.stringify(id));
+  for (const id of ['../x', path.resolve(root), 'a/b', 'a\\b', '..', '']) assert.deepEqual(automationFiles(root, 'augastam', id), [], JSON.stringify(id));
 });
 
 test('an automated run is stamped with automationVersion and a manual run is not', async t => {
@@ -681,23 +681,23 @@ test('rollupTree sums children into subtree totals and counts FAIL, ERROR and as
 test('loadTree returns null when no file exists, rejects ../x, and explains an invalid file', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-'));
   try {
-    assert.equal(loadTree(root, 'nothing'), null);
-    assert.throws(() => loadTree(root, '../x'), /Invalid module id/);
-    assert.throws(() => loadTree(root, '..'), /Invalid module id/);
+    assert.equal(loadTree(root, 'augastam', 'nothing'), null);
+    assert.throws(() => loadTree(root, 'augastam', '../x'), /Invalid module id/);
+    assert.throws(() => loadTree(root, 'augastam', '..'), /Invalid module id/);
     fs.mkdirSync(path.join(root, 'qa/modules/bad'), { recursive: true });
     fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), '{ nope');
-    assert.throws(() => loadTree(root, 'bad'), /bad.*not valid JSON/);
+    assert.throws(() => loadTree(root, 'augastam', 'bad'), /bad.*not valid JSON/);
     fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), JSON.stringify(T([N('r'), N('a', 'zzz')])));
-    assert.throws(() => loadTree(root, 'bad'), /Invalid tree for "bad".*Node "a" has parent "zzz"/);
+    assert.throws(() => loadTree(root, 'augastam', 'bad'), /Invalid tree for "bad".*Node "a" has parent "zzz"/);
     fs.mkdirSync(path.join(root, 'qa/modules/ok'), { recursive: true });
     fs.writeFileSync(path.join(root, 'qa/modules/ok/tree.json'), JSON.stringify(T([N('r')])));
-    assert.equal(loadTree(root, 'ok').nodes.length, 1);
+    assert.equal(loadTree(root, 'augastam', 'ok').nodes.length, 1);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
 test('the shipped Registration tree is valid and attaches at least 95% of the 132 cases', () => {
   const root = path.resolve(import.meta.dirname, '../..');
-  const tree = loadTree(root, 'registration');
+  const tree = loadTree(root, 'augastam', 'registration');
   assert.ok(tree, 'tree.json exists');
   const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
   assert.equal(cases.length, 132);
@@ -737,17 +737,17 @@ test('assignCases skips non-object entries and keeps file-order ties', () => {
 test('loadTree allows only simple module ids and truncates long error lists', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-'));
   try {
-    for (const bad of ['..' + String.fromCharCode(92) + 'x', 'a' + String.fromCharCode(92) + 'b', 'a/b', '..', '.', path.resolve(root), '', 'a.b']) assert.throws(() => loadTree(root, bad), /Invalid module id\./, JSON.stringify(bad));
+    for (const bad of ['..' + String.fromCharCode(92) + 'x', 'a' + String.fromCharCode(92) + 'b', 'a/b', '..', '.', path.resolve(root), '', 'a.b']) assert.throws(() => loadTree(root, 'augastam', bad), /Invalid module id\./, JSON.stringify(bad));
     fs.mkdirSync(path.join(root, 'qa/modules/many'), { recursive: true });
     const nodes = [N('r'), ...Array.from({ length: 8 }, (_, i) => N(`n${i}`, 'zzz'))];
     fs.writeFileSync(path.join(root, 'qa/modules/many/tree.json'), JSON.stringify(T(nodes)));
-    assert.throws(() => loadTree(root, 'many'), /\(and 3 more\)/);
+    assert.throws(() => loadTree(root, 'augastam', 'many'), /\(and 3 more\)/);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
 test('the shipped Registration tree has an empty Registration type group and 132/132 attachment', () => {
   const root = path.resolve(import.meta.dirname, '../..');
-  const tree = loadTree(root, 'registration');
+  const tree = loadTree(root, 'augastam', 'registration');
   const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
   const { byNode, unassigned } = assignCases(tree, cases);
   assert.equal(unassigned.length, 0);
@@ -813,12 +813,12 @@ test('POST automation-versions answers 409 with a plain sentence (no path) when 
 
 test('the fingerprint is taken under the module adapter folder (adapter ?? id), the record under the module id', async t => {
   const seen = [];
-  const { admin } = await world5(t, { automationFingerprint: (root, dir) => { seen.push(dir); return fp('d'); } });
+  const { admin } = await world5(t, { automationFingerprint: (root, productId, dir) => { seen.push(dir); return fp('d'); } });
   assert.equal((await admin.request(V, 'POST', {})).status, 201);
   assert.ok(seen.length > 0 && seen.every(d => d === 'registration'));
   const store = { automationVersionByHash: () => null, latestAutomationVersion: () => null, transaction: fn => fn(), insertAutomationVersion: () => {} };
   const dirs = [];
-  const rec = registerAutomationVersion({ store, root: '/r', moduleId: 'm-id', dir: 'adapter-dir', fingerprint: (root, dir) => { dirs.push(dir); return fp('e'); } });
+  const rec = registerAutomationVersion({ store, root: '/r', productId: 'augastam', moduleId: 'm-id', dir: 'adapter-dir', fingerprint: (root, productId, dir) => { dirs.push(dir); return fp('e'); } });
   assert.deepEqual(dirs, ['adapter-dir']); assert.equal(rec.moduleId, 'm-id');
 });
 

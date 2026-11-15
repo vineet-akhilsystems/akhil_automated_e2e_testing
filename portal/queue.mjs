@@ -173,7 +173,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
       // Unique "Agent Testing User<N>" numbers per shard so parallel shards never create the same patient name.
       if (multi) fs.writeFileSync(path.join(sd, 'agent-seq.json'), JSON.stringify({ next: 1 + i * 1000, note: 'Agent Testing User<N> counter (shard offset)' }));
       return { ...process.env, ...loginEnv, BASE_URL: environment.url, AUTH_DIR: environment.authDir,
-        CASES_FILE: path.join(sd, 'cases.json'), CASES: '', REG_RUN_ID: run.id, PORTAL_RUN_ID: run.id, PORTAL_MODULE_ID: run.module.id,
+        CASES_FILE: path.join(sd, 'cases.json'), CASES: '', REG_RUN_ID: run.id, PORTAL_RUN_ID: run.id, PORTAL_MODULE_ID: run.module.id, PORTAL_PRODUCT_ID: run.productId ?? run.module.productId ?? 'augastam',
         PORTAL_RUN_DIR: sd, PORTAL_RUN_ROOT: dir, PORTAL_SHARD_INDEX: String(i), PORTAL_SHARD_COUNT: String(plan.length),
         PORTAL_REPORT_DIR: path.join(dir, 'report') + tag, PLAYWRIGHT_HTML_OUTPUT_DIR: path.join(dir, 'html') + tag,
         PORTAL_CASE_TIMEOUT_MS: caseTimeout, PORTAL_RETRIES: auth ? '0' : String(retries), PORTAL_A11Y: run.accessibility ? '1' : '',

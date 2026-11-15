@@ -3,6 +3,7 @@ import { readJson } from '../http/body.mjs';
 import { json } from '../http/respond.mjs';
 import { buildMatrix } from '../version-matrix.mjs';
 import { fingerprintAutomation, registerAutomationVersion, annotateAutomationVersion } from '../automation-versions.mjs';
+import { resolveModuleFolder } from '../module-layout.mjs';
 import { loadTree, assignCases, rollupTree } from '../tree.mjs';
 
 const FINISHED = new Set(['passed', 'failed', 'error', 'blocked']);
@@ -56,7 +57,7 @@ export default async function handle(ctx, rc) {
 
   if (m[2] === 'tree' && req.method === 'GET') {
     let tree;
-    try { tree = loadTree(root, module.id); } catch (e) { check(false, e.message, 422); }
+    try { tree = loadTree(root, module.productId ?? 'augastam', module.id); } catch (e) { check(false, e.message, 422); }
     check(tree, 'No tree defined for this module.', 404);
     const { byNode, unassigned } = assignCases(tree, store.cases(module.id));
     const which = url.searchParams.get('run');
@@ -68,14 +69,14 @@ export default async function handle(ctx, rc) {
       run = store.run(which);
       check(run && run.kind === 'tests' && run.module?.id === module.id && ctx.helpers.visibleRun(rc.acc, run), 'Run not found.', 404);
     }
-    return json(res, 200, { tree, assigned: byNode, unassigned, rollup: rollupTree(tree, byNode, run?.results ?? []),
+    return json(res, 200, { tree, file: `${resolveModuleFolder(root, 'qa', module.productId ?? 'augastam', module.id)}/tree.json`, assigned: byNode, unassigned, rollup: rollupTree(tree, byNode, run?.results ?? []),
       run: run ? { id: run.id, name: run.name, at: run.finishedAt ?? run.createdAt, status: run.status } : null });
   }
 
   if (m[2].startsWith('automation-versions')) {
     if (!m[3] && req.method === 'GET') {
       let current = null;
-      try { current = fingerprint(root, dir).hash; } catch (e) { ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr'); }
+      try { current = fingerprint(root, module.productId ?? 'augastam', dir).hash; } catch (e) { ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr'); }
       const list = store.automationVersions(module.id).slice().sort((a, b) => b.number - a.number);
       const stats = statsFor(moduleRuns().filter(r => finishedAutomated(r) && ctx.helpers.visibleRun(rc.acc, r)));
       const versions = list.map((v, i) => {
@@ -91,8 +92,8 @@ export default async function handle(ctx, rc) {
       const note = cleanNote(body?.note);
       let before, record;
       try {
-        before = store.automationVersionByHash(module.id, fingerprint(root, dir).hash);
-        if (!before) record = registerAutomationVersion({ store, root, moduleId: module.id, dir, by: rc.user.username, trigger: 'manual', note, fingerprint });
+        before = store.automationVersionByHash(module.id, fingerprint(root, module.productId ?? 'augastam', dir).hash);
+        if (!before) record = registerAutomationVersion({ store, root, productId: module.productId ?? 'augastam', moduleId: module.id, dir, by: rc.user.username, trigger: 'manual', note, fingerprint });
       } catch (e) {
         ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr');
         check(false, 'The automation files could not be read, so the current version cannot be registered. Check the server log.', 409);

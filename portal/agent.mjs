@@ -9,6 +9,7 @@ import { createAiPolicy, friendlyModel, tokensOf } from './ai-policy.mjs';
 import { loadKnowledge, knowledgeSection } from './knowledge.mjs';
 import { critiqueInstructions, applyCritique } from './critique.mjs';
 import { loadTree } from './tree.mjs';
+import { resolveModuleFolder } from './module-layout.mjs';
 
 // Runs the user's own coding agent CLI (Claude Code or Codex) inside a locked-down workspace folder.
 // The agent never gets portal credentials or network access to the portal. It reads files we place in
@@ -94,9 +95,9 @@ input/MANIFEST.json lists images ("images") and keyframes taken from BA walkthro
 - The narration (audio) of the videos was NOT transcribed. Business rules that are only spoken, and anything not visible on screen, go to openQuestions, not into rules. Do not guess values you cannot read.
 `;
 
-// The module's test tree (qa/modules/<id>/tree.json), if it has a valid one. A missing or invalid file is simply "no tree": it never fails a job.
-export function treeForModule(root, moduleId) {
-  try { return loadTree(root, moduleId); } catch { return null; }
+// The module's test tree (<qa module folder>/tree.json), if it has a valid one. A missing or invalid file is simply "no tree": it never fails a job.
+export function treeForModule(root, productId, moduleId) {
+  try { return loadTree(root, productId, moduleId); } catch { return null; }
 }
 const MAX_TREE_NODES = 80, MAX_NODE_ID = 60, MAX_NODE_NAME = 80, MAX_TREE_CHARS = 4000;
 // Node names come from a repo file, but they still end up in an agent brief: collapse whitespace (no line breaks, so no headings), clip, and bound the whole section.
@@ -163,8 +164,8 @@ You are an expert Playwright TypeScript engineer writing the automation package 
 2. \`${module.id}.page.ts\`: page object (navigation, form readiness, get/set field, error and toast inspection, save/update/search helpers).
 3. \`case-runner.ts\`: data-driven action executor returning the same result shape as the reference.
 4. \`cases.spec.ts\`: Playwright spec reading CASES_FILE / CASES, capturing stage evidence, attaching <id>-result.json.
-5. \`adapter.json\`: the declarative manifest, valid JSON, exactly this contract (the portal registry loads it from qa/modules/${module.id}/adapter.json after a developer installs it):
-   { "id": "${module.id}", "name": "string", "spec": "tests/modules/${module.id}/cases.spec.ts", "prefix": "optional case id prefix",
+5. \`adapter.json\`: the declarative manifest, valid JSON, exactly this contract (the portal registry loads it from ${resolveModuleFolder(ROOT, 'qa', module.productId ?? 'augastam', module.id)}/adapter.json after a developer installs it):
+   { "id": "${module.id}", "name": "string", "spec": "${resolveModuleFolder(ROOT, 'tests', module.productId ?? 'augastam', module.id)}/cases.spec.ts", "prefix": "optional case id prefix",
      "actions": { "<actionKey>": "human label" }, "outcomes": ["created", "blocked", "..."], "variants": ["..."],
      "fields": { "<fieldKey>": { "label": "string", "kind": "text|select|checkbox|..." } },
      "variantLabel": "optional, what the variants are called in the case editor, e.g. Bill type", "targetLabel": "optional, label of the target-record field used by update cases", "targetPlaceholder": "optional, example target reference such as {{id@<PREFIX>-001}}" }
@@ -229,7 +230,7 @@ export function copyDiscovery(src, dest, moduleId) {
   return files > 0;
 }
 
-export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, knowledgeRootDir = ROOT, discoveryRoot = path.join(ROOT, 'qa', 'modules'), env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir, { db: store.db }) }) {
+export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir, knowledgeRootDir = ROOT, discoveryRoot = ROOT, env = process.env, spawn = nodeSpawn, probe: probeOverride, timeoutMs = Number(process.env.AGENT_TIMEOUT_MS) || 15 * 60_000, logger, policy = createAiPolicy(dataDir, { db: store.db }) }) {
   const root = path.join(dataDir, 'agent');
   const jobs = new Map();
   // Not persisted with the job: the knowledge text used for it, and the model plan, so the reviewer pass can reuse them.
@@ -378,11 +379,11 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
         names.sort((a, b) => (first.indexOf(a) + 1 || 99) - (first.indexOf(b) + 1 || 99) || a.localeCompare(b));
         for (const f of names.slice(0, 10)) fs.copyFileSync(path.join(referenceDir, f), path.join(ws, 'reference', f));
       }
-      hasDiscovery = copyDiscovery(path.join(discoveryRoot, String(module.id), 'discovery'), path.join(ws, 'input', 'discovery'), module.id);
+      hasDiscovery = copyDiscovery(path.join(discoveryRoot, ...resolveModuleFolder(discoveryRoot, 'qa', module.productId ?? 'augastam', String(module.id)).split('/'), 'discovery'), path.join(ws, 'input', 'discovery'), module.id);
     }
     const pack = kind === 'analyze' ? loadKnowledge({ root: knowledgeRootDir, module }) : null;
     if (pack) { packs.set(job.id, { ...pack, hasAdapterSchema }); job.knowledge = pack.files; if (job.stats) job.stats.knowledgeChars = pack.chars; }
-    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged), knowledge: pack, tree: kind === 'analyze' ? treeForModule(knowledgeRootDir, module.id) : null });
+    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged), knowledge: pack, tree: kind === 'analyze' ? treeForModule(knowledgeRootDir, module.productId ?? 'augastam', module.id) : null });
     for (const f of ['INSTRUCTIONS.md', 'CLAUDE.md', 'AGENTS.md']) fs.writeFileSync(path.join(ws, f), brief);
     fs.writeFileSync(path.join(ws, 'input', 'MANIFEST.json'), JSON.stringify(manifest, null, 1));
     fs.writeFileSync(path.join(ws, 'mcp-none.json'), '{"mcpServers":{}}');
@@ -457,7 +458,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
         // Agents on Windows (PowerShell's Set-Content -Encoding UTF8) can prefix the file with a byte-order mark, which JSON.parse rejects.
         let body = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
         if (job.critic !== false) { body = await reviewDraft(job, ws, body); if (job.status === 'cancelled') return; }
-        const saved = ingest({ store, module: store.module(job.moduleId), body, user, mode: `agent:${job.agent}`, coveredFileIds: job.coveredFileIds, treeNodeIds: (treeForModule(knowledgeRootDir, job.moduleId)?.nodes ?? []).map(n => n.id) });
+        const saved = ingest({ store, module: store.module(job.moduleId), body, user, mode: `agent:${job.agent}`, coveredFileIds: job.coveredFileIds, treeNodeIds: (treeForModule(knowledgeRootDir, store.module(job.moduleId)?.productId ?? 'augastam', job.moduleId)?.nodes ?? []).map(n => n.id) });
         job.result = { insightId: saved.id, version: saved.version, draftCases: saved.draftCases, automatedDrafts: saved.automatedDrafts ?? 0, skipped: saved.skipped, duplicates: saved.duplicates };
         job.status = 'done'; job.message = `Done. ${saved.draftCases} draft case(s) are waiting in the Review queue.${job.reviewer?.ran ? ` A reviewer pass improved ${job.reviewer.stats.improved}, dropped ${job.reviewer.stats.dropped} and added ${job.reviewer.stats.added}.` : job.reviewer?.note ? ` ${job.reviewer.note}` : ''}`;
       } else {

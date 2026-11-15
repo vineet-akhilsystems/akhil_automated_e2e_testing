@@ -42,7 +42,7 @@ export function treePage() {
   const root = t.tree.nodes.find(n => n.parent === undefined);
   const showEmpty = Boolean(state.treeShowEmpty);
   const runLine = t.run ? `Counts reflect the latest finished automated run: <strong>${esc(t.run.name ?? t.run.id)}</strong> (${esc(date(t.run.at))}).` : 'No finished automated run yet, so no results are shown. Counts show how many cases belong to each group.';
-  const info = `<div class="info-strip tree-info">${icon('info')}<div><strong>This tree is read-only.</strong><p>${runLine} To change the groups, edit the file <code>qa/modules/${esc(m.id)}/tree.json</code>.</p></div></div>`;
+  const info = `<div class="info-strip tree-info">${icon('info')}<div><strong>This tree is read-only.</strong><p>${runLine} To change the groups, edit the file <code>${esc(t.file ?? 'tree.json')}</code>.</p></div></div>`;
   const sel = state.treeNode ? t.tree.nodes.find(n => n.id === state.treeNode) : null;
   const byId = Object.fromEntries((state.cases ?? []).map(c => [c.id, c]));
   const casesPanel = (title, ids, id) => `<div class="panel tree-cases" ${id ? `id="${id}"` : ''}><div class="panel-heading"><h2>${esc(title)}</h2><span class="tiny muted">${ids.length} case${ids.length === 1 ? '' : 's'}</span></div>${ids.length ? `<ul class="tree-case-list">${ids.map(cid => `<li><span class="case-id">${esc(cid)}</span> ${esc(byId[cid]?.title ?? '')}</li>`).join('')}</ul>` : empty('No cases', 'No case belongs directly here.')}</div>`;

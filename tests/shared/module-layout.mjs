@@ -64,3 +64,22 @@ export function listProductFolders(root, kind) {
     .map(e => e.name)
     .sort();
 }
+
+// TEMPORARY COMPATIBILITY (Task 2 of the product-scoped layout plan; Task 3 deletes this block and resolveModuleFolder's fallback):
+// the folders still live in the old flat layout (qa/modules/<id>, tests/modules/<id>, portal/modules/<id>) until they are moved.
+const LEGACY_BASE = { qa: 'qa/modules', tests: 'tests/modules', portal: 'portal/modules' };
+export function legacyModuleFolder(kind, moduleId) {
+  checkKind(kind);
+  checkId('module id', moduleId);
+  return `${LEGACY_BASE[kind]}/${moduleId}`;
+}
+
+// Runtime version of moduleFolder (reads the disk): the product-scoped folder when it exists under `root`; otherwise the legacy flat
+// folder when THAT exists; otherwise the product-scoped folder (so new modules get the new layout). moduleFolder itself stays pure and strict.
+export function resolveModuleFolder(root, kind, productId, moduleId) {
+  const scoped = moduleFolder(kind, productId, moduleId);
+  const isDir = rel => { try { return fs.statSync(path.join(root, ...rel.split('/'))).isDirectory(); } catch { return false; } };
+  if (isDir(scoped)) return scoped;
+  const legacy = legacyModuleFolder(kind, moduleId);
+  return isDir(legacy) ? legacy : scoped;
+}

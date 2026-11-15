@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { resolveModuleFolder } from '../module-layout.mjs';
 import { registerAutomationVersion, annotateAutomationVersion } from '../automation-versions.mjs';
 import { ROOT, adapters, check, textValue, validateCase, resolveCases, HttpError } from '../registry.mjs';
 import { openStore } from '../store.mjs';
@@ -51,14 +52,15 @@ export function createContext(options = {}) {
     }
     check(isLocalHost || token.length >= 16 || users.exists(), 'Set PORTAL_ACCESS_TOKEN to at least 16 characters (or create portal users) before allowing team access.');
   } catch (error) { store.close(); lock.release(); throw error; }
-  // Where module discovery output (qa/modules/<id>/discovery) and generated specs (tests/modules/...) live; injectable for tests.
-  const qaRoot = path.resolve(options.qaRoot ?? path.join(ROOT, 'qa', 'modules')), specRoot = path.resolve(options.specRoot ?? ROOT);
+  // Repo-like roots (they contain the qa/ and tests/ folders): module discovery output lives in <layoutRoot>/<resolveModuleFolder('qa', product, id)>/discovery,
+  // generated specs under specRoot. Both injectable for tests.
+  const layoutRoot = path.resolve(options.layoutRoot ?? ROOT), specRoot = path.resolve(options.specRoot ?? ROOT);
   const intake = createIntake({ dataDir, store, maxMb: options.intakeMaxMb, exec: options.exec });
   // Startup housekeeping (never blocks the server): fingerprint older uploads, then re-queue extractions left 'pending' by a restart.
   setImmediate(() => { intake.backfill().catch(() => {}).then(() => intake.resume()).catch(() => {}); });
   const jobs = new Map();
   const knowledgeRoot = path.resolve(options.knowledgeRoot ?? ROOT);
-  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, knowledgeRootDir: knowledgeRoot, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? 'tests/modules/registration').split('/')), discoveryRoot: qaRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
+  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, knowledgeRootDir: knowledgeRoot, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration')).split('/')), discoveryRoot: layoutRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
@@ -124,7 +126,7 @@ export function createContext(options = {}) {
   // The readiness checklist, computed from live state on every call (nothing cached).
   function readinessFor(module) {
     const id = module.id, productId = module.productId ?? 'augastam', setup = module.setup ?? null;
-    const discoveryDir = path.join(qaRoot, id, 'discovery'), fieldsFile = path.join(discoveryDir, 'fields-default.json');
+    const discoveryDir = path.join(layoutRoot, ...resolveModuleFolder(layoutRoot, 'qa', productId, id).split('/'), 'discovery'), fieldsFile = path.join(discoveryDir, 'fields-default.json');
     let discoveryExists = false, discoveryStale = false, discoveryEmpty = false;
     if (pluginFor(id)?.discovery) { try { discoveryExists = fs.readdirSync(discoveryDir).length > 0; } catch { /* none */ } }
     else {
@@ -175,7 +177,7 @@ export function createContext(options = {}) {
   function stampAutomationVersion(module, by) {
     try {
       const root = options.automationRoot ?? ROOT;
-      const version = registerAutomationVersion({ store, root, moduleId: module.id, dir: module.adapter ?? module.id, by, trigger: 'run', fingerprint: options.automationFingerprint });
+      const version = registerAutomationVersion({ store, root, productId: module.productId ?? 'augastam', moduleId: module.id, dir: module.adapter ?? module.id, by, trigger: 'run', fingerprint: options.automationFingerprint });
       if (version.pendingGit) annotateAutomationVersion({ store, root, moduleId: module.id, number: version.number, git: options.automationGit }).catch(e => logger?.(`Automation version git details failed: ${e.message}`, 'stderr'));
       return { number: version.number, hash: version.hash };
     } catch (e) { logger?.(`Automation version not recorded: ${e.message}`, 'stderr'); return undefined; }
@@ -282,5 +284,5 @@ export function createContext(options = {}) {
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
   const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
   return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, reportJobs, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
-    environments, settings, logger, qaRoot, specRoot, helpers };
+    environments, settings, logger, layoutRoot, specRoot, helpers };
 }

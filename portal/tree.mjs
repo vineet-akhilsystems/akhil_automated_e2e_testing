@@ -2,6 +2,7 @@
 // Nothing here changes how tests run.
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveModuleFolder } from './module-layout.mjs';
 
 const KINDS = new Set(['root', 'step', 'variant', 'group']);
 const MATCH_KEYS = ['registrationType', 'category', 'action'];
@@ -61,10 +62,10 @@ export function validateTree(tree) {
   return errors;
 }
 
-export function loadTree(root, moduleId) {
+export function loadTree(root, productId, moduleId) {
   const id = String(moduleId ?? '');
   if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error('Invalid module id.');
-  const file = path.join(root, 'qa', 'modules', id, 'tree.json');
+  const file = path.join(root, ...resolveModuleFolder(root, 'qa', productId, id).split('/'), 'tree.json');
   let text;
   try { text = fs.readFileSync(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
   let tree;

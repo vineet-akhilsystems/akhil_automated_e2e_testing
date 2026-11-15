@@ -319,7 +319,7 @@ test('setup: validated path, variants and login profile; lead-only; audited', as
 
 test('readiness: a fresh module, then after each stage', async t => {
   const qaRoot = tmp(t, 'augastam-qa-'), specRoot = tmp(t, 'augastam-spec-');
-  const { f, admin } = await world(t, undefined, { qaRoot });
+  const { f, admin } = await world(t, undefined, { layoutRoot: qaRoot });
   const get = async () => (await admin.request('/api/modules/billing/readiness')).value;
   let r = await get();
   assert.deepEqual(r.stages.map(s => s.id), ['sources', 'insights', 'cases', 'setup', 'discovery', 'automation', 'smoke']);
@@ -340,8 +340,8 @@ test('readiness: a fresh module, then after each stage', async t => {
   assert.equal((await admin.request('/api/modules/billing/setup', 'PUT', { moduleUrl: '/billing', variants: [], loginProfileId: 'local' })).status, 200);
   r = await get(); assert.equal(stageOf(r, 'setup').status, 'ready'); assert.equal(stageOf(r, 'discovery').status, 'missing');
   // discovery newer than the setup -> ready; a setup confirmed later makes it stale
-  fs.mkdirSync(path.join(qaRoot, 'billing', 'discovery'), { recursive: true });
-  const disc = path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'); fs.writeFileSync(disc, '[{"card":"Invoice","label":"Invoice number"}]');
+  fs.mkdirSync(path.join(qaRoot, 'qa', 'augastam', 'billing', 'discovery'), { recursive: true });
+  const disc = path.join(qaRoot, 'qa', 'augastam', 'billing', 'discovery', 'fields-default.json'); fs.writeFileSync(disc, '[{"card":"Invoice","label":"Invoice number"}]');
   r = await get(); assert.equal(stageOf(r, 'discovery').status, 'ready'); assert.equal(r.canProposeAutomation, true);
   assert.equal(stageOf(r, 'automation').action.id, 'propose-automation');
   fs.utimesSync(disc, new Date(Date.now() - 3_600_000), new Date(Date.now() - 3_600_000));
@@ -403,7 +403,7 @@ test('Registration is the reference module: every stage is ready and AI generati
 
 test('Registration without discovery files still reports the discovery stage as built in', async t => {
   const qaRoot = tmp(t, 'augastam-qa-');
-  const { admin } = await world(t, undefined, { qaRoot });
+  const { admin } = await world(t, undefined, { layoutRoot: qaRoot });
   const r = (await admin.request('/api/modules/registration/readiness')).value;
   assert.equal(stageOf(r, 'discovery').status, 'ready'); assert.equal(stageOf(r, 'discovery').detail, 'Built in.');
   assert.equal(r.canGenerateAi, true);

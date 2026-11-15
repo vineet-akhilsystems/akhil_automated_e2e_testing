@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveModuleFolder, listProductFolders } from './module-layout.mjs';
 import { existsSync, readdirSync, readFileSync, lstatSync, statSync, realpathSync } from 'node:fs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -10,8 +11,8 @@ export { registrationData, registrationWorkflows, workbookAutomation };
 // Live object (importers keep their reference); filled by reloadAdapters(): plugin adapters + valid adapter.json files.
 export const adapters = {};
 
-// ---- Dynamic adapters: qa/modules/<id>/adapter.json (declarative data only, never commands) ----
-const ADAPTER_TOP_KEYS = new Set(['id', 'name', 'spec', 'prefix', 'actions', 'outcomes', 'variants', 'fields', 'bases', 'variantLabel', 'targetLabel', 'targetPlaceholder']);
+// ---- Dynamic adapters: qa/<product>/<module>/adapter.json (declarative data only, never commands) ----
+const ADAPTER_TOP_KEYS = new Set(['id', 'product', 'name', 'spec', 'prefix', 'actions', 'outcomes', 'variants', 'fields', 'bases', 'variantLabel', 'targetLabel', 'targetPlaceholder']);
 const FIELD_KEYS = new Set(['card', 'label', 'kind', 'column', 'supported', 'required']);
 const FIELD_KINDS = new Set(['text', 'textarea', 'select', 'date', 'datetime', 'checkbox', 'radio', 'number']);
 const ADAPTER_ID = /^[a-z][a-z0-9-]*$/;
@@ -25,22 +26,32 @@ function adapterText(v, name, max = 200) {
 }
 
 // Returns a sanitized adapter or throws Error with a reason. `root` is the repo root (injectable for tests).
-export function validateAdapterDefinition(raw, { root = ROOT, dirId } = {}) {
+// `folder` (optional) is the repo-relative qa folder the file was read from; it must be the folder the layout resolver gives for (product, id).
+export function validateAdapterDefinition(raw, { root = ROOT, folder } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('adapter.json must be an object.');
   for (const key of Object.keys(raw)) if (!ADAPTER_TOP_KEYS.has(key)) throw new Error(`Unknown top-level key: ${key}.`);
   if (typeof raw.id !== 'string' || !ADAPTER_ID.test(raw.id) || raw.id.length > 60) throw new Error('id must match /^[a-z][a-z0-9-]*$/.');
   if (reservedIds().has(raw.id)) throw new Error(`The built-in ${raw.id} adapter cannot be overridden.`);
-  if (dirId !== undefined && dirId !== raw.id) throw new Error(`id "${raw.id}" must match its folder name "${dirId}".`);
+  // The product defaults to 'augastam' while the old flat layout exists; both the qa folder and the spec folder come from the resolver.
+  const product = raw.product === undefined ? 'augastam' : raw.product;
+  let qaDir, specDirRel;
+  try {
+    if (typeof product !== 'string') throw new Error('product must be text.');
+    qaDir = resolveModuleFolder(root, 'qa', product, raw.id);
+    specDirRel = resolveModuleFolder(root, 'tests', product, raw.id);
+  } catch (e) { throw new Error(`product "${String(raw.product)}" is not valid: ${e.message}`); }
+  if (folder !== undefined && folder !== qaDir) throw new Error(`id "${raw.id}" of product "${product}" belongs in "${qaDir}", not in "${folder}".`);
   const a = { id: raw.id, name: adapterText(raw.name, 'name', 120) };
-  if (typeof raw.spec !== 'string' || !raw.spec || raw.spec.includes('\\') || raw.spec.includes('\0') || path.isAbsolute(raw.spec) || !/^tests\/modules\/[a-z][a-z0-9-]*\/[A-Za-z0-9._-]+\.spec\.ts$/.test(raw.spec) || !SPEC_FILE_NAME.test(raw.spec.split('/').pop())) throw new Error('spec must be a relative tests/modules/<id>/<file>.spec.ts path (file name: letters, digits, dot, dash, underscore).');
-  const specDir = path.resolve(root, 'tests', 'modules', raw.id), specFile = path.resolve(root, raw.spec);
+  if (raw.product !== undefined) a.product = product;
+  if (typeof raw.spec !== 'string' || !raw.spec || raw.spec.includes('\\') || raw.spec.includes('\0') || path.isAbsolute(raw.spec) || !raw.spec.startsWith(`${specDirRel}/`) || !/^[A-Za-z0-9._-]+\.spec\.ts$/.test(raw.spec.slice(specDirRel.length + 1)) || !SPEC_FILE_NAME.test(raw.spec.split('/').pop())) throw new Error(`spec must be a relative ${specDirRel}/<file>.spec.ts path (file name: letters, digits, dot, dash, underscore).`);
+  const specDir = path.resolve(root, ...specDirRel.split('/')), specFile = path.resolve(root, raw.spec);
   const rel = path.relative(specDir, specFile);
-  if (!rel || rel.startsWith('..') || path.isAbsolute(rel) || rel.includes(path.sep)) throw new Error(`spec must resolve inside tests/modules/${raw.id}/.`);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel) || rel.includes(path.sep)) throw new Error(`spec must resolve inside ${specDirRel}/.`);
   let realSpec;
   try { realSpec = realpathSync(specFile); } catch { throw new Error(`spec file does not exist: ${raw.spec}.`); }
-  let realDir; try { realDir = realpathSync(specDir); } catch { throw new Error(`tests/modules/${raw.id}/ does not exist.`); }
+  let realDir; try { realDir = realpathSync(specDir); } catch { throw new Error(`${specDirRel}/ does not exist.`); }
   const realRel = path.relative(realDir, realSpec);
-  if (realRel.startsWith('..') || path.isAbsolute(realRel) || !statSync(realSpec).isFile()) throw new Error(`spec must be a file inside tests/modules/${raw.id}/.`);
+  if (realRel.startsWith('..') || path.isAbsolute(realRel) || !statSync(realSpec).isFile()) throw new Error(`spec must be a file inside ${specDirRel}/.`);
   a.spec = raw.spec;
   if (raw.prefix !== undefined) { if (typeof raw.prefix !== 'string' || !/^[A-Za-z][A-Za-z0-9]{0,11}$/.test(raw.prefix)) throw new Error('prefix must be 1-12 letters/digits starting with a letter.'); a.prefix = raw.prefix; }
   for (const k of ['variantLabel', 'targetLabel', 'targetPlaceholder']) if (raw[k] !== undefined) a[k] = adapterText(raw[k], k, 200);
@@ -83,24 +94,26 @@ export function validateAdapterDefinition(raw, { root = ROOT, dirId } = {}) {
   return a;
 }
 
-// Reads every qa/modules/<id>/adapter.json under `root`. Invalid files are skipped with a warning; never throws.
+// Reads every qa/<product>/<module>/adapter.json under `root` (every folder under qa/ except the shared ones; "modules" is the old flat
+// layout, kept until the move). Invalid files are skipped with a warning; never throws.
 export function loadModuleAdapters({ root = ROOT, warn = msg => console.warn(msg) } = {}) {
   const loaded = {};
-  const base = path.join(root, 'qa', 'modules');
-  let entries = [];
-  try { entries = readdirSync(base, { withFileTypes: true }); } catch { return loaded; }
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const file = path.join(base, entry.name, 'adapter.json');
-    try {
-      if (!existsSync(file)) continue;
-      const st = lstatSync(file);
-      if (!st.isFile() || st.size > MAX_ADAPTER_BYTES) throw new Error('adapter.json must be a regular file under 256 KB.');
-      const adapter = validateAdapterDefinition(JSON.parse(readFileSync(file, 'utf8')), { root, dirId: entry.name });
-      if (Object.hasOwn(loaded, adapter.id)) throw new Error(`Duplicate adapter id ${adapter.id}.`);
-      loaded[adapter.id] = adapter;
-    } catch (error) {
-      try { warn(`[registry] Skipped qa/modules/${entry.name}/adapter.json: ${error.message}`); } catch { /* ignore */ }
+  for (const productDir of listProductFolders(root, 'qa')) {
+    let entries = [];
+    try { entries = readdirSync(path.join(root, 'qa', productDir), { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const folder = `qa/${productDir}/${entry.name}`, file = path.join(root, 'qa', productDir, entry.name, 'adapter.json');
+      try {
+        if (!existsSync(file)) continue;
+        const st = lstatSync(file);
+        if (!st.isFile() || st.size > MAX_ADAPTER_BYTES) throw new Error('adapter.json must be a regular file under 256 KB.');
+        const adapter = validateAdapterDefinition(JSON.parse(readFileSync(file, 'utf8')), { root, folder });
+        if (Object.hasOwn(loaded, adapter.id)) throw new Error(`Duplicate adapter id ${adapter.id}.`);
+        loaded[adapter.id] = adapter;
+      } catch (error) {
+        try { warn(`[registry] Skipped ${folder}/adapter.json: ${error.message}`); } catch { /* ignore */ }
+      }
     }
   }
   return loaded;

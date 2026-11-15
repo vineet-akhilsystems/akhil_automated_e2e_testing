@@ -7,6 +7,7 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { boot, signedIn, makeUser, until } from './support.mjs';
 import { agentEnv } from '../agent.mjs';
+import { moduleFolder } from '../module-layout.mjs';
 
 const ADMIN = { username: 'root', password: 'correct-horse-battery' };
 const probe = async id => ({ id, label: id, available: id !== 'codex', version: '9.9.9' });
@@ -46,7 +47,7 @@ async function directRun(t, { module, kind, cases, discovery, behaviour, extract
   const discoveryRoot = path.join(tmp, 'qa-modules'), referenceDir = path.join(tmp, 'reference');
   fs.mkdirSync(referenceDir, { recursive: true });
   for (const n of ['fields.ts', 'registration.page.ts', 'case-runner.ts', 'cases.spec.ts', 'workflow-runner.ts', 'report.ts', 'controls.spec.ts', 'discovery.spec.ts', 'rebuild-report.ts', 'results-reporter.ts', 'extra.ts']) fs.writeFileSync(path.join(referenceDir, n), '// ref\n');
-  for (const [rel, text] of Object.entries(discovery ?? {})) { const p = path.join(discoveryRoot, module.id, 'discovery', rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, text); }
+  for (const [rel, text] of Object.entries(discovery ?? {})) { const p = path.join(discoveryRoot, ...moduleFolder('qa', module.productId ?? 'augastam', module.id).split('/'), 'discovery', rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, text); }
   const file = { id: 'f1', name: 'rules.txt', kind: 'text', extract };
   const store = { intakeFiles: () => [file], cases: () => cases ?? [], module: () => module };
   const intake = { ensureExtracted: async files => files.map(f => ({ file: f, content: { text: 'Total must be at least 1.' } })) };
@@ -82,7 +83,7 @@ test('automation workspace carries discovery (capped, text only), reference file
   const ref = fs.readdirSync(path.join(ws, 'reference'));
   assert.ok(ref.length <= 10 && ['fields.ts', 'registration.page.ts', 'case-runner.ts', 'cases.spec.ts', 'workflow-runner.ts'].every(n => ref.includes(n)), ref.join());
   const brief = fs.readFileSync(path.join(ws, 'INSTRUCTIONS.md'), 'utf8');
-  for (const s of ['billing.page.ts', 'tests/modules/billing/cases.spec.ts', 'adapter.json', 'NOTES.md', 'qa/modules/billing/adapter.json']) assert.ok(brief.includes(s), s);
+  for (const s of ['billing.page.ts', 'tests/augastam/billing/cases.spec.ts', 'adapter.json', 'NOTES.md', 'qa/augastam/billing/adapter.json']) assert.ok(brief.includes(s), s);
   assert.equal(job.status, 'done');
   assert.ok(job.result.warnings.some(w => /not valid JSON/.test(w)));
 });
@@ -172,7 +173,7 @@ test('automation proposal needs an approved case and a tester; files are listed 
     fs.writeFileSync(path.join(opts.cwd, 'output', 'automation', 'billing.spec.ts'), '// proposed spec\n');
     fs.writeFileSync(path.join(opts.cwd, 'output', 'automation', 'NOTES.md'), 'TODO selectors\n');
     finish(child);
-  }, { qaRoot });
+  }, { layoutRoot: qaRoot });
   assert.equal((await b.request('/api/modules/billing/agent/jobs', 'POST', { agent: 'claude', kind: 'automation' })).status, 403); // ba cannot
   assert.equal((await admin.request('/api/modules/billing/agent/jobs', 'POST', { agent: 'claude', kind: 'automation' })).status, 409); // no approved case yet
   const created = await admin.request('/api/modules/billing/cases', 'POST', { id: 'BIL-001', title: 'Total 0 rejected', category: 'Validation', priority: 'P1', mode: 'manual', steps: [{ action: 'Enter 0', expected: 'Error' }] });
@@ -183,7 +184,7 @@ test('automation proposal needs an approved case and a tester; files are listed 
   assert.match(gated.value.error, /Insights/); assert.match(gated.value.error, /Target setup/); assert.match(gated.value.error, /Discovery/);
   assert.equal((await admin.request('/api/modules/billing/insights', 'PUT', { summary: 'Billing', cases: [] })).status, 201);
   assert.equal((await admin.request('/api/modules/billing/setup', 'PUT', { moduleUrl: '/billing', variants: [], loginProfileId: 'local' })).status, 200);
-  fs.mkdirSync(path.join(qaRoot, 'billing', 'discovery'), { recursive: true }); fs.writeFileSync(path.join(qaRoot, 'billing', 'discovery', 'fields-default.json'), '[{"card":"Invoice","label":"Invoice number"}]');
+  fs.mkdirSync(path.join(qaRoot, 'qa', 'augastam', 'billing', 'discovery'), { recursive: true }); fs.writeFileSync(path.join(qaRoot, 'qa', 'augastam', 'billing', 'discovery', 'fields-default.json'), '[{"card":"Invoice","label":"Invoice number"}]');
   const s = await admin.request('/api/modules/billing/agent/jobs', 'POST', { agent: 'claude', kind: 'automation' });
   assert.equal(s.status, 202, JSON.stringify(s.value));
   const job = await wait(admin, s.value.id);

@@ -19,7 +19,9 @@ function makeRoot(defs, { withSpec = true } = {}) {
   for (const [dir, def] of Object.entries(defs)) {
     mkdirSync(path.join(root, 'qa', 'modules', dir), { recursive: true });
     writeFileSync(path.join(root, 'qa', 'modules', dir, 'adapter.json'), typeof def === 'string' ? def : JSON.stringify(def));
-    if (withSpec) { mkdirSync(path.join(root, 'tests', 'modules', dir), { recursive: true }); writeFileSync(path.join(root, 'tests', 'modules', dir, 'cases.spec.ts'), '// spec\n'); }
+    // the tests folder always exists (the module's folder is known); only the spec file is optional
+    mkdirSync(path.join(root, 'tests', 'modules', dir), { recursive: true });
+    if (withSpec) { writeFileSync(path.join(root, 'tests', 'modules', dir, 'cases.spec.ts'), '// spec\n'); }
   }
   return root;
 }

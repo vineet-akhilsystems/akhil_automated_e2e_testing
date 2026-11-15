@@ -84,7 +84,7 @@ test('a single worker keeps the original layout; onlyCaseIds runs the subset wit
   assert.equal(f.launches.length, 1);
   const env = f.launches[0].opts.env;
   assert.equal(env.PORTAL_RUN_DIR, f.queue.dirFor(run.id));
-  assert.equal(env.PORTAL_MODULE_ID, 'registration'); assert.equal(env.PORTAL_RUN_ID, run.id); assert.equal(env.REG_RUN_ID, run.id);
+  assert.equal(env.PORTAL_MODULE_ID, 'registration'); assert.equal(env.PORTAL_PRODUCT_ID, 'augastam'); assert.equal(env.PORTAL_RUN_ID, run.id); assert.equal(env.REG_RUN_ID, run.id);
   assert.deepEqual(JSON.parse(fs.readFileSync(env.CASES_FILE, 'utf8')).cases.map(x => x.id), ['A', 'B', 'E']);
   fs.writeFileSync(path.join(env.PORTAL_RUN_DIR, 'events.jsonl'), ['A', 'B', 'E'].map(id => JSON.stringify({ id, status: 'PASS', durationMs: 1 })).join('\n') + '\n');
   f.launches[0].child.emit('exit', 0); await wait(10);

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { resolveModuleFolder } from './module-layout.mjs';
 
 // Automation versions: the automation (tests, adapter files, plugin code, fixtures, shared helpers) is hashed by CONTENT.
 // Cases (the data) are not part of it. The registry keeps file paths and hashes only. Everything here is read-only on the repo.
@@ -24,14 +25,16 @@ function walk(root, rel, anyExt, out) {
   }
 }
 
-function collect(root, moduleId) {
+function collect(root, productId, moduleId) {
   const out = { files: [], truncated: false };
   const id = String(moduleId);
   if (!id || /[\\/]|^\.+$/.test(id)) return out;
-  walk(root, `tests/modules/${id}`, false, out);
-  for (const f of QA_FILES) { const rel = `qa/modules/${id}/${f}`; try { if (fs.lstatSync(path.join(root, rel)).isFile()) out.files.push(rel); } catch { /* missing is fine */ } }
-  walk(root, `qa/modules/${id}/versions`, false, out);
-  walk(root, `portal/modules/${id}`, false, out);
+  let testsDir, qaDir, portalDir;
+  try { testsDir = resolveModuleFolder(root, 'tests', productId, id); qaDir = resolveModuleFolder(root, 'qa', productId, id); portalDir = resolveModuleFolder(root, 'portal', productId, id); } catch { return out; } // not a valid module id: nothing to hash
+  walk(root, testsDir, false, out);
+  for (const f of QA_FILES) { const rel = `${qaDir}/${f}`; try { if (fs.lstatSync(path.join(root, rel)).isFile()) out.files.push(rel); } catch { /* missing is fine */ } }
+  walk(root, `${qaDir}/versions`, false, out);
+  walk(root, portalDir, false, out);
   walk(root, 'tests/fixtures', true, out);
   walk(root, 'tests/shared', true, out);
   try { if (fs.lstatSync(path.join(root, 'playwright.config.ts')).isFile()) out.files.push('playwright.config.ts'); } catch { /* missing is fine */ }
@@ -40,7 +43,7 @@ function collect(root, moduleId) {
   return out;
 }
 
-export function automationFiles(root, moduleId) { return collect(root, moduleId).files; }
+export function automationFiles(root, productId, moduleId) { return collect(root, productId, moduleId).files; }
 
 // CRLF -> LF so Windows and Linux checkouts hash the same; nothing else is normalized.
 function lf(buffer) {
@@ -62,9 +65,9 @@ function hashFile(file, size) {
 const fileCache = new Map();
 // A listed file that cannot be read THROWS: skipping it would change the hash and create a spurious version.
 // io.hashFile is a test seam.
-export function fingerprintAutomation(root, moduleId, io = {}) {
+export function fingerprintAutomation(root, productId, moduleId, io = {}) {
   const hash = io.hashFile ?? hashFile;
-  const { files: paths, truncated } = collect(root, moduleId), now = Date.now(), files = [];
+  const { files: paths, truncated } = collect(root, productId, moduleId), now = Date.now(), files = [];
   for (const rel of paths) {
     const abs = path.join(root, rel), st = fs.statSync(abs);
     const key = `${abs}|${st.mtimeMs}|${st.size}`, settled = now - st.mtimeMs > RECENT_MS && !io.hashFile;
@@ -131,8 +134,8 @@ const isUnique = e => /UNIQUE|constraint/i.test(String(e?.message ?? ''));
 
 // Synchronous: hash, number and record. Git details are added afterwards by annotateAutomationVersion.
 // `dir` is the name the module's files live under (module.adapter ?? module.id); records are always keyed by moduleId.
-export function registerAutomationVersion({ store, root, moduleId, dir = moduleId, by = null, trigger = 'run', note = '', fingerprint = fingerprintAutomation }) {
-  const fp = fingerprint(root, dir);
+export function registerAutomationVersion({ store, root, productId, moduleId, dir = moduleId, by = null, trigger = 'run', note = '', fingerprint = fingerprintAutomation }) {
+  const fp = fingerprint(root, productId, dir);
   const existing = () => store.automationVersionByHash(moduleId, fp.hash);
   const found = existing();
   if (found) return found;

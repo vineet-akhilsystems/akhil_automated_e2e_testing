@@ -2,7 +2,13 @@
 // Must not import portal/registry.mjs (avoids import cycles); check/textValue arrive through ctx.
 // Hook names, call positions and signatures are documented in portal/modules/contract.mjs.
 import { isDeepStrictEqual } from 'node:util';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { resolveModuleFolder } from '../../module-layout.mjs';
 import { registrationWorkflows, workbookAutomation } from './adapter.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const ID_PROOF_FIXTURE = `${resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration')}/data/agent-test-id-proof.pdf`;
 
 export const registrationValidate = {
   afterOutcome(c, { check }) {
@@ -19,7 +25,7 @@ export const registrationValidate = {
     return workbookAutomation.cases.find(source => source.id === c.id);
   },
   checkInput(key, value, { check }) {
-    if (key === 'id_proof_file') check(value === 'qa/modules/registration/data/agent-test-id-proof.pdf', 'Use the provided synthetic ID-proof fixture.');
+    if (key === 'id_proof_file') check(value === ID_PROOF_FIXTURE, 'Use the provided synthetic ID-proof fixture.');
   },
   workflow(c, { check, textValue }) {
     if (c.action !== 'workflow') return false;
