@@ -19,8 +19,13 @@ export function validateTree(tree) {
     if (!isObj(n) || typeof n.id !== 'string' || !ID_RE.test(n.id)) { errors.push(`Node at position ${i + 1} needs an id made of letters, digits, "-" or "_".`); return; }
     if (n.id in byId) { if (!dup.has(n.id)) errors.push(`Node id "${n.id}" is used more than once.`); dup.add(n.id); } else byId[n.id] = n;
   });
+  if (tree.note !== undefined && typeof tree.note !== 'string') errors.push('Tree note must be a string.');
   const valid = tree.nodes.filter(n => isObj(n) && typeof n.id === 'string' && ID_RE.test(n.id));
+  const names = Object.create(null);
   for (const n of valid) {
+    if (typeof n.name === 'string' && n.name.trim()) {
+      if (n.name in names) errors.push(`Node name "${n.name}" is used more than once (nodes "${names[n.name]}" and "${n.id}").`); else names[n.name] = n.id;
+    }
     if (typeof n.name !== 'string' || !n.name.trim()) errors.push(`Node "${n.id}" needs a name.`);
     if (!KINDS.has(n.kind)) errors.push(`Node "${n.id}" has unknown kind "${n.kind}".`);
     if (n.parent !== undefined && typeof n.parent !== 'string') errors.push(`Node "${n.id}" has a parent that is not a string.`);
@@ -58,7 +63,7 @@ export function validateTree(tree) {
 
 export function loadTree(root, moduleId) {
   const id = String(moduleId ?? '');
-  if (!id || /[\/]|^\.+$/.test(id)) throw new Error(`Invalid module id "${id}".`);
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error('Invalid module id.');
   const file = path.join(root, 'qa', 'modules', id, 'tree.json');
   let text;
   try { text = fs.readFileSync(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
@@ -69,17 +74,20 @@ export function loadTree(root, moduleId) {
   return tree;
 }
 
+// Precedence: the node with the most declared match keys wins. Equal scores go to the FIRST node in file order,
+// so a broad single-key node listed earlier (for example an action-only group) beats a later single-key variant.
 export function assignCases(tree, cases) {
   const byNode = Object.create(null); const unassigned = [];
   const matchers = [];
   for (const n of tree.nodes) { byNode[n.id] = []; const keys = n.match ? Object.keys(n.match) : []; if (keys.length) matchers.push({ id: n.id, match: n.match, keys }); }
-  for (const c of cases) {
+  for (const c of Array.isArray(cases) ? cases : []) {
+    if (!isObj(c)) continue;
     let best = null, bestScore = 0;
     for (const m of matchers) {
       if (m.keys.length <= bestScore) continue;
       if (m.keys.every(k => c[k] !== undefined && c[k] !== null && m.match[k].includes(c[k]))) { best = m.id; bestScore = m.keys.length; }
     }
-    if (best) byNode[best].push(c.id); else unassigned.push(c.id);
+    if (best) byNode[best].push(c.id); else if (c.id !== undefined) unassigned.push(c.id);
   }
   return { byNode: { ...byNode }, unassigned };
 }
@@ -87,15 +95,16 @@ export function assignCases(tree, cases) {
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 const zero = () => ({ total: 0, passed: 0, failed: 0, blocked: 0, other: 0 });
 
+// results: latest per case; when an id appears more than once the LAST entry wins. Results for ids not in the tree are ignored.
 export function rollupTree(tree, byNode, results) {
   const status = Object.create(null);
-  for (const r of results ?? []) if (r && r.id !== undefined) status[r.id] = r.status;
+  for (const r of Array.isArray(results) ? results : []) if (isObj(r) && r.id !== undefined) status[r.id] = r.status;
   const out = Object.create(null), kids = Object.create(null);
   for (const n of tree.nodes) { out[n.id] = { ...zero(), subtree: zero() }; kids[n.id] = []; }
   for (const n of tree.nodes) if (n.parent !== undefined && kids[n.parent]) kids[n.parent].push(n.id);
   for (const n of tree.nodes) {
     const own = out[n.id];
-    for (const id of byNode?.[n.id] ?? []) {
+    for (const id of (isObj(byNode) && Object.hasOwn(byNode, n.id) && Array.isArray(byNode[n.id]) ? byNode[n.id] : [])) {
       const s = status[id]; own.total++;
       if (s === 'PASS') own.passed++; else if (FAILED.has(s)) own.failed++; else if (s === 'BLOCKED') own.blocked++; else own.other++;
     }

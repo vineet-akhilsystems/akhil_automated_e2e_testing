@@ -1,6 +1,7 @@
 {
   "module": "registration",
   "version": 1,
+  "note": "Match rules: a case goes to the node with the most matching keys; equal scores go to the first node in file order (so an action-only group such as Update beats a registration-type variant on a tie).",
   "nodes": [
     {
       "id": "login",
@@ -37,7 +38,7 @@
           "update"
         ]
       },
-      "note": "Needs a saved patient: {{name@CASE-ID}} dependencies stay as they are."
+      "note": "Most cases here need a saved patient (see {{name@CASE-ID}} references)."
     },
     {
       "id": "new",
@@ -299,7 +300,8 @@
         "category": [
           "registration-type"
         ]
-      }
+      },
+      "note": "Registration-type cases live under their own variant node."
     }
   ]
 }

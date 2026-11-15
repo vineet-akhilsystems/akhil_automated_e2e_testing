@@ -662,3 +662,51 @@ test('the shipped Registration tree is valid and attaches at least 95% of the 13
   assert.ok((cases.length - unassigned.length) / cases.length >= 0.95, `unassigned: ${unassigned.join(', ')}`);
   assert.equal(Object.values(byNode).flat().length + unassigned.length, cases.length);
 });
+
+test('validateTree covers names, malformed nodes and kinds', () => {
+  const has = (tree, re) => assert.ok(validateTree(tree).some(m => re.test(m)), `${re} in ${JSON.stringify(validateTree(tree))}`);
+  has(T([N('r'), N('a', 'r', { name: 'Same' }), N('b', 'r', { name: 'Same' })]), /Node name "Same" is used more than once \(nodes "a" and "b"\)/);
+  has(T([N('r'), 'text']), /Node at position 2 needs an id/);
+  has(T([N('r'), null]), /Node at position 2 needs an id/);
+  has(T([N('r'), N('a', 5)]), /Node "a" has a parent that is not a string/);
+  has(T([N('r'), N('a', 'a')]), /Node "a" is part of a cycle/);
+  has(T([N('r', undefined, { kind: 'step' })]), /Node "r" has no parent so its kind must be "root"/);
+  has(T([N('r'), N('a', 'r', { kind: 'root' })]), /Node "a" has a parent so its kind cannot be "root"/);
+  has(T([N('r'), N('a', 'r', { match: ['x'] })]), /Node "a" match must be an object/);
+  has({ ...T([N('r')]), note: 5 }, /Tree note must be a string/);
+  assert.deepEqual(validateTree({ ...T([N('r')]), note: 'ok' }), []);
+});
+
+test('rollupTree: last result for an id wins, unknown ids are ignored, missing byNode entries are tolerated', () => {
+  const roll = rollupTree(treeA, { g: ['A'] }, [{ id: 'A', status: 'FAIL' }, { id: 'A', status: 'PASS' }, { id: 'nope', status: 'FAIL' }, null]);
+  assert.deepEqual(roll.g.subtree, { total: 1, passed: 1, failed: 0, blocked: 0, other: 0 });
+  assert.equal(roll.r.subtree.total, 1); assert.equal(roll.v.total, 0);
+  assert.equal(rollupTree(treeA, { constructor: ['x'] }, []).r.total, 0);
+});
+
+test('assignCases skips non-object entries and keeps file-order ties', () => {
+  const r = assignCases(treeA, [null, 'x', { id: 'A', registrationType: 'New', category: 'phone' }, { category: 'zz' }]);
+  assert.deepEqual(r.byNode.g, ['A']); assert.deepEqual(r.unassigned, []);
+  const t = T([N('r'), N('upd', 'r', { match: { action: ['update'] } }), N('nb', 'r', { match: { registrationType: ['NB'] } })]);
+  assert.deepEqual(assignCases(t, [{ id: 'X', registrationType: 'NB', action: 'update' }]).byNode.upd, ['X']);
+});
+
+test('loadTree allows only simple module ids and truncates long error lists', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-'));
+  try {
+    for (const bad of ['..' + String.fromCharCode(92) + 'x', 'a' + String.fromCharCode(92) + 'b', 'a/b', '..', '.', path.resolve(root), '', 'a.b']) assert.throws(() => loadTree(root, bad), /Invalid module id\./, JSON.stringify(bad));
+    fs.mkdirSync(path.join(root, 'qa/modules/many'), { recursive: true });
+    const nodes = [N('r'), ...Array.from({ length: 8 }, (_, i) => N(`n${i}`, 'zzz'))];
+    fs.writeFileSync(path.join(root, 'qa/modules/many/tree.json'), JSON.stringify(T(nodes)));
+    assert.throws(() => loadTree(root, 'many'), /\(and 3 more\)/);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('the shipped Registration tree has an empty Registration type group and 132/132 attachment', () => {
+  const root = path.resolve(import.meta.dirname, '../..');
+  const tree = loadTree(root, 'registration');
+  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
+  const { byNode, unassigned } = assignCases(tree, cases);
+  assert.equal(unassigned.length, 0);
+  assert.equal(rollupTree(tree, byNode, [])['new-registration-type'].total, 0);
+});
