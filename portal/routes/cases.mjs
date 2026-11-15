@@ -78,7 +78,7 @@ export default async function handle(ctx, rc) {
             else check(caseId && body.id === caseId && store.case(id, caseId), 'Case not found or its ID was changed.', 404);
             const before = req.method === 'PUT' ? store.case(id, caseId) : undefined;
             const savedCase = store.saveCase(id, stampCase(validated, before, user, module, acc), body.version);
-            inModule(user, before ? 'case.update' : 'case.create', id, { id: savedCase.id, contentChanged: before ? caseContent(before) !== caseContent(savedCase) : true, reviewStatus: savedCase.reviewStatus ?? null, ...(savedCase.reviewedBy?.self ? { selfApproved: true } : {}) });
+            inModule(user, before ? 'case.update' : 'case.create', id, { id: savedCase.id, contentChanged: before ? caseContent(before) !== caseContent(savedCase) : true, reviewStatus: savedCase.reviewStatus ?? null, ...(savedCase.reviewedBy?.self && JSON.stringify(savedCase.reviewedBy) !== JSON.stringify(before?.reviewedBy) ? { selfApproved: true } : {}) });
             return json(res, req.method === 'POST' ? 201 : 200, savedCase);
           }
         }

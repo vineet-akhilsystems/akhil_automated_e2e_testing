@@ -32,7 +32,7 @@ export default async function handle(ctx, rc) {
   const { dataDir, store } = ctx;
   const { authorize } = ctx.access;
   const { record, inModule } = ctx.membership;
-  const { now, audit, getModule, productName, envsFor, readinessFor, gateError, stampCase, fourEyes, fourEyesActive, strictFor, caseContent } = ctx.helpers;
+  const { now, audit, getModule, productName, envsFor, readinessFor, gateError, stampCase, reviewAfterContentChange, fourEyes, fourEyesActive, strictFor, caseContent } = ctx.helpers;
   if (route.startsWith('/api/')) {
 
         if (route === '/api/modules' && req.method === 'POST') {
@@ -148,19 +148,20 @@ export default async function handle(ctx, rc) {
             // Fill order follows the key order, so a reordered template counts as changed.
             check(!(body.create === true && module.config?.bases?.[name]), `A template named "${name}" already exists. Choose a different name, or edit the existing one.`, 409);
             const changed = JSON.stringify(module.config?.bases?.[name] ?? null) !== JSON.stringify(body.input ?? null);
-            const reset = [];
+            const reset = [], selfIds = [];
             const saved = store.transaction(() => {
               const result = store.saveModule({ ...module, config: { ...module.config, bases: { ...module.config.bases, [name]: body.input } } }, body.version);
               if (changed) {
                 // (the editor is the content author of every case on this template, so they can never approve any of them)
                 for (const c of store.cases(id).filter(x => x.base === name)) {
-                  const { reviewedBy, ...rest } = c, strict = strictFor(module, acc), downgrade = strict && (c.reviewStatus ?? 'approved') !== 'draft';
-                  store.saveCase(id, { ...(downgrade ? rest : c), ...(downgrade ? { reviewStatus: 'draft' } : {}), contentBy: audit(user) }, c.version);
-                  if (downgrade) reset.push(c.id);
+                  const next = reviewAfterContentChange({ ...c, contentBy: audit(user) }, c, user, module, acc);
+                  store.saveCase(id, next, c.version);
+                  if (next.reviewStatus === 'draft' && (c.reviewStatus ?? 'approved') !== 'draft') reset.push(c.id);
+                  if (next.reviewedBy?.self && JSON.stringify(next.reviewedBy) !== JSON.stringify(c.reviewedBy)) selfIds.push(c.id);
                 }
                 if (reset.length) record(user, { action: 'cases.reset', scopeType: 'module', scopeId: id, subject: null, detail: { reason: 'template changed', template: name, caseIds: reset } });
               }
-              record(user, { action: 'template.update', scopeType: 'module', scopeId: id, subject: null, detail: { template: name, created: module.config?.bases?.[name] === undefined, changed, casesReset: reset.length } });
+              record(user, { action: 'template.update', scopeType: 'module', scopeId: id, subject: null, detail: { template: name, created: module.config?.bases?.[name] === undefined, changed, casesReset: reset.length, ...(selfIds.length ? { selfApproved: true, selfApprovedIds: selfIds.slice(0, 50) } : {}) } });
               return result;
             });
             return json(res, 200, { ...saved, resetCases: reset });
@@ -222,9 +223,9 @@ export default async function handle(ctx, rc) {
             if (!body.upsert) {
               for (const c of validated) check(!store.case(id, c.id), `Case ${c.id} already exists. Import uses new IDs only; edit existing cases in the portal.`, 409);
             }
-            let changedContent = 0;
-            store.transaction(() => validated.forEach(c => { const old = store.case(id, c.id); const next = store.saveCase(id, stampCase(c, old, user, module, acc), old?.version); if (!old || caseContent(old) !== caseContent(next)) changedContent++; }));
-            inModule(user, 'case.import', id, { count: validated.length, upsert: Boolean(body.upsert), contentChanged: changedContent, ids: validated.slice(0, 50).map(c => c.id) });
+            let changedContent = 0; const selfIds = [];
+            store.transaction(() => validated.forEach(c => { const old = store.case(id, c.id); const next = store.saveCase(id, stampCase(c, old, user, module, acc), old?.version); if (!old || caseContent(old) !== caseContent(next)) changedContent++; if (next.reviewedBy?.self && JSON.stringify(next.reviewedBy) !== JSON.stringify(old?.reviewedBy)) selfIds.push(c.id); }));
+            inModule(user, 'case.import', id, { count: validated.length, upsert: Boolean(body.upsert), contentChanged: changedContent, ids: validated.slice(0, 50).map(c => c.id), ...(selfIds.length ? { selfApproved: true, selfApprovedIds: selfIds.slice(0, 50) } : {}) });
             return json(res, 201, { imported: validated.length });
           }
         }

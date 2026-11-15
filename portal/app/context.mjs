@@ -82,6 +82,18 @@ export function createContext(options = {}) {
   const sorted = v => (Array.isArray(v) ? v.map(sorted) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sorted(v[k])])) : v);
   // `input` keeps the order of its keys (fields are filled in that order), so reordering it counts as a change; everything else ignores key order.
   const caseContent = c => JSON.stringify([sorted(Object.fromEntries(CONTENT_FIELDS.filter(k => k !== 'input').map(k => [k, emptyToNull(c?.[k])]))), JSON.stringify(emptyToNull(c?.input) ?? null)]);
+  // What a content change does to the stored decision (c = the changed case, prev = the case before the change).
+  // Strict users: back to draft. Holders of case.approve.own + case.review (rule active): if they created the case or are its approver of record the
+  // change is covered by a NEW approval in their name (self: true); on someone else's approved case it goes back to draft, and they can approve it at once through the review route.
+  function reviewAfterContentChange(c, prev, user, module, acc) {
+    if (strictFor(module, acc)) { c.reviewStatus = 'draft'; delete c.reviewedBy; return c; }
+    if (fourEyesActive(module) && acc.module(module).has('case.review') && (prev.reviewStatus ?? 'approved') === 'approved') {
+      const mine = who => who?.user === user.username;
+      if (mine(prev.createdBy) || mine(prev.reviewedBy)) { c.reviewStatus = 'approved'; c.reviewedBy = { ...audit(user), decision: 'approved', self: true }; }
+      else { c.reviewStatus = 'draft'; delete c.reviewedBy; }
+    }
+    return c;
+  }
   // Cases a non-reviewer touches always return to review; reviewers keep the stored decision.
   // With the second-approver rule a case is never auto-approved for its own author.
   function stampCase(validated, existing, user, module, acc) {
@@ -102,7 +114,7 @@ export function createContext(options = {}) {
       if (existing.reviewStatus !== undefined) c.reviewStatus = existing.reviewStatus;
       if (!reviewer && (existing.reviewStatus ?? 'approved') !== 'draft') { c.reviewStatus = 'draft'; delete c.reviewedBy; }
       // An approval covers the content that was approved: changing it sends the case back to review, whoever edits it.
-      if (strict && caseContent(existing) !== caseContent(c)) { c.reviewStatus = 'draft'; delete c.reviewedBy; }
+      if (caseContent(existing) !== caseContent(c)) reviewAfterContentChange(c, existing, user, module, acc);
     }
     c.updatedBy = stamp;
     return c;
@@ -288,7 +300,7 @@ export function createContext(options = {}) {
   };
   const tickets = createTickets(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
-  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, strictFor, mayApproveOwn, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
+  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, reviewAfterContentChange, fourEyes, fourEyesActive, strictFor, mayApproveOwn, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
   return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, reportJobs, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, layoutRoot, specRoot, helpers };
 }

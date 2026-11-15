@@ -101,7 +101,7 @@ export const SECTIONS = [
   { id: 'review', title: 'Review and approve cases', lead: 'Why nothing runs until a person has looked at it.', body: () => `
     <p>Open the <strong>Review queue</strong> tab. Cases are shown as <strong>Needs review</strong>, <strong>Approved</strong> or <strong>Rejected</strong>; use the buttons at the top to switch.</p>
     ${steps(['Open a case and read it. Edit anything that is wrong or unclear.', 'Press <strong>Approve</strong> if it is right, or <strong>Reject</strong> and give a short reason.', 'To decide on many at once, tick them and use <strong>Approve selected</strong> or <strong>Reject selected</strong>.'])}
-    ${warn('<strong>The second-person rule.</strong> By default nobody can approve a case they created or last edited. This includes administrators. If you made every draft, the Approve buttons are greyed out and the page tells you why. A one-person team can switch the rule off in <strong>Module settings</strong>.')}
+    ${warn('<strong>The second-person rule.</strong> By default nobody can approve a case they created or last edited, unless they are an administrator or were granted <strong>Approve cases you wrote yourself</strong>. If you made every draft, the Approve buttons are greyed out and the page tells you why. A one-person team can switch the rule off in <strong>Module settings</strong>.')}
     <p>Approved cases appear in the main Test cases list and can be added to runs. Rejected cases are kept but never run.</p>` },
 
   { id: 'runs', title: 'Run tests and record results', lead: 'Manual runs, automated runs, evidence and reports.', body: () => `
