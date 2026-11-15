@@ -16,13 +16,14 @@ import { membershipsSchema, createMembershipsRepo } from './data/memberships.mjs
 import { auditSchema, createAuditRepo } from './data/audit.mjs';
 import { importSnapshotIfFresh } from './snapshot.mjs';
 import { agentJobsSchema, createAgentJobsRepo } from './data/agent-jobs.mjs';
+import { automationVersionsSchema, createAutomationVersionsRepo } from './data/automation-versions.mjs';
 
 // Facade over portal/data/*: opens the database, creates the schema, runs the migrations and
 // returns one object composed from the per-table repositories.
 export function openStore(directory, { snapshotFile = null, log } = {}) {
   fs.mkdirSync(directory, { recursive: true });
   const db = new DatabaseSync(path.join(directory, 'portal.sqlite'));
-  db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;${modulesSchema}${casesSchema}${runsSchema}${usersSchema}${intakeSchema}${insightsSchema}${productsSchema}${teamsSchema}${membershipsSchema}${auditSchema}${agentJobsSchema}
+  db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;${modulesSchema}${casesSchema}${runsSchema}${usersSchema}${intakeSchema}${insightsSchema}${productsSchema}${teamsSchema}${membershipsSchema}${auditSchema}${agentJobsSchema}${automationVersionsSchema}
     CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   migrateIntake(db);
   // Repositories that call other store methods get the composed object (filled in below, used lazily).
@@ -36,6 +37,7 @@ export function openStore(directory, { snapshotFile = null, log } = {}) {
     createIntakeRepo(db),
     createInsightsRepo(db, store),
     createAgentJobsRepo(db),
+    createAutomationVersionsRepo(db),
     createTeamsRepo(db),
     createMembershipsRepo(db),
     createAuditRepo(db),

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { registerAutomationVersion, annotateAutomationVersion } from '../automation-versions.mjs';
 import { ROOT, adapters, check, textValue, validateCase, resolveCases, HttpError } from '../registry.mjs';
 import { openStore } from '../store.mjs';
 import { pluginFor, plugins } from '../modules/index.mjs';
@@ -193,9 +194,19 @@ export function createContext(options = {}) {
     }
     // A re-run (inheritVersion is set by the server only, never read from the request) keeps the original run's version, even when that was none.
     const typed = normalizeAppVersion(body.appVersion), appVersion = inheritVersion !== undefined ? inheritVersion : typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
+    // Automated runs are stamped with the automation version (content hash). Failing to do so must never block a run.
+    let automationVersion;
+    if (body.mode === 'automated') {
+      try {
+        const root = options.automationRoot ?? ROOT;
+        const version = registerAutomationVersion({ store, root, moduleId: module.id, by: user?.username ?? null, trigger: 'run', fingerprint: options.automationFingerprint });
+        automationVersion = { number: version.number, hash: version.hash };
+        if (version.pendingGit) annotateAutomationVersion({ store, root, moduleId: module.id, number: version.number, git: options.automationGit }).catch(e => logger?.(`Automation version git details failed: ${e.message}`, 'stderr'));
+      } catch (e) { logger?.(`Automation version not recorded: ${e.message}`, 'stderr'); }
+    }
     const run = { id: randomUUID(), name: textValue(body.name, 'Run name', 200, true), environmentId: environment.id,
       environmentName: environment.name, environmentUrl: environment.url, mode: body.mode, kind: 'tests', productId, productName: productName(productId),
-      module: structuredClone(module), ...(appVersion ? { appVersion } : {}), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
+      module: structuredClone(module), ...(appVersion ? { appVersion } : {}), ...(automationVersion ? { automationVersion } : {}), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
       scope: { repositoryCases: store.cases(module.id).length, enabledCases: store.cases(module.id).filter(c => c.enabled !== false).length,
         disabledCases: store.cases(module.id).filter(c => c.enabled === false).length, plannedCases: cases.length },
       requestedCount: new Set(requested).size, addedDependencies: cases.filter(c => !requested.includes(c.id)).map(c => c.id) };
