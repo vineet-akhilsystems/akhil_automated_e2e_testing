@@ -58,11 +58,11 @@ A team is a reusable group of people that can be attached to modules or products
 
 Module setting `requireSecondApprover` (default on, switchable by the lead). While on:
 
-- Nobody can approve or reject a case they created, last changed the content of, or last saved, unless they hold `case.approve.own` ("Approve cases you wrote yourself"). Administrators hold it by default; no preset role does, but it can be granted to a person, team or role override like any permission (you can only grant it if you hold it, and the expiry cap applies). It does not replace `case.review`: approving still needs both.
-- A reviewer's own new cases start as drafts. For someone holding `case.approve.own` (and `case.review`) they are approved on creation, and their edits do not send the case back to draft.
-- A self-approval is recorded: `reviewedBy.self` is `true`, and the `case.review` (or `case.create`/`case.update`) audit entry carries `selfApproved: true`.
-- Changing a case's content (title, steps, input and its key order, action, base template, expected, target, requirement, preconditions, type, mode) sends it back to draft for any editor. Priority, category, enabled and notes do not.
-- Changing a data template resets the cases built on it and makes the editor their content author.
+- Nobody can approve or reject a case they created, last changed the content of, or last saved, unless they hold `case.approve.own` ("Approve cases you wrote yourself"). Administrators always hold it (they hold every permission, so it cannot be taken from them); no preset role does, but it can be granted to a person, team or role override like any permission (you can only grant it if you hold it, and the expiry cap applies). It does not replace `case.review`: approving still needs both.
+- A reviewer's own new cases start as drafts. For someone holding `case.approve.own` (and `case.review`) they are approved on creation.
+- Changing a case's content (title, steps, input and its key order, action, base template, expected, target, requirement, preconditions, type, mode) sends an approved case back to draft for any editor, except a holder of `case.approve.own` + `case.review`: if they created the case or are its approver of record, their change is covered by a new approval in their name; on someone else's approved case it goes back to draft and they can approve it straight away through the review route. The same per-case rule applies to saves, imports with `upsert` (including accepting AI proposals) and data-template edits. Priority, category, enabled and notes never change the decision.
+- Changing a data template makes the editor the content author of the cases built on it and applies the rule above to each of them.
+- A self-approval is recorded: `reviewedBy.self` is `true`, and the `case.review`, `case.create`/`case.update`, `case.import` and `template.update` audit entries carry `selfApproved: true` (with `selfApprovedIds` for several cases), only when that action created the approval.
 - The rule applies once user accounts exist.
 
 ## Expiry
