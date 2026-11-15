@@ -5,3 +5,7 @@ export function normalizeConfig(value: unknown): unknown;
 export function responseKey(url: string): string;
 export function combineHashes(parts: Record<string, string>): string;
 export function profileFingerprint(parts: Record<string, unknown>): { hash: string; parts: Record<string, string> };
+export function entryKey(url: string): string;
+export function hashBody(body: unknown): string;
+export function partsFromKeys(keys: Record<string, string>): Record<string, string>;
+export function profileFromKeys(keys: Record<string, string>): { hash: string; parts: Record<string, string> };

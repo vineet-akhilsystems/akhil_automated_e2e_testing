@@ -21,13 +21,29 @@ module.exports = class PortalReporter {
     const a11y = result.attachments.find(a => a.name.endsWith('-a11y.json') && a.body);
     if (a11y) { try { value.accessibility = JSON.parse(a11y.body.toString()); } catch { /* a bad scan file is ignored */ } }
     try {
-      // Hashes of the configuration this process saw: the first test's parts win, later tests only add parts it lacked.
-      const prof = result.attachments.find(a => a.name === 'profile.json' && a.body);
-      if (prof) {
-        const file = path.join(root, 'profile.json'), next = JSON.parse(prof.body.toString());
-        let current = null;
+      // Union of the response-key hashes this process saw. The first hash for a key wins; a different later hash is listed as a conflict.
+      const found = result.attachments.filter(a => a.name === 'profile.json' && a.body);
+      if (found.length) {
+        const file = path.join(root, 'profile.json');
+        let current = {};
         try { current = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* no file yet */ }
-        fs.writeFileSync(file, JSON.stringify({ parts: { ...(next.parts ?? {}), ...(current?.parts ?? {}) }, count: Math.max(current?.count ?? 0, next.count ?? 0) }));
+        const keys = current.keys && typeof current.keys === 'object' ? { ...current.keys } : {};
+        const conflicts = Array.isArray(current.conflicts) ? [...current.conflicts] : [];
+        let count = Number(current.count) || 0;
+        for (const attachment of found) {
+          let next;
+          try { next = JSON.parse(attachment.body.toString()); } catch { continue; }
+          if (!next || typeof next.keys !== 'object' || next.keys === null || Array.isArray(next.keys)) continue;
+          for (const [key, hash] of Object.entries(next.keys)) {
+            if (typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash)) continue;
+            if (!(key in keys)) keys[key] = hash;
+            else if (keys[key] !== hash && !conflicts.includes(key) && conflicts.length < 20) conflicts.push(key);
+          }
+          count += Number(next.count) || 0;
+        }
+        const doc = { keys, count }; if (conflicts.length) doc.conflicts = conflicts;
+        fs.writeFileSync(file + '.tmp', JSON.stringify(doc));
+        fs.renameSync(file + '.tmp', file);
       }
     } catch { /* profile capture never breaks reporting */ }
     value.wallMs = result.duration;

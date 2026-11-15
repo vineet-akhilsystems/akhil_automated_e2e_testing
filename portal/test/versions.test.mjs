@@ -110,7 +110,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { createQueue } from '../queue.mjs';
-import { normalizeConfig, profileFingerprint, PROFILE_URL } from '../profile.mjs';
+import { normalizeConfig, profileFingerprint, profileFromKeys, PROFILE_URL } from '../profile.mjs';
+import { createRequire } from 'node:module';
 import * as shared from '../../tests/shared/profile-hash.mjs';
 
 const form = (over = {}) => ({ id: 'f1', updatedAt: '2026-01-01', fields: [{ name: 'a', required: false, meta: { z: 1, a: 2, token: 'x' } }, { name: 'b' }], ...over });
@@ -151,6 +152,57 @@ test('portal and fixture-side fingerprint code are the same module and agree; ur
   assert.equal(shared.responseKey('https://x/configuration-service/reference-lookup/latest-version?b=2&a=1&etag=9'), shared.responseKey('https://x/configuration-service/reference-lookup/latest-version?a=1&b=2'));
 });
 
+// Key-level hashes: what the fixture ships and the portal unions.
+const U = 'https://x/configuration-service/';
+const keyed = list => Object.fromEntries(list.map(([url, body]) => [shared.entryKey(url), shared.hashBody(body)]));
+
+test('response-key hashes: arrival order, volatile fields and cache busters do not matter', () => {
+  const r1 = [U + 'reference-lookup/latest-version?lookup_id=1', { options: ['a'], updatedAt: 1 }];
+  const r2 = [U + 'reference-lookup/latest-version?lookup_id=2', { options: ['b'] }];
+  const r3 = [U + 'form-schema/latest-version?type=x', { fields: [{ name: 'n', required: false }] }];
+  const forward = keyed([r1, r2, r3]), backward = keyed([r3, r2, r1]);
+  assert.deepEqual(Object.keys(forward).sort(), Object.keys(backward).sort());
+  assert.deepEqual(profileFromKeys(forward), profileFromKeys(backward));
+  const busted = keyed([[U + 'reference-lookup/latest-version?lookup_id=1&_=99&ts=5&nocache=1', { options: ['a'], updatedAt: 2 }], r2, r3]);
+  assert.deepEqual(profileFromKeys(busted), profileFromKeys(forward));
+  assert.ok(Object.keys(forward).every(k => /^(lookups|formSchema)\|\//.test(k)));
+  assert.ok(Object.values(forward).every(h => /^[0-9a-f]{64}$/.test(h)));
+});
+
+test('key-level fingerprint changes when a required flag flips or a lookup option is added', () => {
+  const schema = required => [U + 'form-schema/latest-version?type=x', { fields: [{ name: 'n', required }] }];
+  const lookup = options => [U + 'reference-lookup/latest-version?lookup_id=1', { options }];
+  const base = profileFromKeys(keyed([schema(false), lookup(['a'])]));
+  const flipped = profileFromKeys(keyed([schema(true), lookup(['a'])]));
+  const added = profileFromKeys(keyed([schema(false), lookup(['a', 'b'])]));
+  assert.notEqual(flipped.hash, base.hash); assert.notEqual(flipped.parts.formSchema, base.parts.formSchema); assert.equal(flipped.parts.lookups, base.parts.lookups);
+  assert.notEqual(added.hash, base.hash); assert.notEqual(added.parts.lookups, base.parts.lookups); assert.equal(added.parts.formSchema, base.parts.formSchema);
+  assert.deepEqual(shared.profileFromKeys(keyed([schema(false), lookup(['a'])])), base);
+});
+
+// ---- reporter merge ----
+const Reporter = createRequire(import.meta.url)('../reporter.cjs');
+const H = c => c.repeat(64);
+function report(dir, attachments, id) {
+  process.env.PORTAL_RUN_DIR = dir; delete process.env.PORTAL_RUN_ROOT; delete process.env.PORTAL_SHARD_INDEX;
+  new Reporter().onTestEnd({ id, title: `${id} t`, annotations: [] }, { status: 'passed', duration: 1, retry: 0, attachments, startTime: new Date() });
+}
+const att = body => ({ name: 'profile.json', contentType: 'application/json', body: Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)) });
+
+test('reporter unions profile keys, first hash wins with a conflict recorded, malformed attachments ignored, no .tmp left', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-reporter-'));
+  report(dir, [att({ keys: { 'lookups|/a?id=1': H('a'), 'webpart|/w': H('b') }, count: 2 }), att('{not json'), att({ keys: ['x'] }), att({ keys: { bad: 'zz' }, count: 1 })], 'T1');
+  report(dir, [att({ keys: { 'lookups|/a?id=1': H('c'), 'lookups|/a?id=2': H('d') }, count: 2 })], 'T2');
+  const doc = JSON.parse(fs.readFileSync(path.join(dir, 'profile.json'), 'utf8'));
+  assert.deepEqual(doc.keys, { 'lookups|/a?id=1': H('a'), 'webpart|/w': H('b'), 'lookups|/a?id=2': H('d') });
+  assert.deepEqual(doc.conflicts, ['lookups|/a?id=1']);
+  assert.deepEqual(fs.readdirSync(dir).filter(n => n.endsWith('.tmp')), []);
+  const none = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-reporter-'));
+  report(none, [att('garbage')], 'T3');
+  assert.ok(fs.existsSync(path.join(none, 'events.jsonl')), 'events are still written');
+});
+
+// ---- queue ----
 function queueFixture(workers) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-queue-'));
   const runs = new Map();
@@ -162,42 +214,75 @@ function queueFixture(workers) {
 }
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const profileRun = (id, cases) => ({ id, environmentId: 'e', kind: 'tests', mode: 'automated', status: 'queued', module: { id: 'registration', adapter: 'registration', config: {} }, cases, results: [] });
+const onlyRun = f => f.store.runs()[0];
+const pass = (id) => JSON.stringify({ id, status: 'PASS', durationMs: 1 }) + '\n';
 
-test('queue run gets profile from events and marks stable:false when shards disagree', async () => {
+test('queue unions keys over shards: subset shards are stable and share the union hash', async () => {
   const f = queueFixture(2);
   const cs = [{ id: 'A', title: 'A' }, { id: 'B', title: 'B' }];
-  f.store.saveRun(profileRun('run-profile', cs)); f.queue.pump();
-  await pause(40);
-  assert.equal(f.launches.length, 2);
-  const same = profileFingerprint({ formSchema: { a: 1 } }).parts, other = profileFingerprint({ formSchema: { a: 2 } }).parts;
+  f.store.saveRun(profileRun('rp', cs)); f.queue.pump(); await pause(40);
+  const k0 = { 'lookups|/a': H('1'), 'webpart|/w': H('2') }, k1 = { 'lookups|/b': H('3'), 'webpart|/w': H('2') };
   f.launches.forEach((l, i) => {
     const d = l.opts.env.PORTAL_RUN_DIR;
-    fs.writeFileSync(path.join(d, 'events.jsonl'), JSON.stringify({ id: cs[i].id, status: 'PASS', durationMs: 1 }) + '\n');
-    fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ parts: i === 0 ? same : other, count: 2 }));
+    fs.writeFileSync(path.join(d, 'events.jsonl'), pass(cs[i].id));
+    fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ keys: i ? k1 : k0, count: 2 }));
   });
-  f.launches.forEach(l => l.child.emit('exit', 0));
-  await pause(30);
-  const done = f.store.run('run-profile');
-  assert.equal(done.profile.shards, 2);
-  assert.equal(done.profile.stable, false);
-  assert.equal(done.profile.hashes.length, 2);
-  assert.equal(done.profile.hash, done.profile.hashes[0]);
-  assert.deepEqual(done.profile.parts, same);
-  assert.equal(done.profile.hash, profileFingerprint({ formSchema: { a: 1 } }).hash);
+  f.launches.forEach(l => l.child.emit('exit', 0)); await pause(30);
+  const p = onlyRun(f).profile;
+  assert.equal(p.stable, true); assert.equal(p.shards, 2); assert.equal(p.conflicts, undefined);
+  assert.deepEqual(p.keys, { ...k0, ...k1 });
+  assert.deepEqual({ hash: p.hash, parts: p.parts }, profileFromKeys({ ...k0, ...k1 }));
 });
 
-test('queue run with agreeing single profile is stable; without a profile file it stays unknown', async () => {
+test('queue: a conflicting key makes stable false and is listed; the lowest shard index wins', async () => {
+  const f = queueFixture(2);
+  const cs = [{ id: 'A', title: 'A' }, { id: 'B', title: 'B' }];
+  f.store.saveRun(profileRun('rc', cs)); f.queue.pump(); await pause(40);
+  f.launches.forEach((l, i) => {
+    const d = l.opts.env.PORTAL_RUN_DIR;
+    fs.writeFileSync(path.join(d, 'events.jsonl'), pass(cs[i].id));
+    fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ keys: { 'formSchema|/f': i ? H('9') : H('8') }, count: 1 }));
+  });
+  f.launches.forEach(l => l.child.emit('exit', 0)); await pause(30);
+  const p = onlyRun(f).profile;
+  assert.equal(p.stable, false); assert.deepEqual(p.conflicts, ['formSchema|/f']); assert.equal(p.keys['formSchema|/f'], H('8'));
+});
+
+test('queue: malformed files and non-integer shard dirs are ignored; shard 10 sorts after shard 2', async () => {
   const f = queueFixture(1);
-  f.store.saveRun(profileRun('r-one', [{ id: 'A', title: 'A' }])); f.store.saveRun(profileRun('r-none', [{ id: 'A', title: 'A' }]));
-  f.queue.pump(); await pause(10);
-  const d = f.launches[0].opts.env.PORTAL_RUN_DIR;
-  fs.writeFileSync(path.join(d, 'events.jsonl'), JSON.stringify({ id: 'A', status: 'PASS', durationMs: 1 }) + '\n');
-  fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ parts: profileFingerprint({ lookups: { k: 1 } }).parts, count: 1 }));
+  f.store.saveRun(profileRun('rs', [{ id: 'A', title: 'A' }])); f.queue.pump(); await pause(10);
+  const root = f.launches[0].opts.env.PORTAL_RUN_DIR;
+  const shards = path.join(f.queue.dirFor('rs'), 'shards');
+  const put = (name, body) => { fs.mkdirSync(path.join(shards, name), { recursive: true }); fs.writeFileSync(path.join(shards, name, 'profile.json'), typeof body === 'string' ? body : JSON.stringify(body)); };
+  put('10', { keys: { 'webpart|/w': H('a'), 'lookups|/x': H('b') } });
+  put('2', { keys: { 'webpart|/w': H('c') } });
+  put('abc', { keys: { 'webpart|/zzz': H('d') } });
+  put('3', '{"keys": {"lookups|/y": "');
+  put('4', { keys: { 'lookups|/ok': H('e'), 'lookups|/bad': 'nothex', 'lookups|/num': 5 } });
+  fs.writeFileSync(path.join(root, 'events.jsonl'), pass('A'));
   f.launches[0].child.emit('exit', 0); await pause(30);
-  const ran = f.store.runs().find(r => r.profile) ;
-  assert.equal(ran.profile.stable, true); assert.equal(ran.profile.shards, 1); assert.equal(ran.profile.hashes, undefined);
-  const next = f.launches[1];
-  fs.writeFileSync(path.join(next.opts.env.PORTAL_RUN_DIR, 'events.jsonl'), JSON.stringify({ id: 'A', status: 'PASS', durationMs: 1 }) + '\n');
-  next.child.emit('exit', 0); await pause(30);
-  assert.equal(f.store.runs().filter(r => !r.profile).length, 1);
+  const p = onlyRun(f).profile;
+  assert.equal(p.keys['webpart|/w'], H('c'), 'shard 2 beats shard 10');
+  for (const k of ['webpart|/zzz', 'lookups|/y', 'lookups|/bad', 'lookups|/num']) assert.ok(!(k in p.keys), k);
+  assert.equal(p.keys['lookups|/ok'], H('e'));
+  assert.equal(p.shards, 3); assert.equal(p.stable, false); assert.deepEqual(p.conflicts, ['webpart|/w']);
+});
+
+test('queue: reporter-reported conflicts mark unstable and repeated syncs do not flip; an unreadable file keeps the profile unknown', async () => {
+  const f = queueFixture(1);
+  f.store.saveRun(profileRun('ru', [{ id: 'A', title: 'A' }])); f.queue.pump(); await pause(10);
+  const root = f.launches[0].opts.env.PORTAL_RUN_DIR;
+  fs.writeFileSync(path.join(root, 'events.jsonl'), pass('A'));
+  fs.writeFileSync(path.join(root, 'profile.json'), JSON.stringify({ keys: { 'webpart|/w': H('a') }, conflicts: ['webpart|/w'] }));
+  await pause(2100); // the 1 s interval has synced at least twice
+  assert.equal(onlyRun(f).profile.stable, false);
+  f.launches[0].child.emit('exit', 0); await pause(30);
+  assert.equal(onlyRun(f).profile.stable, false);
+
+  const g = queueFixture(1);
+  g.store.saveRun(profileRun('rn', [{ id: 'A', title: 'A' }])); g.queue.pump(); await pause(10);
+  fs.writeFileSync(path.join(g.launches[0].opts.env.PORTAL_RUN_DIR, 'events.jsonl'), pass('A'));
+  fs.writeFileSync(path.join(g.launches[0].opts.env.PORTAL_RUN_DIR, 'profile.json'), '{"keys": [1,2]}');
+  g.launches[0].child.emit('exit', 0); await pause(30);
+  assert.equal(onlyRun(g).profile, undefined);
 });

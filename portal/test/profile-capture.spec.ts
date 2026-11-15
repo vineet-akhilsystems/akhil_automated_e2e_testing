@@ -43,9 +43,10 @@ test('step 2: the fixture attached hashes only, none of the body text, and skipp
   const files = attached.with.filter(a => a.name === 'profile.json');
   expect(files).toHaveLength(1);
   const doc = JSON.parse(files[0].body);
-  expect(Object.keys(doc.parts).sort()).toEqual(['formSchema', 'lookups']);
+  expect(doc.parts).toBeUndefined();
+  expect(Object.keys(doc.keys).sort()).toEqual(['formSchema|/configuration-service/form-schema/latest-version?type=a', 'lookups|/configuration-service/reference-lookup/latest-version?lookup_id=1']);
   expect(doc.count).toBe(2);
-  for (const hash of Object.values(doc.parts)) expect(hash).toMatch(/^[0-9a-f]{64}$/);
+  for (const hash of Object.values(doc.keys)) expect(hash).toMatch(/^[0-9a-f]{64}$/);
   expect(files[0].body).not.toContain(SECRET);
 });
 
@@ -57,4 +58,15 @@ test('step 3: a test that loaded no configuration attaches nothing', async ({ pa
 
 test('step 4: nothing was attached for the empty test', async () => {
   expect(attached.without.filter(a => a.name === 'profile.json')).toHaveLength(0);
+});
+
+// The auto fixture asks for `page`, so a test that never touches the page still gets one created and closed by Playwright.
+// Nothing is captured, nothing is attached, and the test is unaffected.
+test('step 5: a test that never uses page is unaffected by the auto fixture', async ({}, info) => {
+  record(info, 'nopage');
+  expect(1 + 1).toBe(2);
+});
+
+test('step 6: nothing was attached for the test without a page', async () => {
+  expect(attached.nopage.filter(a => a.name === 'profile.json')).toHaveLength(0);
 });

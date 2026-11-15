@@ -26,11 +26,40 @@ export function normalizeConfig(value) {
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 
-// Key for one captured response: part plus path plus sorted, non-volatile query, so arrival order never matters.
+// Cache-buster query parameters change on every request without the configuration changing.
+const BUSTER_PARAMS = ['_', 't', 'ts', 'v', 'cb', 'nocache', 'timestamp'];
+const ignoredParam = k => volatile.has(k.toLowerCase()) || BUSTER_PARAMS.includes(k.toLowerCase());
+
+// Key for one captured response: path plus sorted, non-volatile query, so arrival order never matters.
+// If the same key is seen twice in one test the last response wins (the page re-fetched it).
 export function responseKey(url) {
   const u = new URL(url);
-  const query = [...u.searchParams.entries()].filter(([k]) => !volatile.has(k.toLowerCase())).map(([k, v]) => `${k}=${v}`).sort().join('&');
-  return `${partForUrl(url)}:${u.pathname}${query ? '?' + query : ''}`;
+  const query = [...u.searchParams.entries()].filter(([k]) => !ignoredParam(k)).map(([k, v]) => `${k}=${v}`).sort().join('&');
+  return `${u.pathname}${query ? '?' + query : ''}`;
+}
+
+// "<part>|<path?query>": the identity of one captured configuration response.
+export function entryKey(url) {
+  return `${partForUrl(url)}|${responseKey(url)}`;
+}
+
+// sha256 of one response body after normalization. Only this hash ever leaves the browser process.
+export function hashBody(body) {
+  return sha256(JSON.stringify(normalizeConfig(body)));
+}
+
+// Per part: sha256 over the sorted "key:sha" lines of that part's keys.
+export function partsFromKeys(keys) {
+  const lines = {};
+  for (const key of Object.keys(keys ?? {})) (lines[key.split('|')[0]] ??= []).push(`${key}:${keys[key]}`);
+  const parts = {};
+  for (const name of Object.keys(lines).sort()) parts[name] = sha256(lines[name].sort().join('\n'));
+  return parts;
+}
+
+export function profileFromKeys(keys) {
+  const parts = partsFromKeys(keys);
+  return { hash: combineHashes(parts), parts };
 }
 
 // Overall hash from per-part hashes: sha256 over the sorted "name:partHash" lines.

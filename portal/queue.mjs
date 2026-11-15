@@ -4,7 +4,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { ROOT, adapters } from './registry.mjs';
 import { loginSchema } from './environment-settings.mjs';
-import { combineHashes } from './profile.mjs';
+import { profileFromKeys } from './profile.mjs';
 
 // ---- Speed helpers (pure, exported for tests and for the rerun path) ----------------------------------------------
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
@@ -85,21 +85,32 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     store.saveRun({ ...run, status: 'interrupted', finishedAt: new Date().toISOString(), error: 'The portal stopped during this run. Create a new run to try again.' });
   }
   const dirFor = id => path.join(runsDir, id);
-  // run.profile from the per-process profile.json files (hashes only); the portal computes the overall hash. No file: unknown.
+  // run.profile from the per-process profile.json files (response-key hashes only); the portal derives parts and the overall hash.
+  // Keys are unioned over shards (lowest shard index wins a conflict); only the same key with different hashes counts as drift.
   function syncProfile(run, root, shardsDir) {
     const files = [path.join(root, 'profile.json')];
-    if (fs.existsSync(shardsDir)) for (const name of fs.readdirSync(shardsDir).sort((x, y) => Number(x) - Number(y))) files.push(path.join(shardsDir, name, 'profile.json'));
-    const found = [];
-    for (const file of files) {
-      try {
-        const parts = JSON.parse(fs.readFileSync(file, 'utf8')).parts;
-        if (parts && typeof parts === 'object') found.push({ parts, hash: combineHashes(parts) });
-      } catch { /* missing or incomplete */ }
+    if (fs.existsSync(shardsDir)) {
+      const dirs = fs.readdirSync(shardsDir).filter(name => /^\d+$/.test(name)).sort((x, y) => Number(x) - Number(y));
+      for (const name of dirs) files.push(path.join(shardsDir, name, 'profile.json'));
     }
-    if (!found.length) return;
-    const hashes = found.map(f => f.hash);
-    run.profile = { hash: found[0].hash, parts: found[0].parts, stable: hashes.every(h => h === hashes[0]), shards: found.length };
-    if (!run.profile.stable) run.profile.hashes = hashes;
+    const keys = {}, conflicts = [];
+    let shards = 0, reported = false;
+    for (const file of files) {
+      let doc;
+      try { doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { continue; }
+      if (!doc || typeof doc.keys !== 'object' || doc.keys === null || Array.isArray(doc.keys)) continue;
+      const valid = Object.entries(doc.keys).filter(([, hash]) => typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash));
+      shards++;
+      if (Array.isArray(doc.conflicts) && doc.conflicts.length) reported = true;
+      for (const [key, hash] of valid) {
+        if (!(key in keys)) keys[key] = hash;
+        else if (keys[key] !== hash && !conflicts.includes(key)) conflicts.push(key);
+      }
+    }
+    if (!shards) return;
+    const { hash, parts } = profileFromKeys(keys);
+    run.profile = { hash, parts, keys, stable: !conflicts.length && !reported, shards };
+    if (conflicts.length) run.profile.conflicts = conflicts.slice(0, 20);
   }
   function syncEvents(run) {
     if (run.kind === 'authentication') return;
