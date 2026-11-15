@@ -1,0 +1,720 @@
+{
+  "module": "miracle-registration",
+  "source": "Registration.mp4 (walkthrough video)",
+  "cases": [
+    {
+      "id": "MR-001",
+      "title": "Login with valid profile lands on home",
+      "category": "Login",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Open login page, enter profile values, wait for dropdowns, LOGIN",
+          "expected": "Home page with menu opens; login form gone"
+        }
+      ]
+    },
+    {
+      "id": "MR-002",
+      "title": "Login dropdowns fill after the password field loses focus",
+      "category": "Login",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R-login). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R-login)",
+      "steps": [
+        {
+          "action": "Enter user id and password, press Tab",
+          "expected": "Facility, Group, Entry site get values"
+        }
+      ]
+    },
+    {
+      "id": "MR-003",
+      "title": "Wrong password is refused",
+      "category": "Login",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Enter a wrong password, LOGIN",
+          "expected": "Stays on login with a message; no session"
+        }
+      ]
+    },
+    {
+      "id": "MR-010",
+      "title": "New Registration with only mandatory fields saves",
+      "category": "Save and result dialog",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Fill all starred fields, Save",
+          "expected": "UHID shown; \"Record save successfully.\"; 5-option dialog (R16, R17)"
+        }
+      ]
+    },
+    {
+      "id": "MR-011",
+      "title": "Saved patient can be found again with the same details",
+      "category": "Save and result dialog",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "After MR-010, search by UHID or mobile",
+          "expected": "One patient with the saved name, mobile, DOB, gender"
+        }
+      ]
+    },
+    {
+      "id": "MR-012",
+      "title": "Each mandatory field left empty blocks Save with a message",
+      "category": "Save and result dialog",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video + Practice. Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video + Practice",
+      "steps": [
+        {
+          "action": "Repeat Save leaving one starred field empty each time (gender, DOB, mobile, whatsapp, referral type, payer)",
+          "expected": "Not saved; a message names the field (R18)"
+        }
+      ]
+    },
+    {
+      "id": "MR-013",
+      "title": "Optional fields (middle name, last name, address, e-mail) can stay empty",
+      "category": "Save and result dialog",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (assumed)",
+      "steps": [
+        {
+          "action": "Save with only mandatory fields",
+          "expected": "Saved (R2)"
+        }
+      ]
+    },
+    {
+      "id": "MR-014",
+      "title": "Dialog after save: Cancel closes without side effects",
+      "category": "Save and result dialog",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R17). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R17)",
+      "steps": [
+        {
+          "action": "Save, press Cancel",
+          "expected": "Dialog closes, patient stays saved, nothing opened"
+        }
+      ]
+    },
+    {
+      "id": "MR-015",
+      "title": "Dialog after save: Appointment, Admission, Attach Documents and OP Bill each open the right screen for this UHID",
+      "category": "Save and result dialog",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R17). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R17)",
+      "steps": [
+        {
+          "action": "Save, choose each option",
+          "expected": "Correct screen with the same UHID"
+        }
+      ]
+    },
+    {
+      "id": "MR-020",
+      "title": "Copy checkbox copies mobile to Whatsapp",
+      "category": "Derived fields",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R8). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R8)",
+      "steps": [
+        {
+          "action": "Enter mobile, tick Copy",
+          "expected": "Whatsapp equals mobile"
+        }
+      ]
+    },
+    {
+      "id": "MR-021",
+      "title": "Whatsapp can differ from mobile",
+      "category": "Derived fields",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R8). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R8)",
+      "steps": [
+        {
+          "action": "Untick Copy, enter another number",
+          "expected": "Both numbers saved separately"
+        }
+      ]
+    },
+    {
+      "id": "MR-022",
+      "title": "Area selection fills pin code",
+      "category": "Derived fields",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R9). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R9)",
+      "steps": [
+        {
+          "action": "Pick state, district, area",
+          "expected": "Pin code filled"
+        }
+      ]
+    },
+    {
+      "id": "MR-023",
+      "title": "Entering age fills DOB",
+      "category": "Derived fields",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R10). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R10)",
+      "steps": [
+        {
+          "action": "Type age 27",
+          "expected": "DOB is today minus 27 years"
+        }
+      ]
+    },
+    {
+      "id": "MR-024",
+      "title": "Entering DOB fills age",
+      "category": "Derived fields",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R10). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R10)",
+      "steps": [
+        {
+          "action": "Pick a DOB",
+          "expected": "Age (Y-M-D) matches"
+        }
+      ]
+    },
+    {
+      "id": "MR-025",
+      "title": "Age 0, very large age (150) and a future DOB are handled",
+      "category": "Derived fields",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Enter each",
+          "expected": "Rejected or clearly handled; no impossible patient saved"
+        }
+      ]
+    },
+    {
+      "id": "MR-026",
+      "title": "DOB left at the default 01/01/2026",
+      "category": "Derived fields",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Save without touching DOB",
+          "expected": "Decide with the BA: warning, or accepted"
+        }
+      ]
+    },
+    {
+      "id": "MR-027",
+      "title": "Title sets gender and guardian type",
+      "category": "Derived fields",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R11), Practice. Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R11), Practice",
+      "steps": [
+        {
+          "action": "Choose Mr., Mrs., Ms., Master, Baby",
+          "expected": "Gender and S/O, W/O follow the title; gender mismatch handled"
+        }
+      ]
+    },
+    {
+      "id": "MR-030",
+      "title": "International: visa number, expiry and nationality are required",
+      "category": "International and New Born",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Choose International, leave each empty, Save",
+          "expected": "Not saved; message per field (R4)"
+        }
+      ]
+    },
+    {
+      "id": "MR-031",
+      "title": "International with passport saves",
+      "category": "International and New Born",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Fill passport, visa, expiry, nationality",
+          "expected": "Saved with a UHID"
+        }
+      ]
+    },
+    {
+      "id": "MR-032",
+      "title": "International: visa expiry in the past",
+      "category": "International and New Born",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Enter a past expiry",
+          "expected": "Rejected or warned"
+        }
+      ]
+    },
+    {
+      "id": "MR-040",
+      "title": "New Born needs a mother and lists only female patients",
+      "category": "Staff and Diagnostic",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Choose New Born, open the mother list",
+          "expected": "Only female patients listed; baby saved linked to the mother (R5)"
+        }
+      ]
+    },
+    {
+      "id": "MR-041",
+      "title": "New Born mandatory details",
+      "category": "Staff and Diagnostic",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Leave delivery type, date, weight, height empty one by one",
+          "expected": "Not saved; message per field"
+        }
+      ]
+    },
+    {
+      "id": "MR-042",
+      "title": "New Born weight, height and delivery date limits",
+      "category": "Staff and Diagnostic",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "0, negative, 99 kg, future date",
+          "expected": "Rejected or handled"
+        }
+      ]
+    },
+    {
+      "id": "MR-050",
+      "title": "Staff: employer picked from the employee list",
+      "category": "Staff and Diagnostic",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Choose Staff, open the employee search, search by name, mobile, e-mail",
+          "expected": "Matching employees; selecting fills employee data (R6)"
+        }
+      ]
+    },
+    {
+      "id": "MR-051",
+      "title": "Staff: relation and card are required",
+      "category": "Staff and Diagnostic",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Leave employee number, relation, card empty",
+          "expected": "Not saved; message"
+        }
+      ]
+    },
+    {
+      "id": "MR-052",
+      "title": "Staff Dependent: employer first, then dependent",
+      "category": "Staff and Diagnostic",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Choose Staff Dependent, select employer, add a dependent",
+          "expected": "Dependent linked to the employer; shows in dependent links (R6)"
+        }
+      ]
+    },
+    {
+      "id": "MR-053",
+      "title": "Staff Dependent without choosing an employer",
+      "category": "Staff and Diagnostic",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Try to save",
+          "expected": "Blocked with a message"
+        }
+      ]
+    },
+    {
+      "id": "MR-060",
+      "title": "Diagnostic Only saves",
+      "category": "Payer",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (assumed). Automation: N until the BA answers. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (assumed)",
+      "steps": [
+        {
+          "action": "Choose Diagnostic Only, mandatory fields, Save",
+          "expected": "Saved; Ask the BA what differs (R7)"
+        }
+      ]
+    },
+    {
+      "id": "MR-070",
+      "title": "Direct Patient uses TARIFF VERSION 9.0",
+      "category": "Payer",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Choose Direct Patient",
+          "expected": "Payer shows TARIFF VERSION 9.0 (R13)"
+        }
+      ]
+    },
+    {
+      "id": "MR-071",
+      "title": "Company payer: sponsor selects itself, insurance details required",
+      "category": "Payer",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R13). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R13)",
+      "steps": [
+        {
+          "action": "Choose Company, pick payer",
+          "expected": "Sponsor auto-filled; Save without insurance details is blocked or warned"
+        }
+      ]
+    },
+    {
+      "id": "MR-072",
+      "title": "Expired company on save",
+      "category": "Payer",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (assumed). Automation: N until the BA answers. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (assumed)",
+      "steps": [
+        {
+          "action": "Choose an expired company, Save",
+          "expected": "Clear pop-up; Ask whether the save is blocked (R15)"
+        }
+      ]
+    },
+    {
+      "id": "MR-073",
+      "title": "Insurance payer with unmapped sponsor can be changed",
+      "category": "Payer",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R13). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R13)",
+      "steps": [
+        {
+          "action": "Choose Insurance, change sponsor",
+          "expected": "Sponsor changes and is saved"
+        }
+      ]
+    },
+    {
+      "id": "MR-074",
+      "title": "Insurance Details before saving shows the \"select the patient\" alert",
+      "category": "Payer",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video. Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video",
+      "steps": [
+        {
+          "action": "Click Insurance Details on a new form",
+          "expected": "\"Please Select The Patient\" (R14)"
+        }
+      ]
+    },
+    {
+      "id": "MR-080",
+      "title": "VIP Narration, Name Masking, Handle With Care are saved and shown",
+      "category": "Safety and robustness",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (assumed where). Automation: N until the BA answers. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (assumed where)",
+      "steps": [
+        {
+          "action": "Tick each, Save, reopen the patient",
+          "expected": "Flags persist; VIP marked; real name masked; handle-with-care alert shows (R12)"
+        }
+      ]
+    },
+    {
+      "id": "MR-090",
+      "title": "Duplicate patient is detected",
+      "category": "Safety and robustness",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Save the same name+mobile twice; use Check Duplicate",
+          "expected": "Warning or block; one UHID per person"
+        }
+      ]
+    },
+    {
+      "id": "MR-091",
+      "title": "Double click on Save creates one patient",
+      "category": "Safety and robustness",
+      "priority": "P0",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice. Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice",
+      "steps": [
+        {
+          "action": "Double click Save",
+          "expected": "One UHID only"
+        }
+      ]
+    },
+    {
+      "id": "MR-092",
+      "title": "Refresh after save does not create a second patient",
+      "category": "Safety and robustness",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice. Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice",
+      "steps": [
+        {
+          "action": "Save, refresh the page",
+          "expected": "No second patient"
+        }
+      ]
+    },
+    {
+      "id": "MR-093",
+      "title": "Session timeout in the middle of the form",
+      "category": "Safety and robustness",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: N. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Let the session expire, Save",
+          "expected": "Clear message or login; no half-saved record"
+        }
+      ]
+    },
+    {
+      "id": "MR-094",
+      "title": "Mandatory rules are enforced by the server, not only the browser",
+      "category": "Safety and robustness",
+      "priority": "P1",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "Save with a starred field emptied by script",
+          "expected": "Server rejects"
+        }
+      ]
+    },
+    {
+      "id": "MR-095",
+      "title": "Special characters and very long text in name, address and search",
+      "category": "Safety and robustness",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Practice (assumed). Automation: Y. Expected result is ASSUMED until the business analyst confirms it. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Practice (assumed)",
+      "steps": [
+        {
+          "action": "O'Neil, quotes, <b>, 300 characters",
+          "expected": "Saved safely or refused; no script runs; no broken page"
+        }
+      ]
+    },
+    {
+      "id": "MR-096",
+      "title": "Referral type list and Referred By search",
+      "category": "Safety and robustness",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: Video (R-referral). Automation: Y. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "Video (R-referral)",
+      "steps": [
+        {
+          "action": "Open referral type, type 4 characters in Referred By",
+          "expected": "List has Self, Camp, External Provider, Facility, Internal Provider, Staff; search matches"
+        }
+      ]
+    },
+    {
+      "id": "MR-097",
+      "title": "Rules in the video's \"not covered\" list",
+      "category": "Safety and robustness",
+      "priority": "P2",
+      "mode": "manual",
+      "enabled": true,
+      "notes": "Source: Registration.mp4 walkthrough (Miracle HIS, UAT). Basis: -. Automation: N. Draft - needs review.",
+      "preconditions": "Signed in to Miracle HIS UAT with the portal login profile. Use obviously fake patients (\"Agent Testing ...\") and a generated unique mobile number.",
+      "requirement": "-",
+      "steps": [
+        {
+          "action": "Permanent Address, Approval Logs, Attach Document, Bulk Registration, Merge Patient Details, Health Edge Card, Print Card, Sticker",
+          "expected": "Needs a walkthrough or notes first"
+        }
+      ]
+    }
+  ]
+}
