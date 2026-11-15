@@ -5,8 +5,10 @@ import { partForUrl, entryKey, hashBody } from '../shared/profile-hash.mjs';
  * Read-only capture of the configuration the page pulls from configuration-service. It only listens (page.on('response'));
  * it never routes, alters or delays traffic and never fails a test. Only hashes are attached, never response bodies.
  */
-export const test = base.extend<{ profileCapture: void }>({
-  profileCapture: [async ({ page }, use, info) => {
+export const test = base.extend({
+  // Overrides the built-in `page` fixture instead of being an auto fixture that requests it, so a test that never asks for
+  // `page` never builds a context or page (and never needs a saved session).
+  page: async ({ page }, use, info) => {
     const keys: Record<string, string> = {};
     let count = 0;
     const pending = new Set<Promise<void>>();
@@ -26,7 +28,7 @@ export const test = base.extend<{ profileCapture: void }>({
         void task.finally(() => pending.delete(task));
       });
     } catch { /* capture is optional */ }
-    await use();
+    await use(page);
     try {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const limit = new Promise(resolve => { timer = setTimeout(resolve, 2000); timer.unref?.(); });
@@ -35,5 +37,5 @@ export const test = base.extend<{ profileCapture: void }>({
       if (!count || typeof info?.attach !== 'function') return;
       await info.attach('profile.json', { body: JSON.stringify({ keys, count }), contentType: 'application/json' });
     } catch { /* never affects the test */ }
-  }, { auto: true }],
+  },
 });

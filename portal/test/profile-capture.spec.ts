@@ -64,9 +64,13 @@ test('step 4: nothing was attached for the empty test', async () => {
   expect(attached.without.filter(a => a.name === 'profile.json')).toHaveLength(0);
 });
 
-// The auto fixture asks for `page`, so a test that never touches the page still gets one created and closed by Playwright.
-// Nothing is captured, nothing is attached, and the test is unaffected.
-test('step 5: a test that never uses page is unaffected by the auto fixture', async ({}, info) => {
+// `page` is overridden (not requested by an auto fixture), so a test that never uses page never builds a context or page.
+// Here `context` throws, which would error any test that caused a context to be built.
+const noContext = test.extend({
+  context: async ({}, use) => { throw new Error('context must not be built for a test without page'); void use; },
+});
+
+noContext('step 5: a test that never uses page does not build a context or page', async ({}, info) => {
   record(info, 'nopage');
   expect(1 + 1).toBe(2);
 });
