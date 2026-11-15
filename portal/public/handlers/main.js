@@ -242,7 +242,7 @@ document.addEventListener('submit', async event => {
     } else
     if (form.id === 'environment-form') {
       await api('/api/environments', 'POST', {
-        id: f.get('profile-id'), name: f.get('profile-name'), url: f.get('website-url'), productId: state.productId, version: Number(f.get('profile-version')), create: f.get('profile-new') === '1',
+        id: f.get('profile-id'), name: f.get('profile-name'), url: f.get('website-url'), appVersion: f.get('app-version').trim(), productId: state.productId, version: Number(f.get('profile-version')), create: f.get('profile-new') === '1',
         credentials: Object.fromEntries(['username', 'password', ...loginFieldsFor(state.productId).map(([k]) => k)].map(k => [k, f.get('login-' + k)]))
       });
       closeDialog(); await reload(); toast('Profile saved. Refresh application login before running tests.');
@@ -327,7 +327,7 @@ document.addEventListener('submit', async event => {
     if (form.id === 'run-form') {
       const caseIds = drafts.runDraft.cases.filter(c => c.mode === drafts.runDraft.mode && isApproved(c) && drafts.runDraft.selected.has(c.id)).map(c => c.id);
       if (!caseIds.length) throw new Error('Select at least one case for this run.');
-      const r = await api('/api/runs', 'POST', { name: f.get('run-name'), moduleId: drafts.runDraft.module.id, mode: drafts.runDraft.mode, environmentId: f.get('run-environment'), caseIds, accessibility: f.get('run-a11y') === 'on' });
+      const r = await api('/api/runs', 'POST', { name: f.get('run-name'), moduleId: drafts.runDraft.module.id, mode: drafts.runDraft.mode, environmentId: f.get('run-environment'), caseIds, accessibility: f.get('run-a11y') === 'on', ...(f.get('run-app-version').trim() ? { appVersion: f.get('run-app-version').trim() } : {}) });
       closeDialog(); await reload(); location.hash = `/runs/${r.id}`; toast(r.mode === 'manual' ? 'Manual run opened. Record your results.' : 'Run added to the execution queue.');
     }
     if (form.id === 'template-form') {

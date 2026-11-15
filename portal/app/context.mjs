@@ -7,6 +7,7 @@ import { pluginFor, plugins } from '../modules/index.mjs';
 import { createQueue } from '../queue.mjs';
 import { TERMINAL } from '../quality.mjs';
 import { loginSchema } from '../environment-settings.mjs';
+import { normalizeAppVersion } from '../versioning.mjs';
 import { createUsers } from '../users.mjs';
 import { createIntake } from '../intake.mjs';
 import { saveExternalInsights } from '../insights.mjs';
@@ -113,7 +114,7 @@ export function createContext(options = {}) {
       } catch { /* A saved opaque token can only be verified by the application. */ }
     }
     const credentials = credentialsFor(e);
-    return { id: e.id, name: e.name, productId: e.productId ?? 'augastam', url: e.url, session, version: e.version ?? 0,
+    return { id: e.id, name: e.name, productId: e.productId ?? 'augastam', url: e.url, appVersion: e.appVersion ?? '', session, version: e.version ?? 0,
       loginConfigured: Boolean(schema) && Object.keys(schema.fields).every(k => Boolean(credentials?.[k])),
       loginSource: e.managed ? 'settings' : 'server', passwordSaved: Boolean(credentials?.password),
       login: Object.fromEntries(Object.keys(schema?.fields ?? {}).filter(k => k !== 'password').map(k => [k, showLogin ? credentials?.[k] ?? '' : ''])) };
@@ -188,9 +189,10 @@ export function createContext(options = {}) {
       check(adapters[module.adapter], 'This module has no automation connection.');
       if (cases.some(c => c.action !== 'unavailable')) check(publicEnvironment(environment).session === 'saved', 'The application session is missing or expired. Open Settings, check this profile and refresh application login first.', 409);
     }
+    const typed = normalizeAppVersion(body.appVersion), appVersion = typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
     const run = { id: randomUUID(), name: textValue(body.name, 'Run name', 200, true), environmentId: environment.id,
       environmentName: environment.name, environmentUrl: environment.url, mode: body.mode, kind: 'tests', productId, productName: productName(productId),
-      module: structuredClone(module), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
+      module: structuredClone(module), ...(appVersion ? { appVersion } : {}), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
       scope: { repositoryCases: store.cases(module.id).length, enabledCases: store.cases(module.id).filter(c => c.enabled !== false).length,
         disabledCases: store.cases(module.id).filter(c => c.enabled === false).length, plannedCases: cases.length },
       requestedCount: new Set(requested).size, addedDependencies: cases.filter(c => !requested.includes(c.id)).map(c => c.id) };

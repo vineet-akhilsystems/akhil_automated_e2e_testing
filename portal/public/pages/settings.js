@@ -30,6 +30,7 @@ export function showEnvironmentDialog(profile) {
     + field('Website URL', 'website-url', profile?.url ?? '', 'type="url" required maxlength="2000"', 'Website origin only, for example ' + (state.productId === 'miracle' ? 'https://uatbilling.miracleoncloud.com' : 'https://demo.augastam.com'))
     + field('Username', 'login-username', login.username ?? '', 'required autocomplete="off" maxlength="1000"')
     + field('Password', 'login-password', '', 'type="password" autocomplete="new-password" maxlength="1000" '+(profile?.passwordSaved ? 'placeholder="Saved password configured"' : 'required'), profile?.passwordSaved ? 'Your saved password is configured and hidden. Leave blank to keep it for the same website. Enter a password when changing the website.' : 'Stored encrypted on the portal server; never included in run snapshots.')
+    + field('Application version (optional)', 'app-version', profile?.appVersion ?? '', 'maxlength="40" autocomplete="off"', 'Type the version you are testing, for example 1.58. Leave blank if you do not know it.')
     + loginFieldsFor(state.productId).map(([key, label]) => field(label, 'login-' + key, login[key] ?? '', 'required maxlength="1000"')).join('')
     + '</div><p class="form-help">Profiles are shared within this workspace. Editing a profile is blocked while it has queued or running jobs. Saving invalidates its prior session.</p>', 'environment-form', 'Save login profile');
 }

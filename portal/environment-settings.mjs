@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import { check, textValue } from './registry.mjs';
+import { normalizeAppVersion } from './versioning.mjs';
 
 // What a login profile holds per product: field -> env variable the Playwright login setup reads, the setup project to run,
 // and the files that prove a saved session. Keep the field list in sync with LOGIN_FIELDS in public/pages/settings.js.
@@ -44,6 +45,7 @@ export function environmentSettings(directory) {
       let url;
       try { url = new URL(textValue(body.url, 'Website URL', 2000, true)); } catch { check(false, 'Enter a valid HTTP or HTTPS website URL.'); }
       check(['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/', 'Use a website origin such as https://demo.augastam.com, without credentials, path, query or fragment.');
+      const appVersion = normalizeAppVersion(body.appVersion === undefined ? previous?.appVersion : body.appVersion);
       const old = read(), saved = old.find(e => e.id === id);
       check(body.version === (saved?.version ?? 0), 'This profile changed. Reload Settings before saving.', 409);
       const schema = loginSchema(productId);
@@ -58,12 +60,12 @@ export function environmentSettings(directory) {
       }
       const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', key(), iv);
       const data = Buffer.concat([cipher.update(JSON.stringify(credentials)), cipher.final()]);
-      const result = { id, name, productId, url: url.origin, version: (saved?.version ?? 0) + 1, secret: { iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: data.toString('base64') } };
+      const result = { id, name, productId, url: url.origin, ...(appVersion ? { appVersion } : {}), version: (saved?.version ?? 0) + 1, secret: { iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: data.toString('base64') } };
       const next = [...old.filter(e => e.id !== id), result];
       const temp = file + '.tmp';
       fs.writeFileSync(temp, JSON.stringify(next, null, 2), { mode: 0o600 });
       fs.renameSync(temp, file);
-      return { id, name, productId, url: result.url, version: result.version };
+      return { id, name, productId, url: result.url, ...(appVersion ? { appVersion } : {}), version: result.version };
     },
   };
 }
