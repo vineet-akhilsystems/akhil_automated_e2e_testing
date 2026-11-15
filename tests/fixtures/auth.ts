@@ -1,4 +1,5 @@
-import { test as base, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test as base } from './profile';
 import fs from 'fs';
 
 const SESSION_FILE = `${process.env.AUTH_DIR ?? '.auth'}/session.json`;

@@ -20,6 +20,16 @@ module.exports = class PortalReporter {
     })).filter(a => !a.path.startsWith('../'));
     const a11y = result.attachments.find(a => a.name.endsWith('-a11y.json') && a.body);
     if (a11y) { try { value.accessibility = JSON.parse(a11y.body.toString()); } catch { /* a bad scan file is ignored */ } }
+    try {
+      // Hashes of the configuration this process saw: the first test's parts win, later tests only add parts it lacked.
+      const prof = result.attachments.find(a => a.name === 'profile.json' && a.body);
+      if (prof) {
+        const file = path.join(root, 'profile.json'), next = JSON.parse(prof.body.toString());
+        let current = null;
+        try { current = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* no file yet */ }
+        fs.writeFileSync(file, JSON.stringify({ parts: { ...(next.parts ?? {}), ...(current?.parts ?? {}) }, count: Math.max(current?.count ?? 0, next.count ?? 0) }));
+      }
+    } catch { /* profile capture never breaks reporting */ }
     value.wallMs = result.duration;
     const earlier = this.attempts.get(test.id) ?? [];
     earlier.push({ attempt: result.retry + 1, status: value.status, actual: String(value.actual ?? '').slice(0, 400), mismatches: (value.mismatches ?? []).slice(0, 5) });

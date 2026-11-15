@@ -103,3 +103,101 @@ test('changing the application version is recorded in the profile audit detail',
   assert.ok(entry.detail.fieldsChanged.includes('appVersion'));
   assert.ok(!JSON.stringify(entry.detail).includes('1.60'));
 });
+
+// ---- Task 2: configuration profile fingerprint ----
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { EventEmitter } from 'node:events';
+import { createQueue } from '../queue.mjs';
+import { normalizeConfig, profileFingerprint, PROFILE_URL } from '../profile.mjs';
+import * as shared from '../../tests/shared/profile-hash.mjs';
+
+const form = (over = {}) => ({ id: 'f1', updatedAt: '2026-01-01', fields: [{ name: 'a', required: false, meta: { z: 1, a: 2, token: 'x' } }, { name: 'b' }], ...over });
+
+test('normalizeConfig is independent of key order and ignores volatile keys', () => {
+  const a = normalizeConfig({ b: 1, a: { y: 2, x: 3, CreatedAt: 'now' }, list: [{ z: 1, a: 2 }, 5], Token: 't' });
+  const b = normalizeConfig({ list: [{ a: 2, z: 1 }, 5], a: { x: 3, y: 2, createdat: 'later' }, b: 1 });
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
+  assert.deepEqual(normalizeConfig([3, 1, 2]), [3, 1, 2]);
+});
+
+test('profileFingerprint is equal for shuffled and re-stamped input and different when a field required flag changes', () => {
+  const base = profileFingerprint({ formSchema: form(), webpart: { w: 1 } });
+  const shuffled = profileFingerprint({ webpart: { w: 1 }, formSchema: { fields: [{ meta: { a: 2, z: 1 }, required: false, name: 'a' }, { name: 'b' }], updatedAt: '2030-05-05', id: 'f1' } });
+  assert.equal(shuffled.hash, base.hash);
+  assert.deepEqual(shuffled.parts, base.parts);
+  assert.match(base.hash, /^[0-9a-f]{64}$/);
+  const flipped = profileFingerprint({ formSchema: form({ fields: [{ name: 'a', required: true, meta: { z: 1, a: 2 } }, { name: 'b' }] }), webpart: { w: 1 } });
+  assert.notEqual(flipped.hash, base.hash);
+  assert.notEqual(flipped.parts.formSchema, base.parts.formSchema);
+  assert.equal(flipped.parts.webpart, base.parts.webpart);
+});
+
+test('lookups part changes when an option is added', () => {
+  const one = profileFingerprint({ lookups: { 'lookups:/a?id=1': { options: ['x'] } } });
+  const two = profileFingerprint({ lookups: { 'lookups:/a?id=1': { options: ['x', 'y'] } } });
+  assert.notEqual(one.parts.lookups, two.parts.lookups);
+  assert.notEqual(one.hash, two.hash);
+});
+
+test('portal and fixture-side fingerprint code are the same module and agree; urls map to parts', () => {
+  const input = { lookups: { k: [1, { b: 1, a: 2 }] }, workflow: { w: true } };
+  assert.deepEqual(profileFingerprint(input), shared.profileFingerprint(input));
+  assert.equal(shared.partForUrl('https://x/configuration-service/reference-lookup/latest-version?lookup_id=3'), 'lookups');
+  assert.equal(shared.partForUrl('https://x/configuration-service/workflow/get-workflow'), 'workflow');
+  assert.equal(shared.partForUrl('https://x/other'), undefined);
+  assert.ok(PROFILE_URL.test('configuration-service/webpart/latest-version'));
+  assert.equal(shared.responseKey('https://x/configuration-service/reference-lookup/latest-version?b=2&a=1&etag=9'), shared.responseKey('https://x/configuration-service/reference-lookup/latest-version?a=1&b=2'));
+});
+
+function queueFixture(workers) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-queue-'));
+  const runs = new Map();
+  const store = { runs: () => [...runs.values()], run: id => runs.get(id), saveRun: r => { runs.set(r.id, structuredClone(r)); } };
+  const launches = [];
+  const launch = (command, args, opts) => { const child = new EventEmitter(); child.stdout = null; child.pid = 0; launches.push({ opts, child }); return child; };
+  const queue = createQueue(store, dir, [{ id: 'e', url: 'http://x.invalid', authDir: path.join(dir, 'auth') }], launch, null, () => null, { staggerMs: 5, workers });
+  return { store, launches, queue };
+}
+const pause = ms => new Promise(r => setTimeout(r, ms));
+const profileRun = (id, cases) => ({ id, environmentId: 'e', kind: 'tests', mode: 'automated', status: 'queued', module: { id: 'registration', adapter: 'registration', config: {} }, cases, results: [] });
+
+test('queue run gets profile from events and marks stable:false when shards disagree', async () => {
+  const f = queueFixture(2);
+  const cs = [{ id: 'A', title: 'A' }, { id: 'B', title: 'B' }];
+  f.store.saveRun(profileRun('run-profile', cs)); f.queue.pump();
+  await pause(40);
+  assert.equal(f.launches.length, 2);
+  const same = profileFingerprint({ formSchema: { a: 1 } }).parts, other = profileFingerprint({ formSchema: { a: 2 } }).parts;
+  f.launches.forEach((l, i) => {
+    const d = l.opts.env.PORTAL_RUN_DIR;
+    fs.writeFileSync(path.join(d, 'events.jsonl'), JSON.stringify({ id: cs[i].id, status: 'PASS', durationMs: 1 }) + '\n');
+    fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ parts: i === 0 ? same : other, count: 2 }));
+  });
+  f.launches.forEach(l => l.child.emit('exit', 0));
+  await pause(30);
+  const done = f.store.run('run-profile');
+  assert.equal(done.profile.shards, 2);
+  assert.equal(done.profile.stable, false);
+  assert.equal(done.profile.hashes.length, 2);
+  assert.equal(done.profile.hash, done.profile.hashes[0]);
+  assert.deepEqual(done.profile.parts, same);
+  assert.equal(done.profile.hash, profileFingerprint({ formSchema: { a: 1 } }).hash);
+});
+
+test('queue run with agreeing single profile is stable; without a profile file it stays unknown', async () => {
+  const f = queueFixture(1);
+  f.store.saveRun(profileRun('r-one', [{ id: 'A', title: 'A' }])); f.store.saveRun(profileRun('r-none', [{ id: 'A', title: 'A' }]));
+  f.queue.pump(); await pause(10);
+  const d = f.launches[0].opts.env.PORTAL_RUN_DIR;
+  fs.writeFileSync(path.join(d, 'events.jsonl'), JSON.stringify({ id: 'A', status: 'PASS', durationMs: 1 }) + '\n');
+  fs.writeFileSync(path.join(d, 'profile.json'), JSON.stringify({ parts: profileFingerprint({ lookups: { k: 1 } }).parts, count: 1 }));
+  f.launches[0].child.emit('exit', 0); await pause(30);
+  const ran = f.store.runs().find(r => r.profile) ;
+  assert.equal(ran.profile.stable, true); assert.equal(ran.profile.shards, 1); assert.equal(ran.profile.hashes, undefined);
+  const next = f.launches[1];
+  fs.writeFileSync(path.join(next.opts.env.PORTAL_RUN_DIR, 'events.jsonl'), JSON.stringify({ id: 'A', status: 'PASS', durationMs: 1 }) + '\n');
+  next.child.emit('exit', 0); await pause(30);
+  assert.equal(f.store.runs().filter(r => !r.profile).length, 1);
+});

@@ -4,6 +4,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { ROOT, adapters } from './registry.mjs';
 import { loginSchema } from './environment-settings.mjs';
+import { combineHashes } from './profile.mjs';
 
 // ---- Speed helpers (pure, exported for tests and for the rerun path) ----------------------------------------------
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
@@ -84,9 +85,26 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     store.saveRun({ ...run, status: 'interrupted', finishedAt: new Date().toISOString(), error: 'The portal stopped during this run. Create a new run to try again.' });
   }
   const dirFor = id => path.join(runsDir, id);
+  // run.profile from the per-process profile.json files (hashes only); the portal computes the overall hash. No file: unknown.
+  function syncProfile(run, root, shardsDir) {
+    const files = [path.join(root, 'profile.json')];
+    if (fs.existsSync(shardsDir)) for (const name of fs.readdirSync(shardsDir).sort((x, y) => Number(x) - Number(y))) files.push(path.join(shardsDir, name, 'profile.json'));
+    const found = [];
+    for (const file of files) {
+      try {
+        const parts = JSON.parse(fs.readFileSync(file, 'utf8')).parts;
+        if (parts && typeof parts === 'object') found.push({ parts, hash: combineHashes(parts) });
+      } catch { /* missing or incomplete */ }
+    }
+    if (!found.length) return;
+    const hashes = found.map(f => f.hash);
+    run.profile = { hash: found[0].hash, parts: found[0].parts, stable: hashes.every(h => h === hashes[0]), shards: found.length };
+    if (!run.profile.stable) run.profile.hashes = hashes;
+  }
   function syncEvents(run) {
     if (run.kind === 'authentication') return;
     const root = dirFor(run.id), shardsDir = path.join(root, 'shards');
+    syncProfile(run, root, shardsDir);
     const files = [path.join(root, 'events.jsonl')];
     if (fs.existsSync(shardsDir)) for (const name of fs.readdirSync(shardsDir).sort((x, y) => Number(x) - Number(y))) files.push(path.join(shardsDir, name, 'events.jsonl'));
     const byId = new Map((run.results ?? []).map(r => [r.id, r]));
