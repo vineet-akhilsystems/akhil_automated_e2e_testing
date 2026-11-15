@@ -221,6 +221,12 @@ test('MCP version tools, tree, change impact and version hints on failures and c
   assert.equal(JSON.stringify(impact.data).includes('state.json'), false);
   const many = await m.call('check_change_impact', { changed: Array.from({ length: 500 }, (_, i) => `portal/x${i}.mjs`) });
   assert.equal(many.data.truncatedInput, true);
+  assert.equal(many.data.ignoredCount, 0);
+  const raw = await m.call('get_run', { runId: 'r-new' });
+  assert.equal(raw.error, false, String(raw.data));
+  assert.equal(raw.data.profile.hash, 'bbbbbbbbbbbb2222');
+  assert.equal(JSON.stringify(raw.data).includes('KEYVALUE'), false);
+  for (const [tool, args] of [['list_runs', {}], ['get_run_failures', { runId: 'r-new' }], ['compare_runs', { runId: 'r-new' }]]) assert.equal(JSON.stringify((await m.call(tool, args)).data).includes('KEYVALUE'), false, tool);
   assert.ok(many.data.changed.length <= 50);
 
   // hints on failures and compare

@@ -39,6 +39,7 @@ export function versionDifferences(base, head) {
     for (const [key, label, was, now, fmt, advice] of dims) {
       if (was === UNKNOWN || now === UNKNOWN) {
         out.differs[key] = null;
+        if (key === 'profile' && was === now) continue; // neither run has a profile: nothing to say
         hints.push(`${label} unknown for ${was === UNKNOWN && now === UNKNOWN ? 'both runs' : was === UNKNOWN ? 'the earlier run' : 'the newer run'}, so it cannot be compared.`);
       } else if (was !== now) { out.differs[key] = true; hints.push(`${label} differs (${fmt(was)} vs ${fmt(now)}): ${advice}.`); }
       else out.differs[key] = false;

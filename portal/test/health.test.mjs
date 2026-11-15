@@ -107,3 +107,10 @@ test('versionDifferences gives hints, says unknown for missing values and never 
   assert.equal(compareRunsForVersions({ results: [] }, { results: [] }).versionDifferences.differs.automation, null);
   assert.equal(analyzeForVersions({ results: [] }).versionDifferences.head.appVersion.label, 'unknown');
 });
+
+test('no profile on either run adds no profile hint', () => {
+  const d = versionDifferences({ automationVersion: { number: 1 } }, { automationVersion: { number: 2 } });
+  assert.equal(d.differs.profile, null);
+  assert.doesNotMatch(d.hint, /Login profile/);
+  assert.match(d.hint, /Automation version differs (v1 vs v2)/);
+});
