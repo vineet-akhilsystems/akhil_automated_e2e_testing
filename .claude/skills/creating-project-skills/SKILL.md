@@ -28,7 +28,7 @@ Dispatch `explorer` (Haiku) in parallel, one question each. Ask for `path:line` 
 | Which commands run this work, and what do they write? | `package.json` scripts, `playwright.config.ts`, `portal/` |
 | Where do inputs/outputs live, in what shape? | `qa/<product>/<module>/` (cases, rules, results, bugs) - read one real example of each format |
 | Which code must be reused, not rewritten? | `tests/<product>/<module>/` helpers, page objects, runners |
-| What is the source of truth for expected behaviour? | `rules.md`, `docs/`, `README.md` |
+| What is the source of truth for expected behaviour? | `qa/<product>/<module>/rules.md`, `docs/`, `README.md` |
 | What goes wrong in practice? | `bugs/`, results summaries, `TODO`/`FIXME`/`HACK` comments |
 | What is forbidden? | `.claude/settings.json` deny list and hooks - the skill must never instruct a denied action |
 
@@ -61,7 +61,7 @@ Put reference material over ~100 lines in a supporting file next to `SKILL.md`. 
 | Mistake | Fix |
 |---|---|
 | Writing from memory of how such projects usually work | Every fact needs a `path:line` from mining |
-| Bare filenames like `rules.md` | Repo-relative paths, or name the module folder once at the top |
+| Bare filenames without folder prefix (like `<file>.md`) | Repo-relative paths, or name the module folder once at the top |
 | Description summarises the steps | Claude follows the summary and skips the body - triggers only |
 | A new skill that duplicates an existing one | Extend the existing skill |
 | Pasting whole files into the skill | Point to the file; keep only what Claude cannot infer from it |

@@ -104,7 +104,7 @@ test('discover module fields, options and backend config (read-only)', async ({ 
   const refused = variants.filter((v) => DESTRUCTIVE.test(v));
   if (refused.length) throw new Error(`Refusing destructive-looking MODULE_VARIANTS (discovery is read-only): ${refused.join(', ')}`);
 
-  const OUT = path.join(...resolveModuleFolder('.', 'qa', productId, moduleId).split('/'), 'discovery');
+  const OUT = process.env.DISCOVER_OUT_DIR ? path.resolve(process.env.DISCOVER_OUT_DIR) : path.join(...resolveModuleFolder('.', 'qa', productId, moduleId).split('/'), 'discovery');
   fs.mkdirSync(path.join(OUT, 'config'), { recursive: true });
 
   // Read-only guard: abort anything that could change data.

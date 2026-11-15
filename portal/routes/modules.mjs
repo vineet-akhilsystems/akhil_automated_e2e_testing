@@ -7,6 +7,7 @@ import { adapters, check, textValue, validateCase, HttpError } from '../registry
 import { moduleCoverage } from '../quality.mjs';
 import { generateAiCases } from '../ai-generator.mjs';
 import { cleanModuleUrl, cleanVariants } from '../readiness.mjs';
+import { automateModule, runModuleDiscovery } from '../automate.mjs';
 import { readJson } from '../http/body.mjs';
 import { json } from '../http/respond.mjs';
 
@@ -78,6 +79,39 @@ export default async function handle(ctx, rc) {
               return result;
             });
             return json(res, 200, setupView(saved));
+          }
+          throw new HttpError(405, 'Method not allowed.');
+        }
+        const autoMatch = /^\/api\/modules\/([\w-]+)\/(automate|discover)$/.exec(route);
+        if (autoMatch) {
+          const [, mid, what] = autoMatch, module = getModule(mid);
+          authorize(user, 'module.settings', { module }, acc);
+          if (what === 'automate' && req.method === 'POST') {
+            const body = await readJson(req);
+            const approveDrafts = body.approveDrafts === true;
+            check(!approveDrafts || acc.module(module).has('case.review'), 'Only a reviewer or administrator can approve draft cases.', 403);
+            const result = automateModule({ module, store, layoutRoot: ctx.layoutRoot, specRoot: ctx.specRoot, user, approveDrafts });
+            record(user, {
+              action: 'module.automate',
+              scopeType: 'module',
+              scopeId: mid,
+              subject: null,
+              detail: { adapter: result.module.adapter, convertedCases: result.convertedCases, automatedCount: result.automatedCount, totalCases: result.totalCases },
+            });
+            return json(res, 200, {
+              module: result.module,
+              adapter: result.adapter?.id ?? result.module.adapter ?? null,
+              files: result.files ?? [],
+              convertedCases: result.convertedCases,
+              automatedCount: result.automatedCount,
+              totalCases: result.totalCases,
+              readiness: readinessFor(result.module),
+            });
+          }
+          if (what === 'discover' && req.method === 'POST') {
+            const result = runModuleDiscovery({ module, allEnvs: ctx.environments, layoutRoot: ctx.layoutRoot, exec: ctx.options?.discoverExec });
+            record(user, { action: 'module.discover', scopeType: 'module', scopeId: mid, subject: null, detail: { files: result.files.length, fieldCount: result.fieldCount } });
+            return json(res, 200, { ...result, readiness: readinessFor(module) });
           }
           throw new HttpError(405, 'Method not allowed.');
         }

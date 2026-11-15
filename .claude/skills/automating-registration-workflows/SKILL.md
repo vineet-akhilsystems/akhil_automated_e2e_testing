@@ -13,7 +13,7 @@ description: Use when an Augastam Registration scenario cannot be expressed with
 |---|---|---|
 | Existing action, but the field isn't mapped | Add the field to `tests/augastam/registration/fields.ts` (+ `FILL_ORDER`) | small |
 | Ordered steps / assertions on a modal, drawer, popup, download, keyboard, or a sequence of values | New **workflow key**: `workflows.json` + a `case` in `workflow-runner.ts` | medium |
-| A new kind of outcome shared by many data-driven cases | New action in `case-runner.ts` + `portal/modules/augastam/registration/adapter.mjs` (actions, outcomes) and `portal/modules/augastam/registration/validate.mjs` (validation) | large: **ask the user first** |
+| A new kind of outcome shared by many data-driven cases | New action in `tests/augastam/registration/case-runner.ts` + `portal/modules/augastam/registration/adapter.mjs` (actions, outcomes) and `portal/modules/augastam/registration/validate.mjs` (validation) | large: **ask the user first** |
 | Another page (configuration masters, billing, permissions) | A new module under `tests/<product>/<module>/` (see README "Multiple modules") | out of scope here |
 
 Check `qa/augastam/registration/workflows.json` first; the assessment doc in `docs/` is a snapshot and may call an already-implemented flow "new".
@@ -48,7 +48,7 @@ Duplicate labels across cards are fine (`card` scopes them). The same label twic
 - **Business checks use `expect`; setup problems `throw`.** The runner turns an `expect` failure (`matcherResult`) into FAIL with the message as the mismatch. Any other error becomes ERROR (runner error). A thrown `Error('wrong gender')` hides a product bug as an execution issue.
 - **Locate by card + label or role + accessible name, never by id.** Ids repeat (`field-1` x5, `dropdownField` x17), all dates are `name="sabyaDate"`, hidden tabs stay in the DOM. Use `.filter({ visible: true })`.
 - **react-select:** menus are portalled to `<body>` (`[id*="react-select"][id*="-option-"]`). Read the value via `reg.value(key)`, not the menu.
-- **Wait on signals:** a `waitForResponse` set up *before* the click (`pincode-lookup`, `autogenerate`, `update-details`, `details/`, `get-all-patient-details`), `expect.poll` for derived values, `.registration-preview-loading` gone. `waitForTimeout` only with a comment saying why no signal exists.
+- **Wait on signals:** a `waitForResponse` set up *before* the click (`pincode-lookup`, `autogenerate`, `update-details`, `/patient-registration/<id>/details/`, `get-all-patient-details`), `expect.poll` for derived values, `.registration-preview-loading` gone. `waitForTimeout` only with a comment saying why no signal exists.
 - **Judge server effects by the response body**: `autogenerate` returns the UHID string on success but `{statusCode:409|500}` inside HTTP 200 on failure. `update-details` failures show no toast.
 - **Popups and downloads:** start `page.waitForEvent('popup'|'download')` before the click. Close popups in `finally`. Check file content (PNG magic bytes in `qr-download`), not just the filename.
 - **Dates:** compute expected ages from the **browser's** date (`page.evaluate`), as `dob-age` does with `calendarAge`.
@@ -59,7 +59,7 @@ Duplicate labels across cards are fine (`card` scopes them). The same label twic
 | Mistake | Fix |
 |---|---|
 | Marking a flow complete when only its first half is asserted | `partial: true` + note what is missing |
-| Assertion copied from the BA text with no code/config rule | The flow can't be `assumed` (validator rejects it); confirm in `rules.md`/config or ask the user |
+| Assertion copied from the BA text with no code/config rule | The flow can't be `assumed` (validator rejects it); confirm in `qa/augastam/registration/rules.md`/config or ask the user |
 | `page.locator('#field-1')` | `reg.group(key)` / `reg.input(key)` |
 | `await page.waitForTimeout(3000)` before reading a PIN-derived value | `expect.poll(() => reg.value('state')).toBe('DELHI')` |
 | Clicking Print, *then* awaiting the popup | `const popup = page.waitForEvent('popup')` first |

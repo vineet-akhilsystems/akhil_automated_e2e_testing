@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { validateCase, check, textValue } from './registry.mjs';
+import { adapters, validateCase, check, textValue } from './registry.mjs';
+import { pluginFor } from './modules/index.mjs';
 import { cleanModuleUrl, cleanVariants } from './readiness.mjs';
+import { convertCaseToAutomated } from './automate.mjs';
 
 const covers = f => ({ fileId: f.id, sha256: f.sha256 ?? null, name: f.name });
 
@@ -167,7 +169,14 @@ export function buildDraftCases({ module, existingCases, specs, user, insightId,
         if (s.basis === 'experience' && plain(structured.expected)) structured.expected = { ...structured.expected, assumed: true };
         cases.push(validateCase({ ...common, mode: 'automated', ...structured, steps: s.steps ?? [], notes: note('Automated draft: review the expected outcome before approving; it will not run until approved.') }, module));
         automated++; return;
-      } catch { fellBack++; /* fall through to manual steps */ }
+      } catch { fellBack++; /* fall through to auto-conversion or manual steps */ }
+    }
+    const dynamicAdapter = module.adapter && adapters[module.adapter];
+    if (!badTarget && dynamicAdapter && !pluginFor(module.adapter)?.builtIn && Array.isArray(s.steps) && s.steps.length > 0) {
+      try {
+        cases.push(convertCaseToAutomated({ ...common, steps: s.steps, notes: note('Automated draft: converted from intake steps/video flow. Review before approving.') }, module, dynamicAdapter));
+        automated++; return;
+      } catch { /* fall through to manual steps */ }
     }
     try {
       cases.push(validateCase({ ...common, mode: 'manual', steps: s.steps, notes: note(badTarget ? 'Converted to manual: the proposed update target was not a {{name@CASE-ID}} reference, and AI-written cases must not point at a real patient. Needs human review before it can be run.' : 'Needs human review before it can be run.') }, module));

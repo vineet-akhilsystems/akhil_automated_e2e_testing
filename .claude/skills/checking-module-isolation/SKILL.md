@@ -38,7 +38,7 @@ description: Use when checking that Test Studio module code is not mixed togethe
 
 - `registrationType` is the generic variant key on every module's cases, kept for compatibility (`README.md:234`). Use it for any module's variants. Don't rename it, and don't add a `billingType`.
 - `moduleDir(kind, product, id)` requires the module's own product and id (`tests/shared/module-paths.ts:8`). Never add back a default for either, because a default lets one module or product write into another's folders.
-- `tests/smoke/session.spec.ts` is the module-neutral session check (it opens `/` and expects the signed-in workspace). A module's own preflight, which opens its page, goes in `tests/<product>/<id>/session.spec.ts`, like Registration's.
+- `tests/smoke/session.spec.ts` is the module-neutral session check (it opens the root `"/"` route and expects the signed-in workspace). A module's own preflight, which opens its page, goes in `tests/<product>/<id>/session.spec.ts`, like Registration's.
 - No module needs a `run-<id>-e2e.mjs` for portal runs. The portal launches the adapter's spec itself (`portal/queue.mjs:185`). `qa/tools/run-registration-e2e.mjs` is a Registration-only command-line tool.
 - A new built-in plugin adds one import line for `portal/modules/<product>/<id>/index.mjs` in `portal/registry.mjs` (`README.md`, "Adding a module" (b)). That line is the only shared-code change it may make, plus a matching `portal/store.mjs` import if the plugin has a `seed` hook (see the comment at `portal/store.mjs:6`).
 
@@ -46,7 +46,7 @@ description: Use when checking that Test Studio module code is not mixed togethe
 
 | Mistake | Fix |
 |---|---|
-| Importing `RegistrationPage` or `case-runner.ts` helpers into another module | Copy the pattern into the new module, or move the helper to `tests/fixtures/` and make it generic |
+| Importing `RegistrationPage` or `tests/augastam/registration/case-runner.ts` helpers into another module | Copy the pattern into the new module, or move the helper to `tests/fixtures/` and make it generic |
 | Adding `if (module === '<id>')` branches to `portal/*.mjs` | Put module behavior in plugin hooks (`portal/modules/contract.mjs`) or the adapter |
 | Hard-coding `qa/<product>/<id>/...` in a shared tool | Take the product and module id as arguments and use `moduleDir()` / the layout resolver |
 | Treating "0 ERROR" as proof of separation | The script checks references only. Also check the rules above by reading the diff |

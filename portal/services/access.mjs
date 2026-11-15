@@ -46,6 +46,7 @@ export function createAccess({ store, users, environments }) {
     let m;
     if (rest === '') return ['PUT', 'DELETE'].includes(method) ? 'module.settings' : 'module.view';
     if (rest === '/members') return 'members.manage';
+    if (/^\/agent\/jobs\/[\w-]+\/install$/.test(rest)) return method === 'POST' ? 'module.settings' : 'module.view';
     if (rest.startsWith('/agent/jobs')) return method === 'POST' ? 'agent.run' : 'module.view';
     if (/^\/(intake|insights|pack)(\/|$)/.test(rest)) {
       if (read) return 'module.view';

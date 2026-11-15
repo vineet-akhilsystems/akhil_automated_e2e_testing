@@ -1,60 +1,58 @@
 ---
 name: triaging-registration-failures
-description: Use when an Augastam Registration run has FAIL, ERROR or "FAIL (assumed requirement)" results, someone asks why REG-xxx failed, wants a bug report or bug draft, or a run (npm run reg:cases or a Test Studio portal run) needs reviewing before results are shared.
+description: Use when an Augastam or Miracle run (Registration REG-xxx, EMR, Miracle modules, npm run reg:cases, or any Test Studio portal run) has FAIL, ERROR or "FAIL (assumed requirement)" results, someone asks why a case failed, wants a bug report or post-mortem, or needs a run reviewed before sharing.
 ---
 
 # Triaging registration failures
 
-**Core principle:** every non-PASS row gets exactly one classification, backed by evidence you looked at. Only a reproduced failure against a *confirmed* rule is a product defect. Never make a run green by editing the test's expectation.
+**Core principle:** every non-PASS row gets one classification backed by inspected evidence. Only a reproduced failure against a *confirmed* rule is a product defect. Never turn a run green by editing expected results.
 
 ## Where the evidence is
 
 | Run type | Results | Evidence |
 |---|---|---|
-| `npm run reg:cases` | `qa/augastam/registration/results/latest-results.json` (`results[]`: `status`, `expected`, `actual`, `mismatches`, `registrationId`, `serverResponse`, `toasts`, `fieldErrors`, `values`, `resolvedInput`), `latest-summary.md` | `test-results/<case-dir>/` (`error-context.md`, `REG-xxx-*.png`, `trace.zip`), `npm run report` |
-| Interrupted run | `results/runs/<run-id>/results.jsonl` (`npm run reg:report` rebuilds latest) | same |
+| `npm run reg:cases` | `qa/augastam/registration/results/latest-results.json` (`status`, `expected`, `actual`, `mismatches`, `registrationId`, `serverResponse`, `toasts`, `fieldErrors`, `values`, `resolvedInput`), `qa/augastam/registration/results/latest-summary.md` | `test-results/<case-dir>/error-context.md`, `test-results/<case-dir>/REG-xxx-*.png`, `trace.zip`, `npm run report` |
+| Interrupted run | `qa/augastam/registration/results/runs/<run-id>/results.jsonl` (`npm run reg:report` rebuilds latest) | same |
 | Portal run | `.portal/runs/<run-id>/report/results.json`, `runner.log` | `.portal/runs/<run-id>/artifacts/` |
 
-Open the screenshot and `error-context.md` (page snapshot at failure) for every row you classify. Open the trace (`npx playwright show-trace <trace.zip>`) when the screenshot doesn't explain it.
+Open the failure screenshot and `<case-dir>/error-context.md` for every non-PASS row. Use `npx playwright show-trace <trace.zip>` when screenshots don't explain it.
 
 ## Process
 
-0. **Versions first (portal runs).** `get_run_failures` and `compare_runs` return `versionDifferences`: the run's recorded `appVersion` (typed label), login-profile hash and automation version (v1, v2, ...) against the previous run, plus a `HINT` line. A differing **automation version means check the changed files first** (the module Versions tab lists changed files per version; `list_automation_versions` lists the versions) before blaming the app; a differing app version or profile hash means the environment may have changed. Unknown values (older runs) are shown as unknown. These are hints, never verdicts: classify from the evidence below. See `working-with-versions-and-tree`.
-1. **Whole-run check first.** Same ERROR on most rows -> one environment cause; classify once, stop, tell the user. Don't rerun everything.
-2. **Per row:** read `mismatches` + `actual` + `serverResponse`, then the evidence. Classify with the table below.
-3. **Rerun once** each candidate defect or test defect, **with its prerequisites**: `$env:CASES='REG-001,REG-111'; npm run reg:cases` (or `npm run reg:failures` to pause headed on the failing screen). A different result -> **intermittent**: record both outcomes, no bug yet.
-4. **Act** per class (below).
-5. **Report** to the user as a table: `ID | status | class | evidence (path) | action taken / proposed`. Then list what needs their decision (expectation changes, assumed rules to confirm with BA).
+0. **Versions first (portal runs).** `get_run_failures` / `compare_runs` return `versionDifferences` (`appVersion`, login-profile hash, automation version `v1, v2...`) plus a `HINT`. New automation version -> check changed files first (`list_automation_versions` / Versions tab); new app/profile -> environment may have changed. Treat these as triage hints, not verdicts (`working-with-versions-and-tree` skill).
+1. **Whole-run check first.** Same ERROR across most rows -> one environment blocker; stop, classify once, report.
+2. **Per row:** read `mismatches`, `actual`, `serverResponse`, then evidence. Classify from the table below.
+3. **Rerun once** with prerequisites: `$env:CASES='REG-001,REG-111'; npm run reg:cases` (or `npm run reg:failures`). Different result -> **intermittent**.
+4. **Act** per class below.
+5. **Report** table: `ID | status | class | evidence (path) | action taken / proposed`, plus items needing BA/human approval.
 
 ## Classify
 
 | Signal | Class | Action |
 |---|---|---|
-| `net::ERR_CONNECTION_TIMED_OUT`, `ERR_NAME_NOT_RESOLVED`, 502/503/504, very slow `details/` or `autogenerate` | **Environment** | Check the site is reachable (`npx playwright test tests/smoke`). Report; rerun later. No bug. |
-| `Application session expired`, redirected to login, 401 | **Environment (session)** | Ask the user to run `npm run auth`. Never log in yourself. |
-| `npm run auth` fails with `Missing AUGASTAM_<X> in .env` (`tests/auth.setup.ts:16`) | **Environment (config)** | The user fills that key in `.env` (key names are in `.env.example`). Never read or edit `.env` yourself (denied in `.claude/settings.json`). |
-| `npm run auth` times out at a step (`loginStage` in `tests/auth.setup.ts`) | **Environment or test defect** | Open the setup's `error-context.md` and `test-failed-1.png` under `test-results/`. They exist only after a failed `npm run auth`. If the screenshot shows the logged-in workspace, the login worked and the step's locator is stale, so fix the step, not the credentials. A wrong password stops at `verify-password`/`Tenant dropdown`. |
-| `BLOCKED` with `NOT AUTOMATED - <reason>` (`tests/augastam/registration/case-runner.ts:239`) | **Not automated** | Not a failure, and no app check ran. The case has action `unavailable` (set by `qa/tools/connect-registration-workbook.mjs:69`). Automating it is new work (`automating-registration-workflows`), never a triage fix. |
-| `needs {{regId@REG-001}} but REG-001 did not produce it` / `needs the registration id from` | **Dependency** | Triage the prerequisite case; this row inherits its class. |
-| `expect(locator).toBeVisible() failed`, strict-mode violation, element not found, timeout on a click, but the screenshot shows the control in place | **Test defect** | Fix locator/wait in `registration.page.ts` / `workflow-runner.ts` (rules in `automating-registration-workflows`). Max **two** repair attempts, then report. Never weaken the assertion. |
-| Control genuinely missing/renamed in the screenshot, or `discovery.md` differs from `fields.ts` | **App change** | `npm run reg:discover`, compare, update `fields.ts`; report the UI change to the user (may also be a bug). |
-| `FAIL (assumed requirement)` | **Business rule review** | Not a bug. Write it as a question for BA: "Should X be rejected? Today it is saved (UHID ...)." Link the requirement id. |
-| `FAIL` against a rule in `rules.md` or config, reproduced on rerun | **Product defect** | Bug draft (below). |
-| `outcome: ... got "rejected-but-shown-as-success"`, toast `[object Object]` | **Product defect (known)** | Known FE 409 handling bug (rules.md, Save). Add the case to the existing draft, don't open a new one. |
-| Case input/expectation is wrong (typo, fixed phone now duplicate, wrong field key, stale `{{first}}` option) | **Case defect** | Propose the fix to the user. Expectation changes need approval; input/data fixes can be made and validated (`designing-registration-cases`). |
-| PASS on rerun, FAIL before | **Intermittent** | Record both; look for a missing wait. Bug only if it reproduces twice. |
+| `net::ERR_CONNECTION_TIMED_OUT`, `ERR_NAME_NOT_RESOLVED`, 502/503/504, very slow `<id>/details/` or `autogenerate` | **Environment** | Verify reachability (`npx playwright test tests/smoke`), report, rerun later. |
+| `Application session expired`, redirected to login, 401 | **Environment (session)** | Ask user to run `npm run auth`. Never log in yourself. |
+| `npm run auth` fails with `Missing AUGASTAM_<X> in .env` (`tests/auth.setup.ts:16`) | **Environment (config)** | User populates `.env` (keys in `.env.example`). Never read/edit `.env`. |
+| `npm run auth` times out at `loginStage` (`tests/auth.setup.ts`) | **Environment or test defect** | Check `test-results/<setup-dir>/error-context.md` and `test-failed-1.png`. Logged-in screen -> fix stale locator; stopped at `verify-password`/Tenant -> credentials/site issue. |
+| `BLOCKED` with `NOT AUTOMATED - <reason>` (`tests/augastam/registration/case-runner.ts:239`) | **Not automated** | Action `unavailable` (`qa/tools/connect-registration-workbook.mjs:69`); automating it is new work (`automating-registration-workflows`). |
+| `needs {{regId@REG-001}} but REG-001 did not produce it` | **Dependency** | Triage prerequisite case first; inherits its class. |
+| Element not found / timeout / strict violation while screenshot shows control in place | **Test defect** | Fix locator/wait in `tests/augastam/registration/registration.page.ts` or `tests/augastam/registration/workflow-runner.ts` (max 2 attempts). Never weaken assertions. |
+| Control missing/renamed in UI or `qa/augastam/registration/discovery/discovery.md` differs from `tests/augastam/registration/fields.ts` | **App change** | Run `npm run reg:discover`, compare, update `tests/augastam/registration/fields.ts`, report UI change. |
+| `FAIL (assumed requirement)` | **Business rule review** | Not a bug; formulate question for BA referencing requirement id. |
+| `FAIL` against confirmed rule in `qa/augastam/registration/rules.md` or config, reproduced | **Product defect** | Write or append to bug draft (below). |
+| `outcome: ... actual "rejected-but-shown-as-success"`, toast `[object Object]` | **Product defect (known)** | Known FE 409 bug (`qa/augastam/registration/rules.md`, Save); append to existing bug draft. |
+| Case input/data/expectation defect (typo, duplicate phone, wrong key) | **Case defect** | Fix valid data/input issues (`designing-registration-cases`); propose expectation changes to user. |
+| PASS on rerun after FAIL | **Intermittent** | Record both runs; look for missing wait; file bug only if reproduced twice. |
 
-## Bug drafts
+## Bug drafts & multi-module portal triage
 
-- **First check `qa/augastam/registration/bugs/`** for an existing draft with the same root cause (e.g. `REG-040.md` groups 5 date cases). Append the case and evidence there instead of opening a duplicate.
-- New draft: `qa/augastam/registration/bugs/<first-case-id>.md` from [bug-template.md](bug-template.md). Required: the run's recorded version (`run.appVersion` label and source, profile hash, automation version from `get_run_failures`; for a non-portal run, the version shown top-right in the app, labelled as read by hand), environment URL, case id(s), numbered steps a human can follow, expected (with source: rules.md line / config / requirement), actual, server response, created UHIDs, screenshot paths.
-- Root cause is a **hypothesis** with EMR file:line from `rules.md`. Label it that way. If no code reference is known, say "not investigated".
-- Severity is a proposal for the user, not a fact. Patient-safety / data-integrity issues (wrong patient, lost data, impossible DOB saved) rank above cosmetic ones.
-- Confirm stored data read-only when it matters (check field paths first with `node qa/tools/mongo-read.js schema PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent"}'`; needs `AUGASTAM_MONGO_URL` set by the user): `node qa/tools/mongo-read.js find PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent","properties.last_name":"UserOneHundredFortyFive"}' --limit 1`. PII stays masked; never paste unmasked real patient data into a draft.
+- **Other modules (`tests/<product>/<module>/`):** Use MCP tools `get_run_failures`, `compare_runs`, and `save_run_postmortem` to inspect failure clusters, version differences, and write post-mortems. Check `tests/<product>/<module>/<id>.page.ts` for dialog-first selector issues or missing `waitForResponse` signals while keeping `tests/<product>/<module>/case-runner.ts` mismatch assertions strict.
+- **Check `qa/augastam/registration/bugs/` first** for an existing draft sharing root cause (e.g. `qa/augastam/registration/bugs/REG-040.md`); append evidence instead of duplicating.
+- New draft: `qa/augastam/registration/bugs/<first-case-id>.md` using [bug-template.md](bug-template.md). Include: `run.appVersion` (source), profile hash, automation version (or UI version read by hand), environment URL, case id(s), numbered steps, expected (with rule/config source), actual, server response, created UHIDs, screenshot paths, hypothesized EMR `file:line` root cause, and proposed severity.
+- Verify stored record read-only when helpful (`node qa/tools/mongo-read.js schema PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent"}'`, then `find` with PII masked).
 
 ## Never
 
-- Skip, disable or delete a failing case; loosen `expected`; switch it to `observe`; or add `assumed: true` after the fact. Each needs the user's approval.
-- File a bug from a single unreproduced run, an environment error, or an assumed-rule failure.
-- Call a test defect fixed without rerunning it and seeing PASS for the right reason (assert still meaningful).
-- Retry the same broken locator a third time. Report what you tried.
+- Skip/disable/delete failing cases, weaken `expected`, switch to `observe`, or add `assumed: true` without user approval.
+- File bugs from one un-reproduced run, environment outage, or assumed-rule failure.
+- Retry a failing locator fix a third time.

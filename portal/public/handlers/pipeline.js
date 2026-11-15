@@ -2,7 +2,8 @@ import { api } from '../api.js';
 import { $ } from '../components/dom.js';
 import { toast } from '../components/widgets.js';
 import { runKey, startAgent } from '../pages/agent.js';
-import { afterRoute, paintReadiness, rdStore, refreshReadiness, retryAgent } from '../pages/pipeline.js';
+import { afterRoute, loadPipeline, noteReadiness, paintReadiness, rdStore, refreshReadiness, retryAgent } from '../pages/pipeline.js';
+import { bootUrl } from '../pages/workspace.js';
 import { renderPage } from '../router.js';
 import { currentModule, state } from '../state.js';
 
@@ -15,6 +16,32 @@ document.addEventListener('click', async event => {
     if (action === 'notice-dismiss') { state.notices = state.notices.filter(n => String(n.id) !== id); renderPage(); }
     if (action === 'agent-retry') await retryAgent(button.dataset.kind, id);
     if (action === 'agent-force') { const kind = button.dataset.kind; delete state.agentInfo[runKey(currentModule().id, kind)]; await startAgent(kind, true); }
+    if (action === 'automate-module') {
+      const mid = button.dataset.automateModule || currentModule()?.id; if (!mid) return;
+      button.disabled = true;
+      try {
+        const r = await api(`/api/modules/${encodeURIComponent(mid)}/automate`, 'POST', {});
+        if (r?.readiness) noteReadiness(mid, r.readiness);
+        await Promise.all([
+          api(bootUrl()).then(b => { state.data = b; }).catch(() => {}),
+          api(`/api/modules/${encodeURIComponent(mid)}/cases`).then(cs => { if (currentModule()?.id === mid) state.cases = cs; }).catch(() => {}),
+          loadPipeline(mid, state.route[2]).catch(() => {}),
+        ]);
+        renderPage();
+        toast(`Automated ${r.adapter ?? mid}: ${r.automatedCount ?? 0} of ${r.totalCases ?? 0} case(s) automated.`);
+      } finally { button.disabled = false; }
+    }
+    if (action === 'discover-module') {
+      const mid = button.dataset.discoverModule || currentModule()?.id; if (!mid) return;
+      button.disabled = true;
+      toast('Running live discovery in headless Chromium…');
+      try {
+        const r = await api(`/api/modules/${encodeURIComponent(mid)}/discover`, 'POST', {});
+        if (r?.readiness) noteReadiness(mid, r.readiness);
+        await refreshReadiness(mid).catch(() => {});
+        toast(`Live discovery finished: ${r.fieldCount ?? 0} field(s) captured across ${r.files?.length ?? 0} file(s).`);
+      } finally { button.disabled = false; }
+    }
     if (action === 'setup-suggest') {
       const sugg = state.insights?.suggestedSetup ?? {}, m = currentModule();
       const draft = state.setupDraft[m.id] = { ...state.setupDraft[m.id], moduleUrl: sugg.moduleUrl ?? '', variants: Array.isArray(sugg.variants) ? sugg.variants.join(', ') : sugg.variants ?? '' };

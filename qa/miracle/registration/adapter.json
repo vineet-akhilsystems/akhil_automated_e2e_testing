@@ -1,0 +1,171 @@
+{
+  "id": "miracle-registration",
+  "product": "miracle",
+  "name": "Registration - Playwright",
+  "spec": "tests/miracle/registration/cases.spec.ts",
+  "prefix": "MREG",
+  "actions": {
+    "fill": "Fill and inspect fields",
+    "save": "Fill fields and Save",
+    "update": "Update record",
+    "search": "Search records",
+    "workflow": "Run workflow steps"
+  },
+  "outcomes": [
+    "created",
+    "updated",
+    "blocked",
+    "field-state",
+    "found",
+    "not-found",
+    "no-errors",
+    "verified"
+  ],
+  "variants": [
+    "New Registration",
+    "New Born",
+    "Diagnostic Only",
+    "Staff",
+    "International",
+    "Staff Dependent"
+  ],
+  "fields": {
+    "gender": {
+      "label": "Gender",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "dob": {
+      "label": "DOB",
+      "kind": "date",
+      "card": "General",
+      "required": true
+    },
+    "mobile": {
+      "label": "Mobile",
+      "kind": "text",
+      "card": "General",
+      "required": true
+    },
+    "whatsapp_no": {
+      "label": "Whatsapp No",
+      "kind": "text",
+      "card": "General",
+      "required": true
+    },
+    "nationality": {
+      "label": "Nationality",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "identity_type": {
+      "label": "Identity Type",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "payer_type": {
+      "label": "Payer Type",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "payer": {
+      "label": "Payer",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "referral_type": {
+      "label": "Referral Type",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "delivery_type": {
+      "label": "Delivery Type",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "delivery_date": {
+      "label": "Delivery Date",
+      "kind": "date",
+      "card": "General",
+      "required": true
+    },
+    "weight_kg": {
+      "label": "Weight (Kg)",
+      "kind": "number",
+      "card": "General",
+      "required": true
+    },
+    "height_cm": {
+      "label": "Height (cm)",
+      "kind": "number",
+      "card": "General",
+      "required": true
+    },
+    "identity": {
+      "label": "Identity #",
+      "kind": "text",
+      "card": "General",
+      "required": true
+    },
+    "visa_no": {
+      "label": "Visa No",
+      "kind": "text",
+      "card": "General",
+      "required": true
+    },
+    "exp_date": {
+      "label": "Exp Date",
+      "kind": "date",
+      "card": "General",
+      "required": true
+    },
+    "emp": {
+      "label": "Emp#",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "relation": {
+      "label": "Relation",
+      "kind": "select",
+      "card": "General",
+      "required": true
+    },
+    "record_id": {
+      "label": "Record ID",
+      "kind": "text",
+      "card": "General"
+    },
+    "notes": {
+      "label": "Notes",
+      "kind": "textarea",
+      "card": "General"
+    },
+    "search": {
+      "label": "Search query",
+      "kind": "text",
+      "card": "Search"
+    }
+  },
+  "bases": {
+    "valid": {
+      "gender": "Agent Testing",
+      "dob": "2026-01-15",
+      "mobile": "9876543210",
+      "whatsapp_no": "Agent Testing",
+      "nationality": "Agent Testing",
+      "identity_type": "Agent Testing",
+      "payer_type": "Agent Testing",
+      "payer": "Agent Testing",
+      "referral_type": "Agent Testing",
+      "delivery_type": "Agent Testing"
+    }
+  }
+}

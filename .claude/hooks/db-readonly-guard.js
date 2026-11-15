@@ -5,14 +5,14 @@
 //   - mongosh / mongo / mongoimport / mongorestore / mongodump / mongoexport -> deny
 //   - inline connection strings (mongodb:// or mongodb+srv://)                -> deny
 //   - inline driver code with write methods (node -e / ts-node / python)      -> deny
-//   - any command touching .env / .env.* / login.txt / .auth/                  -> deny
+//   - any command touching .env / .env.* / login.txt / PORTAL_LOGIN.txt / .auth/ -> deny
 //   - qa/tools/mongo-read.js with a write-looking verb                        -> deny
 
 const SHELLS = /(^|[\s;&|(])(mongosh|mongo|mongoimport|mongorestore|mongodump|mongoexport|mongofiles)(\.exe)?(?=$|[\s;&|)])/i;
 const CONN_STRING = /mongodb(\+srv)?:\/\//i;
 const WRITE_METHODS = /\b(insert(One|Many)?|update(One|Many)?|replaceOne|delete(One|Many)?|remove|drop(Database|Indexes|Index)?|findOneAnd(Update|Replace|Delete)|bulkWrite|createIndex(es)?|createCollection|renameCollection)\b|\$(out|merge)\b/;
 const INLINE_CODE = /\b(node\s+(-e|--eval|-p)|ts-node|tsx\s+-e|python[\d.]*\s+-c|deno\s+eval)\b/i;
-const SECRET_FILES = /(^|[\s'"`/\\=<>|;(])(\.env(\.[\w.-]+)?|login\.txt|\.auth[/\\])(?=$|[\s'"`|;)>&/\\])/;
+const SECRET_FILES = /(^|[\s'"`/\\=<>|;(])(\.env(\.[\w.-]+)?|login\.txt|PORTAL_LOGIN\.txt|\.auth[/\\])(?=$|[\s'"`|;)>&/\\])/;
 const READ_TOOL = /qa[/\\]tools[/\\]mongo-read\.js\s+(\S+)/;
 const READ_VERBS = new Set(['dbs', 'collections', 'find', 'count', 'distinct', 'aggregate', 'sample', 'schema', 'help']);
 
@@ -33,7 +33,7 @@ process.stdin.on('end', () => {
   if (CONN_STRING.test(cmd)) deny('Do not put MongoDB connection strings on the command line. The read tool loads AUGASTAM_MONGO_URL from .env.');
   if (INLINE_CODE.test(cmd) && /mongo/i.test(cmd)) deny('Inline scripts that talk to MongoDB are blocked. Use qa/tools/mongo-read.js.');
   if (/mongo/i.test(cmd) && WRITE_METHODS.test(cmd)) deny('This command looks like a MongoDB write. The demo database is read-only for Claude.');
-  if (SECRET_FILES.test(cmd)) deny('.env, login.txt and .auth/ hold credentials or session tokens and are not read or printed through Claude.');
+  if (SECRET_FILES.test(cmd)) deny('.env, login.txt, PORTAL_LOGIN.txt and .auth/ hold credentials or session tokens and are not read or printed through Claude.');
 
   const tool = cmd.match(READ_TOOL);
   if (tool && !READ_VERBS.has(tool[1].replace(/['"]/g, ''))) {

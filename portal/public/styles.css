@@ -490,3 +490,5 @@ details.pack-section summary{cursor:pointer;display:flex;align-items:baseline;ga
 .tree-info code{overflow-wrap:anywhere}
 @media(max-width:560px){.tree-row{flex-wrap:wrap}.tree-label{flex-basis:100%}.tree-panel ul{padding-left:12px}.versions-table .version-note{min-width:150px}}
 .matrix-panel .panel-heading{flex-wrap:wrap;gap:10px}
+.readiness-panel .panel-heading .flex{flex-wrap:wrap}
+.agent-install{flex-wrap:wrap;margin-top:10px}

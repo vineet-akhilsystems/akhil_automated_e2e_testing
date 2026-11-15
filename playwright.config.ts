@@ -3,7 +3,8 @@ import fs from 'fs';
 import 'dotenv/config';
 import { moduleDir } from './tests/shared/module-paths';
 
-export const STORAGE_STATE = `${process.env.AUTH_DIR ?? '.auth'}/admin.json`;
+const STATE_FILE = process.env.PORTAL_PRODUCT_ID === 'miracle' ? 'miracle.json' : 'admin.json';
+export const STORAGE_STATE = `${process.env.AUTH_DIR ?? '.auth'}/${STATE_FILE}`;
 // Before the first `npm run auth` the file is missing; tests/fixtures/auth.ts then explains what to run.
 const storageState = fs.existsSync(STORAGE_STATE) ? STORAGE_STATE : undefined;
 

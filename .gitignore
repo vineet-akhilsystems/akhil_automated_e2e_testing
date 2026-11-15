@@ -29,3 +29,4 @@ akhil_automated_e2e_testing/
 tmp/
 qa/*/*/results/.*
 ~$*
+portal.sqlite*

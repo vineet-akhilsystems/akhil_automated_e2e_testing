@@ -1,4 +1,21 @@
+import fs from 'node:fs';
 import type { Page, TestInfo } from '@playwright/test';
+
+/** Reads the portal CASES_FILE snapshot for generated module specs. */
+export function readCasesSnapshot<T = unknown>(fallbackPath?: string): { bases: Record<string, Record<string, string>>; cases: T[] } {
+  const file = process.env.CASES_FILE || (fallbackPath && fs.existsSync(fallbackPath) ? fallbackPath : '');
+  if (!file || !fs.existsSync(file)) return { bases: {}, cases: [] };
+  const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  return { bases: parsed?.bases ?? {}, cases: Array.isArray(parsed?.cases) ? parsed.cases : [] };
+}
+
+/** Attaches structured result JSON and expected/actual annotations for PortalReporter. */
+export async function attachCaseResult(info: TestInfo, r: { id: string; status: string; expected: string; actual: string }): Promise<void> {
+  if (typeof info?.attach !== 'function') return;
+  await info.attach(`${r.id}-result.json`, { body: JSON.stringify(r, null, 2), contentType: 'application/json' });
+  info.annotations?.push?.({ type: 'expected', description: r.expected }, { type: 'actual', description: r.actual });
+  if (r.status === 'OBSERVED') info.annotations?.push?.({ type: 'observed', description: 'Recorded only; no requirement to compare against.' });
+}
 
 /** Capture business-stage evidence and attach it so every reporter can discover it. */
 export async function captureEvidence(page: Page, info: TestInfo, caseId: string, stage: string): Promise<void> {

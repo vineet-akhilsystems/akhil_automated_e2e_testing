@@ -4,7 +4,13 @@
     "allow": [
       "Bash(npx playwright test *)",
       "Bash(npm test *)",
-      "Bash(node qa/tools/mongo-read.js *)"
+      "Bash(node qa/tools/mongo-read.js *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run portal:check)",
+      "Bash(npm run impact*)",
+      "Bash(node .claude/skills/checking-module-isolation/check-module-isolation.mjs*)",
+      "Bash(node .claude/skills/auditing-project-skills/audit-skills.mjs*)",
+      "Bash(node .claude/skills/designing-registration-cases/validate-cases.mjs*)"
     ],
     "ask": [
       "Bash(npm run auth*)",
@@ -14,9 +20,11 @@
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./login.txt)",
+      "Read(./PORTAL_LOGIN.txt)",
       "Read(./.auth/**)",
       "Edit(./.env)",
       "Edit(./login.txt)",
+      "Edit(./PORTAL_LOGIN.txt)",
       "Edit(./.auth/**)",
       "Bash(mongosh *)",
       "Bash(mongo *)"

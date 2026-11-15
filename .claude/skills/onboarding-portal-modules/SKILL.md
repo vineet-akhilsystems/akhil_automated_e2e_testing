@@ -1,50 +1,50 @@
 ---
 name: onboarding-portal-modules
-description: Use when adding, scaffolding, or connecting browser automation for a new Augastam EMR module in Test Studio (such as Billing, Appointment, Facility Setup, User Setup, Admission, or OPD), creating a module adapter (adapter.json or a portal/modules plugin), or turning a manual portal module into an automated Playwright module.
+description: Use when adding, scaffolding, or connecting browser automation for a new Augastam EMR or Miracle module in Test Studio (such as EMR, Billing, Appointment, Facility Setup), synthesizing or installing a module adapter (qa/<product>/<module>/adapter.json or a portal/modules plugin), or hardening Playwright runners against false positives.
 ---
 
 # Onboarding portal modules
 
-**Layout:** every module has three folders named by the same resolver (`tests/shared/module-layout.mjs`): `qa/<product>/<folder>`, `tests/<product>/<folder>`, `portal/modules/<product>/<folder>`, where `<folder>` is the module id with a leading `<product>-` removed (`miracle-registration` -> `registration`). The adapter declares `id` and `product`; the registry rejects an adapter that is not in the resolver's folder. Never build these paths by hand; see `docs/superpowers/plans/2026-11-15-product-scoped-layout.md`.
+**Layout:** every module has three folders named by `tests/shared/module-layout.mjs`: `qa/<product>/<folder>`, `tests/<product>/<folder>`, `portal/modules/<product>/<folder>`, where `<folder>` is the module id with any leading `<product>-` removed (`miracle-registration` -> `registration`). Never build these paths by hand; see `docs/superpowers/plans/2026-11-15-product-scoped-layout.md`.
 
-**Core principle:** every automated module in Test Studio is driven by a declarative adapter (`qa/<product>/<module>/adapter.json` or a plugin in `portal/modules/<product>/<module>/`, loaded by `portal/registry.mjs`) paired with a read-only discovery spec, a Page Object, and a data-driven Playwright runner under `tests/<product>/<module>/`. Creating a module in the UI never claims automation exists until its adapter is registered and verified.
+**Core principle:** every automated module in Test Studio is driven by a declarative adapter (`qa/<product>/<module>/adapter.json` or a plugin under `portal/modules/<product>/<module>/`, loaded by `portal/registry.mjs`) paired with a Page Object, `tests/<product>/<module>/fields.ts`, and a truthful data-driven Playwright runner under `tests/<product>/<module>/` that must fail clearly when controls, buttons, or expected outcomes are missing.
 
 ## Quick reference
 
-| Artifact | Repo path | Purpose |
+| Artifact / Flow | Repo path | Purpose |
 |---|---|---|
-| Adapter registry | `portal/registry.mjs`, `portal/modules/` | Loads plugin adapters and `adapter.json` files; declares `fields`, `actions`, `outcomes`, `variants`, `spec`, and validation rules |
-| Coding agent runner | `portal/agent.mjs` | Generates draft cases (`<job>/output/insights.json`) and proposals (`<job>/output/automation/`) |
-| Reference discovery | `tests/augastam/registration/discovery.spec.ts` | Read-only walk capturing `.registration-card` / `.form-group` fields and `configuration-service` responses |
-| Reference field map | `tests/augastam/registration/fields.ts` | Maps field keys to `{ card, label, kind, column }` and `FILL_ORDER` |
-| Reference page object | `tests/augastam/registration/registration.page.ts` | Encapsulates locators, React-Select menus, network waits, and `assertAgentRecord()` |
-| Reference runners | `tests/augastam/registration/cases.spec.ts`, `tests/augastam/registration/case-runner.ts` | Reads `CASES_FILE`, runs actions, captures stage screenshots, attaches `<id>-result.json` |
-| Generic discovery (read-only) | `tests/discovery/module-discovery.spec.ts`, `npm run module:discover` | Needs `MODULE_PRODUCT` (e.g. `augastam`), `MODULE_ID`, `MODULE_URL` (optional `MODULE_VARIANTS`); writes `qa/<product>/<module>/discovery/`; aborts mutating requests |
-| Field scaffold | `npm run module:scaffold -- <module> --product <product>` (`qa/tools/scaffold-module-fields.mjs`) | Builds `tests/<product>/<module>/fields.ts` from `discovery/fields-*.json`; won't overwrite without `--force` |
-| Proposal installer | `node qa/tools/install-module-adapter.mjs --module <module> --product <product> --job <jobId> --dry-run` (or `--from <dir>`) | Copies a reviewed coding-agent proposal to `tests/<product>/<module>/` + `qa/<product>/<module>/adapter.json`, scans for secrets/imports, runs `tsc` + `portal:check`; refuses `registration` |
-| Portal checks | `npm run portal:check`, `npm run portal:test` | Verifies syntax, SQLite migrations, registry validation, and runner contracts |
-| Separation check | `node .claude/skills/checking-module-isolation/check-module-isolation.mjs` | Fails if the module refers to another module or shared code gains a module reference |
+| Adapter synthesizer | `portal/automate.mjs` | `automateModule`, `synthesizeAdapterProposal`, `convertCaseToAutomated`, `runModuleDiscovery` (invoked by `POST /api/modules/:id/automate` and `POST /api/agent/jobs/:jid/install`) |
+| Adapter registry | `portal/registry.mjs`, `portal/modules/` | Loads plugins and `qa/<product>/<module>/adapter.json` manifests |
+| Reference module | `tests/augastam/registration/` | Custom-tuned reference (`tests/augastam/registration/registration.page.ts`, `tests/augastam/registration/fields.ts`, `tests/augastam/registration/case-runner.ts`, `tests/augastam/registration/cases.spec.ts`, `tests/augastam/registration/discovery.spec.ts`) |
+| Generic discovery | `tests/discovery/module-discovery.spec.ts` | `npm run module:discover` (`MODULE_PRODUCT`, `MODULE_ID`, `MODULE_URL`); writes `qa/<product>/<module>/discovery/` read-only |
+| Field scaffold | `qa/tools/scaffold-module-fields.mjs` | `npm run module:scaffold -- <module> --product <product>` builds `tests/<product>/<module>/fields.ts` from discovery |
+| Proposal installer | `qa/tools/install-module-adapter.mjs` | `npm run module:adapter:install -- --module <module> --product <product> --job <jobId>` scans code via `scanCode`, installs files, runs checks |
+| Portal checks | `npm run portal:check`, `npm run portal:test` | Verifies TypeScript/syntax, SQLite migrations, registry validation, and runner contracts |
+| Isolation check | `node .claude/skills/checking-module-isolation/check-module-isolation.mjs` | Ensures module and product separation |
 
-See [module-adapter-template.md](module-adapter-template.md) for boilerplate code templates.
+See [module-adapter-template.md](module-adapter-template.md) for templates and `scanCode` / truthfulness invariants.
 
-## Procedure
+## Two-tier onboarding workflow
 
-1. **Create and inspect module intake.** Add the module in Test Studio (`npm run portal`) or inspect its uploaded requirements/workbooks via `analyzing-module-intake`. Place module metadata and rules in `qa/<product>/<module>/rules.md` and `qa/<product>/<module>/cases/<module>-cases.json`.
-2. **Run read-only live discovery** with the generic spec. Don't copy Registration's. The session must be valid first (the user runs `npm run auth`). In PowerShell: `$env:MODULE_PRODUCT='<product>'; $env:MODULE_ID='<module>'; $env:MODULE_URL='/<path>'; npm run module:discover`. It writes `fields-*.json`, `layout-*.json`, `config/` and `discovery.md` to `qa/<product>/<module>/discovery/` and never saves.
-3. **Define fields and Page Object.** Run `npm run module:scaffold -- <module> --product <product>` to generate `tests/<product>/<module>/fields.ts`, then review it (`card`, `label` without `*`, `kind`, `column`, and `FILL_ORDER` for cascading dropdowns). Implement `tests/<product>/<module>/<module>.page.ts` using `tests/fixtures/auth.ts` for `sessionStorage` auth and `tests/fixtures/evidence.ts` for screenshots. Copy patterns from `tests/augastam/registration/`, but never import from it.
-4. **Implement the data-driven spec.** Create `tests/<product>/<module>/case-runner.ts` and `tests/<product>/<module>/cases.spec.ts`, or install a reviewed coding-agent proposal with `install-module-adapter.mjs --product <product>` (`--dry-run` first). Honor `CASES_FILE`, `CASES`, `PORTAL_RUN_DIR`, and `AUTH_DIR`. Use `moduleDir('qa', '<product>', '<module>')` (product and id are both required, `tests/shared/module-paths.ts:8`). For a command-line preflight, add `tests/<product>/<module>/session.spec.ts` that opens the module page, like Registration's. Keep `tests/smoke/session.spec.ts` module-neutral. Emit `<case-id>-result.json` with `{ id, title, status, expected, actual, mismatches, durationMs }`. Cases with no implementation use action `unavailable` / outcome `automation-blocked`, so runs report BLOCKED and never PASS.
-5. **Connect the adapter.** No custom logic: write `qa/<product>/<module>/adapter.json` (loaded by `portal/registry.mjs`) and associate the module record with `adapter: '<module>'`. Its `spec` must be `tests/<product>/<module>/<file>.spec.ts` (`portal/registry.mjs:46`). The portal runs that spec directly (`portal/queue.mjs:185`), so no `run-<module>-e2e.mjs` is needed. Custom logic (own validation, seed, AI data): add a plugin under `portal/modules/<product>/<module>/` registered via `registerPlugin` (see `portal/modules/contract.mjs` and `portal/modules/augastam/registration/index.mjs`). Add one import line for `portal/modules/<product>/<module>/index.mjs` in `portal/registry.mjs` (`README.md`, "Adding a module"), plus one in `portal/store.mjs` if it has a `seed` hook (comment at `portal/store.mjs:6`).
-6. **Verify end-to-end.** Run `npx tsc --noEmit`, `npm run portal:check`, `npm run portal:test`, and one controlled smoke case before enabling full suites.
-7. **Check separation.** Run `node .claude/skills/checking-module-isolation/check-module-isolation.mjs` and fix every ERROR/NEW (see the `checking-module-isolation` skill).
+### Tier 1: Zero-manual synthesized adapter (`portal/automate.mjs`)
+For any non-built-in module with uploaded walkthrough videos, specs, or draft cases:
+1. Run intake extraction + insights analysis (`analyzing-module-intake` skill) so insights (`fields`, `flows`, `rules`) and draft/approved cases exist in the store.
+2. Run **Automate** (`POST /api/modules/:id/automate` or `automateModule({ module, store })`):
+   - Synthesizes `tests/<product>/<module>/fields.ts`, `tests/<product>/<module>/<id>.page.ts`, `tests/<product>/<module>/case-runner.ts`, `tests/<product>/<module>/cases.spec.ts`, `tests/<product>/<module>/NOTES.md`, and `qa/<product>/<module>/adapter.json` (plus `qa/<product>/<module>/discovery.json` if `setup.discoveryUrl` is reachable).
+   - Validates every generated file with `scanCode` (`qa/tools/install-module-adapter.mjs`) and converts existing cases (`reconvert: true`) via `convertCaseToAutomated` using action/step hints and insights fields without injecting unrelated fields.
+3. Run the generated `tests/<product>/<module>/cases.spec.ts` against the target environment (or local simulator when staging is unreachable) and verify both **PASS on real controls** and **FAIL on a blank/broken screen**.
 
-## Common mistakes
+### Tier 2: Custom refinement & live DOM discovery
+When live staging differs from walkthrough labels or needs custom response assertions:
+1. Run read-only discovery (`$env:MODULE_PRODUCT='<product>'; $env:MODULE_ID='<module>'; $env:MODULE_URL='/<path>'; npm run module:discover`) once the user refreshes auth via `npm run auth`.
+2. Scaffold/update `tests/<product>/<module>/fields.ts` (`{ card, label, kind, column }` without `*`, plus `FILL_ORDER`), then refine `tests/<product>/<module>/<id>.page.ts` / `tests/<product>/<module>/case-runner.ts` using `tests/fixtures/auth.ts` and `tests/fixtures/evidence.ts`. Copy patterns from `tests/augastam/registration/` — never import from it.
+3. Register custom plugin hooks (validation, seed, AI generators) only if needed under `portal/modules/<product>/<module>/index.mjs` (import once in `portal/registry.mjs` and `portal/store.mjs` if seeded).
+4. Verify with `npx tsc --noEmit`, `npm run portal:check`, `npm run portal:test`, and `node .claude/skills/checking-module-isolation/check-module-isolation.mjs`.
 
-| Mistake | Fix |
-|---|---|
-| Locating inputs by `#id` or `name="sabyaDate"` | Locate by card title + visible label (`filter({ visible: true })`); IDs repeat across webparts |
-| Using `page.waitForTimeout()` for cascades | Wait on `waitForResponse` or `expect.poll()` for derived values |
-| Judging Save by toast text alone | Inspect the backend POST response body (`statusCode: 409\|500` can return inside HTTP 200) |
-| Allowing user-editable shell commands | Keep spec paths locked in the adapter (`adapters[module.adapter].spec`, served by `portal/registry.mjs`) |
-| Creating unprefixed test records on shared environments | Always prefix synthetic records with `Agent Testing` and guard updates with `assertAgentRecord()` |
-| Importing Registration helpers into the new module, or adding `if (id === '<module>')` to shared `portal/*.mjs` | Copy the pattern; put module behavior in the adapter or plugin hooks; run the separation check |
-| Renaming `registrationType` to a module-specific key | It is the generic variant key for every module (`README.md:104`) |
+## Truthful runner & `scanCode` rules
+
+- **Dialog-first control resolution:** Open modals (`[role="dialog"]:not(.hidden)`) must take priority over background controls. Never write `.locator('A, B').first()` expecting priority — Playwright matches comma selectors in DOM order. Iterate `['[role="dialog"]:not(.hidden) ...', 'section.active ...', '...']` sequentially.
+- **No silent false positives:** `tests/<product>/<module>/case-runner.ts` MUST record FAIL (`mismatches`) when any explicit `c.input` field control is not found (`Field control "<key>" was not found on the page.`), when a `save` action cannot find/click Save/Submit, when a `workflow` performs/verifies 0 steps, or when unexpected validation errors appear on `created`/`updated`.
+- **Unimplemented cases stay blocked:** Mark unimplemented flows with action `unavailable` / outcome `automation-blocked` so runs report `BLOCKED`, never `PASS`.
+- **`scanCode` compliance (`qa/tools/install-module-adapter.mjs`):** Synthesized and installed TypeScript files must never contain `\b(axios|got)\b` (even inside error strings — write `actual` or `found`), `.auth`/`.env`/`.portal`, `eval`/`Function`, `fs` write APIs, or string concatenation inside `goto()`/`fetch()`.
+- **Shared invariants:** Keep `registrationType` as the generic variant key, use `moduleDir('qa' | 'tests', '<product>', '<module>')` (`tests/shared/module-paths.ts`), prefix created records with `Agent Testing`, and guard updates with `assertAgentRecord()`.

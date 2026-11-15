@@ -450,6 +450,32 @@
         "node --test portal/test/layout-guard.test.mjs portal/test/product-layout.test.mjs",
         "node .claude/skills/checking-module-isolation/check-module-isolation.mjs"
       ]
+    },
+    {
+      "id": "automation-synthesis",
+      "title": "Synthesizing and installing module Playwright adapters shares truthful runner and scanCode rules",
+      "when": [
+        "portal/automate.mjs",
+        "qa/tools/install-module-adapter.mjs"
+      ],
+      "alsoCheck": [
+        {
+          "path": "portal/test/automate-pipeline.test.mjs",
+          "why": "tests synthesizeAdapterProposal, convertCaseToAutomated, automateModule and scanCode safety checks"
+        },
+        {
+          "path": ".claude/skills/onboarding-portal-modules/SKILL.md",
+          "why": "documents the two-tier onboarding flow, dialog-first locators, truthful failure rules and scanCode bans"
+        },
+        {
+          "path": ".claude/skills/checking-module-isolation/check-module-isolation.mjs",
+          "why": "ensures synthesized adapters and portal/automate.mjs stay module-neutral"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/automate-pipeline.test.mjs",
+        "node .claude/skills/checking-module-isolation/check-module-isolation.mjs"
+      ]
     }
   ]
 }

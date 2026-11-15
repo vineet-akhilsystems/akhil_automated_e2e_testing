@@ -6,7 +6,7 @@
 - Miracle HIS is a web hospital information system from Akhil Systems. Public pages list OPD, IPD with ward and CPOE, pharmacy, laboratory (LIS), radiology (RIS), inventory, billing, finance and accounts, appointments, admission/transfer/discharge, and reports. Billing is said to include package billing, insurance billing, CGHS/ECHS billing and external referral handling. "Miracle on Cloud" is the hosted version, and invoices, lab reports and appointments can be sent by WhatsApp. **Public.**
 - The UAT billing site (uatbilling.miracleoncloud.com) is a classic ASP.NET Web Forms page with Telerik RadComboBox dropdowns. **Confirmed** (tests/auth.miracle.setup.ts).
 - Sign-in takes a user id and password, then Facility, Group (for example ADMINISTRATION) and Entry site (for example Cardiology). The dropdowns fill in for that user after the password field loses focus. **Confirmed.**
-- Today Test Studio automates only the Miracle login. Discovery, automation and smoke runs are blocked for this product, so these notes serve manual cases and a future automation. **Confirmed** (docs/MODULE_PIPELINE.md).
+- Today Test Studio automates Miracle login and synthesized adapter modules (`portal/automate.mjs`); live discovery and staging runs still require VPN/environment credentials, and billing business rules remain unconfirmed. **Confirmed** (docs/MODULE_PIPELINE.md).
 
 ## Money must be exactly right (Practice; confirm each rule)
 - **Charges.** A rate per service, depending on payer class, bed or ward type, and time (day, night, emergency). Rates have effective dates; an old bill must keep the rate it was made with.

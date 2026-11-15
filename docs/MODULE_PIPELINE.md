@@ -10,8 +10,8 @@ For BAs and module leads. Every module page shows a Readiness checklist; this ex
 | Insights | An analysis exists that covers every current source | Coding agent (Claude Code / Codex) or the assistant |
 | Reviewed cases | At least one approved case | A tester approves drafts (a different person than the author) |
 | Target setup | Module URL path, variants and login profile are saved and confirmed | A lead (needs module settings permission) |
-| Discovery | `qa/<product>/<module>/discovery/fields-default.json` exists and is newer than the target setup | Read-only scan of the live page (run by a developer for now) |
-| Automation package | The agent's proposal was reviewed and installed by a developer, and the adapter is connected | Agent proposes, developer installs |
+| Discovery | `qa/<product>/<module>/discovery/fields-default.json` exists and is newer than the target setup (optional when adapter is synthesized from walkthrough videos) | Read-only scan of the live page (or synthesized by `portal/automate.mjs`) |
+| Automation package | The adapter was synthesized (`POST /api/modules/:id/automate`) or installed from a coding-agent proposal (`POST /api/modules/:id/agent/jobs/:jid/install`) | Portal / developer |
 | Smoke run | One automated case of the module has passed on a login profile of its product | Run queue |
 
 Statuses: `missing`, `running`, `ready`, `stale`, `failed`, `blocked`.
@@ -20,7 +20,8 @@ Statuses: `missing`, `running`, `ready`, `stale`, `failed`, `blocked`.
 - **Generate test cases with AI** needs Sources ready, Insights present and the Automation package connected. Otherwise the portal answers 409 with the full checklist. Stale insights only show a warning.
 - **Generate automation proposal** needs Sources, Insights, at least one approved case, a confirmed Target setup and Discovery.
 - Manual case writing, uploading files and "Analyse with agent" are never blocked.
-- Products whose application login is not automated yet (Miracle today) show Discovery, Automation and Smoke as `blocked`. Manual testing, intake, insights and review still work.
+- Products whose application login is not yet configured or reachable on a profile can still upload sources, extract video keyframes, generate insights/cases, and synthesize an adapter (`portal/automate.mjs`); live Playwright execution requires reachable environment credentials.
+- Both Augastam and Miracle products support adapter synthesis and `POST /api/modules/:id/automate`.
 - Registration is the reference module and is never locked out: its stages report ready.
 
 ## Uploads are remembered

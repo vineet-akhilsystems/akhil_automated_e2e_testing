@@ -2,10 +2,12 @@ import { api } from '../api.js';
 import { closeDialog, dialogError } from '../components/dialogs.js';
 import { $ } from '../components/dom.js';
 import { toast } from '../components/widgets.js';
-import { agentStore, openAgentJob, paintAgent, runKey, showAgentFile, showAgentInsights, startAgent } from '../pages/agent.js';
+import { agentStore, loadAgent, openAgentJob, paintAgent, runKey, showAgentFile, showAgentInsights, startAgent } from '../pages/agent.js';
 import { addFiles, refreshIntake, runUploads, startAnalysis } from '../pages/intake.js';
+import { noteReadiness, refreshReadiness } from '../pages/pipeline.js';
 import { reviewCases, showRejectDialog } from '../pages/review.js';
 import { patchUser, showChangePasswordDialog, showUserDialog, showUserPasswordDialog, userById } from '../pages/users.js';
+import { bootUrl } from '../pages/workspace.js';
 import { renderPage, renderRoute } from '../router.js';
 import { currentModule, drafts, state } from '../state.js';
 
@@ -34,6 +36,22 @@ document.addEventListener('click', async event => {
     if (action === 'agent-view') await openAgentJob(currentModule().id, button.dataset.kind, id);
     if (action === 'agent-file') await showAgentFile(button.dataset.kind, button.dataset.path);
     if (action === 'agent-insights') await showAgentInsights();
+    if (action === 'agent-install') {
+      const m = currentModule(), jid = button.dataset.agentInstall; if (!m || !jid) return;
+      button.disabled = true;
+      try {
+        const r = await api(`/api/modules/${encodeURIComponent(m.id)}/agent/jobs/${encodeURIComponent(jid)}/install`, 'POST', {});
+        if (r?.readiness) noteReadiness(m.id, r.readiness);
+        await Promise.all([
+          api(bootUrl()).then(b => { state.data = b; }).catch(() => {}),
+          api(`/api/modules/${encodeURIComponent(m.id)}/cases`).then(cs => { if (currentModule()?.id === m.id) state.cases = cs; }).catch(() => {}),
+          loadAgent(m.id).catch(() => {}),
+          refreshReadiness(m.id).catch(() => {}),
+        ]);
+        renderPage();
+        toast(`Installed ${r.adapter ?? m.id}: converted ${r.convertedCases ?? 0} case(s) to automated.`);
+      } finally { button.disabled = false; }
+    }
     if (action === 'review-filter') { state.reviewFilter = value; renderPage(); }
     if (action === 'review-clear') { state.reviewSel.clear(); renderPage(); }
     if (action === 'review-approve') await reviewCases([id], 'approved');

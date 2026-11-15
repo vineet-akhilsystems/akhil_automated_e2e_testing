@@ -52,8 +52,8 @@ export function cleanVariants(value) {
 export function readiness({ module, product, sources = [], insights = null, cases = [], setup = null, discoveryExists = false, discoveryStale = false, discoveryEmpty = false, adapterConnected = false, specExists = false, smokePassed = false, jobs = [] }) {
   const reference = typeof module?.id === 'string' && pluginFor(module.id)?.builtIn === true; // the built-in reference module is never locked out
   const productId = product?.id ?? module?.productId ?? 'augastam';
-  // Discovery, adapters and runners exist only for Augastam's web app; other products may still have a working login (Miracle).
-  const loginBuilt = productId === 'augastam';
+  // Discovery, adapters and runners exist for Augastam's web app, or any module once its adapter & spec are installed.
+  const loginBuilt = productId === 'augastam' || Boolean(adapterConnected && specExists);
   const blockedReason = loginSchema(productId) ? NO_RUNNER : NO_LOGIN_AUTOMATION;
   const sortedJobs = [...jobs].sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
   const running = kind => sortedJobs.find(j => j.kind === kind && j.status === 'running');

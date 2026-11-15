@@ -209,7 +209,8 @@ export async function install(argv, { root = ROOT, run = defaultRun, log = conso
   if (!ID_RE.test(product)) fail('--product must be a product id such as augastam.');
   let testsRel; try { testsRel = resolveModuleFolder(root, 'tests', product, id); } catch (e) { fail(`--product "${product}" cannot be used: ${e.message}`); }
   if (id === 'registration') fail('The Registration module is built in and cannot be installed or overwritten by this tool (not even with --force).');
-  if (!o.force && (Object.hasOwn(adapters, id) || fs.existsSync(path.join(root, ...testsRel.split('/'))))) fail(`Module "${id}" already has an automation adapter or a ${testsRel} folder. Refusing to overwrite it (use --force only after reviewing, never for registration).`);
+  const activeAdapters = root === ROOT ? adapters : loadModuleAdapters({ root, warn: () => {} });
+  if (!o.force && (Object.hasOwn(activeAdapters, id) || fs.existsSync(path.join(root, ...testsRel.split('/'))))) fail(`Module "${id}" already has an automation adapter or a ${testsRel} folder. Refusing to overwrite it (use --force only after reviewing, never for registration).`);
   let source;
   if (o.job) {
     if (!JOB_RE.test(o.job)) fail('--job has an invalid format.');

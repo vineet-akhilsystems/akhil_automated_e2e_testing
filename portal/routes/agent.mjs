@@ -1,11 +1,13 @@
-import { check } from '../registry.mjs';
-import { HttpError } from '../registry.mjs';
+import { check, HttpError, adapters, reloadAdapters } from '../registry.mjs';
 import { readJson } from '../http/body.mjs';
 import { json } from '../http/respond.mjs';
+import { install, InstallError } from '../../qa/tools/install-module-adapter.mjs';
+import { convertCaseToAutomated } from '../automate.mjs';
 
 export default async function handle(ctx, rc) {
   const { req, res, url, user, acc, route } = rc;
   const { agent, store } = ctx;
+  const { authorize } = ctx.access;
   const { inModule } = ctx.membership;
   const { getModule, readinessFor, gateError } = ctx.helpers;
   if (route.startsWith('/api/')) {
@@ -27,7 +29,7 @@ export default async function handle(ctx, rc) {
           }
           throw new HttpError(405, 'Method not allowed.');
         }
-        const agentMatch =/^\/api\/modules\/([\w-]+)\/agent\/jobs(?:\/([\w-]+)(?:\/(cancel|files|retry))?)?$/.exec(route);
+        const agentMatch = /^\/api\/modules\/([\w-]+)\/agent\/jobs(?:\/([\w-]+)(?:\/(cancel|files|retry|install))?)?$/.exec(route);
         if (agentMatch) {
           const [, mid, jid, sub] = agentMatch, module = getModule(mid);
           // An automation proposal without sources, insights, an approved case, a confirmed setup and discovery would be guesswork.
@@ -53,6 +55,49 @@ export default async function handle(ctx, rc) {
           if (jid && !sub && req.method === 'GET') return json(res, 200, agent.get(mid, jid));
           if (jid && sub === 'cancel' && req.method === 'POST') { agent.cancel(mid, jid); inModule(user, 'agent.cancel', mid, { jobId: jid }); return json(res, 200, { ok: true }); }
           if (jid && sub === 'files' && req.method === 'GET') return json(res, 200, agent.file(mid, jid, url.searchParams.get('path') ?? ''));
+          if (jid && sub === 'install' && req.method === 'POST') {
+            authorize(user, 'module.settings', { module }, acc);
+            await readJson(req);
+            const job = agent.get(mid, jid);
+            check(job.status === 'done', 'Only a finished AI job can be installed.', 409);
+            check(job.kind === 'automation', 'Only an automation proposal job can be installed.', 400);
+            const productId = module.productId ?? 'augastam';
+            let installed;
+            try {
+              installed = await install(
+                ['--module', mid, '--product', productId, '--job', jid, '--data-dir', ctx.dataDir, '--yes', '--force'],
+                { root: ctx.layoutRoot, run: () => ({ code: 0, output: '' }), log: () => {} },
+              );
+            } catch (e) {
+              if (e instanceof InstallError) throw new HttpError(400, e.message);
+              throw e;
+            }
+            reloadAdapters({ root: ctx.layoutRoot, warn: () => {} });
+            const validated = adapters[mid];
+            check(validated, `Adapter "${mid}" did not register after installation.`, 500);
+            const existing = store.cases(mid);
+            const nextModule = {
+              ...module,
+              adapter: mid,
+              config: {
+                ...module.config,
+                bases: { ...(module.config?.bases ?? {}), ...(validated.bases ?? {}) },
+                requirements: module.config?.requirements ?? [],
+              },
+            };
+            let convertedCases = 0;
+            const savedModule = store.transaction(() => {
+              const savedMod = store.saveModule(nextModule, module.version);
+              for (const c of existing) {
+                const converted = convertCaseToAutomated(c, savedMod, validated);
+                store.saveCase(mid, converted, c.version);
+                if (c.mode !== 'automated') convertedCases++;
+              }
+              return savedMod;
+            });
+            inModule(user, 'agent.install', mid, { jobId: jid, adapter: mid, convertedCases });
+            return json(res, 200, { ok: true, adapter: mid, files: installed.files, convertedCases, readiness: readinessFor(savedModule) });
+          }
           throw new HttpError(404, 'API route not found.');
         }
   }
