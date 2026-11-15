@@ -26,14 +26,14 @@ test('no product resolves to the old flat folders, whether or not they exist on 
   }
 });
 
-test('registry rejects qa/modules/foo/adapter.json declaring product miracle (the flat folder is not a module folder)', t => {
+test('registry ignores a leftover qa/modules/foo/adapter.json, whatever product it declares (the flat folder is not a product)', t => {
   const root = tempRoot(t);
   const adapter = { id: 'foo', product: 'miracle', name: 'Foo', spec: 'tests/modules/foo/cases.spec.ts', actions: { fill: 'Fill' }, outcomes: ['created'], variants: [], fields: { a: { label: 'A', kind: 'text' } } };
   put(root, 'qa/modules/foo/adapter.json', JSON.stringify(adapter));
   put(root, 'tests/modules/foo/cases.spec.ts', '// spec\n');
   const warnings = [], loaded = loadModuleAdapters({ root, warn: m => warnings.push(m) });
   assert.deepEqual(loaded, {});
-  assert.equal(warnings.length, 1); assert.match(warnings[0], /belongs in "qa\/miracle\/foo"/);
+  assert.deepEqual(warnings, [], "a leftover qa/modules folder is not scanned as a product");
 });
 
 test('automationFiles never hashes the old flat folders, for any product', t => {
