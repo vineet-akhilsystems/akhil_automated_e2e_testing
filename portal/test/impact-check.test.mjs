@@ -231,3 +231,24 @@ test('the shipped map validates against the real file list', () => {
   assert.deepEqual(validateMap({ map: shipped, exists, scripts }), []);
   assert.ok(shipped.rules.length > 0);
 });
+
+test('generated outputs under qa/modules/*/results are ignored and never trigger rules', () => {
+  const gen = 'qa/modules/registration/results/automation-inputs/x.json';
+  assert.equal(isIgnoredPath(gen), true);
+  assert.equal(isIgnoredPath('qa/modules/registration/tree.json'), false);
+  assert.equal(isIgnoredPath('qa/modules/registration/cases/results.json'), false);
+  const m = { rules: [{ id: 'q', title: 'q', when: ['qa/**'], alsoCheck: [{ path: 'README.md', why: 'docs' }], verify: [] }] };
+  const only = checkImpact({ changed: [gen], map: m });
+  assert.deepEqual(only.rules, []);
+  assert.deepEqual(only.changed, []);
+  const mixed = checkImpact({ changed: [gen, 'qa/modules/registration/tree.json'], map: m });
+  assert.deepEqual(mixed.rules[0].changed, ['qa/modules/registration/tree.json']);
+});
+
+test('the shipped map has a module-tree rule covering the tree sources', () => {
+  const shipped = JSON.parse(fs.readFileSync(new URL('../../qa/impact-map.json', import.meta.url), 'utf8'));
+  const r = checkImpact({ changed: ['portal/tree.mjs'], map: shipped }).rules.find(x => x.id === 'module-tree');
+  assert.ok(r);
+  for (const f of ['portal/agent.mjs', 'portal/insights.mjs', 'qa/modules/registration/tree.json']) assert.ok(checkImpact({ changed: [f], map: shipped }).rules.some(x => x.id === 'module-tree'), f);
+  assert.deepEqual(r.targets.map(t => t.target).sort(), ['.claude/skills/working-with-versions-and-tree/SKILL.md', 'README.md', 'portal/test/senior-tester.test.mjs', 'portal/test/versions.test.mjs']);
+});

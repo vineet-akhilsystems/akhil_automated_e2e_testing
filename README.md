@@ -142,7 +142,7 @@ Default exit criteria, applied in this order: **Do not release** when any open f
 
 ## Change-impact check
 
-`npm run impact` reads your changed files (working tree by default; `-- --staged` or `-- --range A..B` to choose) and, using `qa/impact-map.json`, prints "You changed X -> also check Y (why)", marks each target "changed too" or "NOT in this change", and lists commands to verify. `--strict` exits 1 when a target is missing, `--json` gives machine output, and `--validate` fails when a map path no longer matches anything. Rules marked `severity: "advisory"` (for example audit-actions, which fires on any route change) are shown but never counted by `--strict`. The map is a safety net for known couplings, not a replacement for tests. Credential and saved-session files are never read and never listed. See `.claude/skills/checking-change-impact/SKILL.md`.
+`npm run impact` reads your changed files (working tree by default; `-- --staged` or `-- --range A..B` to choose) and, using `qa/impact-map.json`, prints "You changed X -> also check Y (why)", marks each target "changed too" or "NOT in this change", and lists commands to verify. `--strict` exits 1 when a target is missing, `--json` gives machine output, and `--validate` fails when a map path no longer matches anything. Rules marked `severity: "advisory"` (for example audit-actions, which fires on any route change) are shown but never counted by `--strict`. The map is a safety net for known couplings, not a replacement for tests. Credential and saved-session files are never read and never listed, and generated outputs under `qa/modules/*/results/` never trigger rules. See `.claude/skills/checking-change-impact/SKILL.md`.
 
 ## Versions
 

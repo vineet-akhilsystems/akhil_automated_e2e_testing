@@ -18,12 +18,17 @@ export class UsageError extends Error {}
 
 export const norm = p => String(p).replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/');
 
-/** True for credential or session paths. Every path segment is tested, so a folder with such a name is dropped too. */
+// Generated outputs: never trigger rules and are never listed.
+export const GENERATED_GLOBS = ['qa/modules/*/results/**'];
+
+/** True for credential or session paths (every path segment is tested, so a folder with such a name is dropped too) and for generated outputs. */
 export function isIgnoredPath(p) {
-  return norm(p).split('/').filter(Boolean).some(seg => {
+  const n = norm(p);
+  if (n.split('/').filter(Boolean).some(seg => {
     const s = seg.toLowerCase();
     return s === SESSION_DIR || s.startsWith(ENV_PREFIX) || SECRET_FILES.has(s);
-  });
+  })) return true;
+  return GENERATED_GLOBS.some(g => matchGlob(g, n));
 }
 
 const escapeRe = c => c.replace(/[.+^$()|[\]\\{}*?]/g, '\\$&');

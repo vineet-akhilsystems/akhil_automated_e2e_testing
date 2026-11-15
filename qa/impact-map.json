@@ -339,6 +339,37 @@
       "verify": [
         "node --test portal/test/ai-policy.test.mjs"
       ]
+    },
+    {
+      "id": "module-tree",
+      "title": "The module test tree (tree.json, loader, drafting brief and suggested node) is described in the README and a skill and covered by tests",
+      "when": [
+        "portal/tree.mjs",
+        "portal/agent.mjs",
+        "portal/insights.mjs",
+        "qa/modules/*/tree.json"
+      ],
+      "alsoCheck": [
+        {
+          "path": "README.md",
+          "why": "Tree tab section: format, validation rules, API and drafting-agent behavior"
+        },
+        {
+          "path": ".claude/skills/working-with-versions-and-tree/SKILL.md",
+          "why": "tells agents how to edit, validate and use tree.json"
+        },
+        {
+          "path": "portal/test/senior-tester.test.mjs",
+          "why": "tests the tree in the drafting brief and the suggested node on a case"
+        },
+        {
+          "path": "portal/test/versions.test.mjs",
+          "why": "tests the tree loader, rollup and tree route"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/senior-tester.test.mjs portal/test/versions.test.mjs"
+      ]
     }
   ]
 }
