@@ -10,6 +10,8 @@ import { accessPage, loadMembers, membersPage } from './pages/members.js';
 import { modulesPage, overviewPage } from './pages/modules.js';
 import { afterRoute, loadPipeline } from './pages/pipeline.js';
 import { reviewPage } from './pages/review.js';
+import { loadTree, probeTree, treePage } from './pages/tree.js';
+import { loadVersions, versionsPage } from './pages/versions.js';
 import { knowledgePage, loadKnowledge } from './pages/knowledge.js';
 import { runDetailPage, runsPage } from './pages/runs.js';
 import { environmentsPage, researchPage, settingsPage } from './pages/settings.js';
@@ -23,7 +25,7 @@ import { currentModule, state } from './state.js';
 
 
 export const notFoundPage = () => `${heading('Not found', 'We could not find that page', 'The address may be wrong, or the item may have been deleted.')}<div class="panel">${empty('Nothing here', 'Check the address, or go back to the Module library to find what you need.', '<a class="button-link" href="#/modules">Open Module library</a>')}</div>`;
-const MODULE_TABS = [undefined, '', 'cases', 'intake', 'review', 'ai', 'knowledge', 'coverage', 'members'];
+const MODULE_TABS = [undefined, '', 'cases', 'intake', 'review', 'ai', 'knowledge', 'coverage', 'members', 'versions', 'tree'];
 
 export async function renderRoute() {
   if (!state.data) return;
@@ -50,6 +52,8 @@ async function loadRouteData(generation) {
   if (state.route[0] === 'modules' && state.route[2] === 'members' && can('members.manage', state.route[1])) await loadMembers({ type: 'module', id: state.route[1], name: currentModule()?.name ?? state.route[1] });
   if (state.route[0] === 'access' && canProduct('members.manage')) await loadMembers({ type: 'product', id: state.productId, name: productName() });
   if (state.route[0] === 'teams' && canManageAnywhere()) await loadTeams();
+  if (state.route[0] === 'modules' && state.route[1] && state.route[2] === 'versions') await loadVersions(state.route[1]);
+  if (state.route[0] === 'modules' && state.route[1]) { if (state.route[2] === 'tree') await loadTree(state.route[1]); else if (currentModule()?.adapter) await probeTree(state.route[1]); }  // only automated modules can have a tree; skipping the probe keeps manual modules free of a pointless 404
   if (state.route[0] === 'modules' && state.route[1]) await loadPipeline(state.route[1], state.route[2]);
 }
 export function renderPage() {
@@ -64,6 +68,8 @@ export function renderPage() {
            : sub === 'review' ? reviewPage()
            : sub === 'knowledge' ? knowledgePage()
            : sub === 'members' ? membersPage()
+           : sub === 'versions' ? versionsPage()
+           : sub === 'tree' ? treePage()
            : MODULE_TABS.includes(sub) ? casesPage()
            : notFoundPage();
     } else {

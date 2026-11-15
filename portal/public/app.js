@@ -15,6 +15,7 @@ import './handlers/health.js';
 import './handlers/report-pack.js';
 import './handlers/knowledge.js';
 import './handlers/help.js';
+import './handlers/versions.js';
 
 await start();
 let accessTick = 0;

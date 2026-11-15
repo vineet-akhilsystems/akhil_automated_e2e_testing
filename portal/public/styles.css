@@ -473,3 +473,20 @@ details.pack-section summary{cursor:pointer;display:flex;align-items:baseline;ga
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .pack-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}.pack-quick-label{font-size:12px;font-weight:550;color:#74798d;margin-right:4px}.pack-chip{padding:5px 12px;min-height:0;border-radius:999px;font-size:12px;font-weight:500}.pack-chip.active{border-color:var(--accent);background:#f1edfc;color:#41465c;box-shadow:0 0 0 1px var(--accent)}.pack-status-error{color:#a3333d}#pack-earlier{overflow-x:auto;max-width:100%}
 .pack-job{scroll-margin-bottom:90px}.pack-job .group-list li{padding:4px 0;font-size:12px}
+/* Versions and Tree tabs */
+.versions-panel,.matrix-panel,.tree-panel{margin:0 0 20px}.current-line{margin:0 0 20px}.versions-panel+.warning{margin:0 0 20px}
+.versions-table td{vertical-align:top}.versions-table .version-note{min-width:180px;max-width:320px;overflow-wrap:anywhere}.note-form{display:flex;gap:6px;flex-wrap:wrap}.note-form input{flex:1;min-width:120px}
+.changed-files summary{cursor:pointer;color:var(--accent)}.changed-files ul{margin:6px 0 0;padding-left:18px;line-height:1.7}.changed-files code{overflow-wrap:anywhere}
+.matrix-help{margin:4px 0 0}.matrix th.matrix-col{text-align:left;white-space:normal;min-width:130px;text-transform:none;letter-spacing:0}.matrix .col-typed{display:block;font-weight:650;color:#41465c;font-size:12px}.matrix .col-sub{display:block;font-size:11px;font-weight:450;color:var(--muted)}
+.matrix td.matrix-cell{white-space:nowrap;font-weight:550}.matrix td.matrix-cell.pass{color:#298564;background:#f4fbf7}.matrix td.matrix-cell.fail{color:#bd5062;background:#fff5f6}.matrix td.matrix-cell.blocked{color:#b58335;background:#fffaf1}.matrix tr.differs td:first-child{box-shadow:inset 3px 0 0 var(--accent)}.case-title-line{font-size:12px;color:#41465c;margin-top:2px}
+.tree-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:20px;align-items:start}.tree-side{display:grid;gap:16px}
+.tree-panel{padding:14px 16px;overflow:auto}.tree-panel ul{list-style:none;margin:0;padding-left:22px;border-left:1px dashed #dcd8ee}.tree-panel>ul.tree-root{padding-left:0;border-left:0}.tree-node{margin:6px 0}
+.tree-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);border-left-width:4px;border-radius:8px;padding:4px 8px 4px 4px;background:#fff}.tree-row.pass{border-left-color:#37a47e}.tree-row.fail{border-left-color:#d1586b}.tree-row.blocked{border-left-color:#d9a24b}.tree-row.none{border-left-color:#d4d6e0}.tree-row.selected{background:#f1edfc;border-color:var(--accent)}
+.tree-label{border:0;background:none;padding:6px 8px;text-align:left;font-weight:600;color:#41465c;flex:1;min-width:0;justify-content:flex-start;flex-wrap:wrap;gap:4px 8px}.tree-label:hover{background:none;color:var(--accent)}.tree-kind{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#9a9db0;font-weight:550}.tree-note{margin:2px 0 0 12px;line-height:1.5}
+.tree-node.empty-node .tree-row{opacity:.6}
+.tree-counts{display:flex;gap:4px;flex-shrink:0}.tc{display:inline-block;min-width:24px;text-align:center;padding:2px 6px;border-radius:5px;font-size:11px;font-weight:650;background:#f0f1f6;color:#7d8398}.tc.pass{background:#edf8f2;color:#298564}.tc.fail{background:#fceef0;color:#bd5062}.tc.blocked{background:#fff5e8;color:#b58335}.tc.total{background:#eef0f6;color:#41465c}.tree-legend .tc{min-width:0;margin:0 2px}
+.tree-info{margin:0 0 14px}.tree-case-list{list-style:none;margin:0;padding:8px 20px 14px;font-size:12px;line-height:1.9;max-height:360px;overflow:auto}.tree-case-list li{border-bottom:1px solid #eff0f5;padding:4px 0}
+@media(max-width:1000px){.tree-layout{grid-template-columns:1fr}}
+.tree-info code{overflow-wrap:anywhere}
+@media(max-width:560px){.tree-row{flex-wrap:wrap}.tree-label{flex-basis:100%}.tree-panel ul{padding-left:12px}.versions-table .version-note{min-width:150px}}
+.matrix-panel .panel-heading{flex-wrap:wrap;gap:10px}
