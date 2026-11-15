@@ -44,7 +44,11 @@ test('step 2: the fixture attached hashes only, none of the body text, and skipp
   expect(files).toHaveLength(1);
   const doc = JSON.parse(files[0].body);
   expect(doc.parts).toBeUndefined();
-  expect(Object.keys(doc.keys).sort()).toEqual(['formSchema|/configuration-service/form-schema/latest-version?type=a', 'lookups|/configuration-service/reference-lookup/latest-version?lookup_id=1']);
+  const keys = Object.keys(doc.keys).sort();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toMatch(/^formSchema\|\/configuration-service\/form-schema\/latest-version\?[0-9a-f]{12}$/);
+  expect(keys[1]).toMatch(/^lookups\|\/configuration-service\/reference-lookup\/latest-version\?[0-9a-f]{12}$/);
+  expect(files[0].body).not.toMatch(/lookup_id|type=a/);
   expect(doc.count).toBe(2);
   for (const hash of Object.values(doc.keys)) expect(hash).toMatch(/^[0-9a-f]{64}$/);
   expect(files[0].body).not.toContain(SECRET);

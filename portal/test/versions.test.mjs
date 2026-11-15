@@ -268,13 +268,14 @@ test('queue: malformed files and non-integer shard dirs are ignored; shard 10 so
   assert.equal(p.shards, 3); assert.equal(p.stable, false); assert.deepEqual(p.conflicts, ['webpart|/w']);
 });
 
-test('queue: reporter-reported conflicts mark unstable and repeated syncs do not flip; an unreadable file keeps the profile unknown', async () => {
+test('queue: reporter-reported conflicts mark unstable and repeated syncs do not flip; an unreadable file keeps the profile unknown', async t => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
   const f = queueFixture(1);
   f.store.saveRun(profileRun('ru', [{ id: 'A', title: 'A' }])); f.queue.pump(); await pause(10);
   const root = f.launches[0].opts.env.PORTAL_RUN_DIR;
   fs.writeFileSync(path.join(root, 'events.jsonl'), pass('A'));
   fs.writeFileSync(path.join(root, 'profile.json'), JSON.stringify({ keys: { 'webpart|/w': H('a') }, conflicts: ['webpart|/w'] }));
-  await pause(2100); // the 1 s interval has synced at least twice
+  t.mock.timers.tick(1000); t.mock.timers.tick(1000); // two interval syncs, no real waiting
   assert.equal(onlyRun(f).profile.stable, false);
   f.launches[0].child.emit('exit', 0); await pause(30);
   assert.equal(onlyRun(f).profile.stable, false);
@@ -285,4 +286,58 @@ test('queue: reporter-reported conflicts mark unstable and repeated syncs do not
   fs.writeFileSync(path.join(g.launches[0].opts.env.PORTAL_RUN_DIR, 'profile.json'), '{"keys": [1,2]}');
   g.launches[0].child.emit('exit', 0); await pause(30);
   assert.equal(onlyRun(g).profile, undefined);
+});
+
+test('stored keys never contain query text: tokens are hashed away, identity and determinism preserved', () => {
+  const base = U + 'reference-lookup/latest-version';
+  const key = shared.entryKey(base + '?access_token=SECRET123&lookup_id=7');
+  for (const forbidden of ['SECRET123', 'access_token', 'lookup_id', '7&']) assert.ok(!key.includes(forbidden), forbidden);
+  assert.match(key, /^lookups\|\/configuration-service\/reference-lookup\/latest-version\?[0-9a-f]{12}$/);
+  assert.equal(shared.entryKey(base + '?lookup_id=7&_=1&ts=2&cb=3'), shared.entryKey(base + '?lookup_id=7&nocache=9&timestamp=4'));
+  assert.notEqual(shared.entryKey(base + '?lookup_id=7'), shared.entryKey(base + '?lookup_id=8'));
+  assert.equal(shared.entryKey(base + '?b=2&a=1'), shared.entryKey(base + '?a=1&b=2'));
+  assert.equal(shared.entryKey(base), 'lookups|/configuration-service/reference-lookup/latest-version');
+  assert.ok(shared.isProfileKey('lookups|/x') && !shared.isProfileKey('constructor') && !shared.isProfileKey('other|/x') && !shared.isProfileKey('lookups|/' + 'a'.repeat(400)));
+});
+
+test('reporter and queue drop keys named constructor, __proto__, toString or with an unknown part', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-reporter-'));
+  report(dir, [att('{"keys":{"constructor":"' + H('a') + '","__proto__":"' + H('a') + '","toString":"' + H('a') + '","other|/x":"' + H('a') + '","lookups|/ok":"' + H('b') + '"},"count":1}')], 'P1');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'profile.json'), 'utf8')).keys, { 'lookups|/ok': H('b') });
+  assert.equal(({}).polluted, undefined);
+  const f = queueFixture(1);
+  f.store.saveRun(profileRun('rq', [{ id: 'A', title: 'A' }])); f.queue.pump(); await pause(10);
+  const root = f.launches[0].opts.env.PORTAL_RUN_DIR;
+  fs.writeFileSync(path.join(root, 'events.jsonl'), pass('A'));
+  fs.writeFileSync(path.join(root, 'profile.json'), '{"keys":{"constructor":"' + H('a') + '","__proto__":"' + H('a') + '","toString":"' + H('a') + '","webpart|/w":"' + H('c') + '"}}');
+  f.launches[0].child.emit('exit', 0); await pause(30);
+  assert.deepEqual(onlyRun(f).profile.keys, { 'webpart|/w': H('c') });
+  assert.equal(onlyRun(f).profile.stable, true);
+});
+
+test('a non-numeric shard directory does not disturb event ordering', async () => {
+  const f = queueFixture(1);
+  f.store.saveRun(profileRun('re', [{ id: 'A', title: 'A' }, { id: 'B', title: 'B' }])); f.queue.pump(); await pause(10);
+  const shards = path.join(f.queue.dirFor('re'), 'shards');
+  for (const [name, id] of [['10', 'B'], ['2', 'A'], ['notes', 'A']]) { fs.mkdirSync(path.join(shards, name), { recursive: true }); fs.writeFileSync(path.join(shards, name, 'events.jsonl'), JSON.stringify({ id, status: name === 'notes' ? 'FAIL' : 'PASS', durationMs: 1 }) + '\n'); }
+  f.launches[0].child.emit('exit', 0); await pause(30);
+  assert.deepEqual(onlyRun(f).results.map(r => [r.id, r.status]).sort(), [['A', 'PASS'], ['B', 'PASS']]);
+});
+
+test('run list omits profile.keys but reports keyCount; run detail keeps the keys', async t => {
+  const f = await boot(t);
+  await f.request('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
+  await f.request('/api/modules/facility-setup/cases', 'POST', manualCase);
+  await f.request('/api/environments', 'POST', profile());
+  const started = await startRun(f, { environmentId: 'ba-uat' });
+  const stored = f.store.run(started.value.id);
+  const keys = { 'webpart|/w': H('a'), 'lookups|/x': H('b') };
+  f.store.saveRun({ ...stored, profile: { hash: 'h', parts: { webpart: 'p' }, keys, stable: true, shards: 1 } });
+  const list = await f.request('/api/runs');
+  const listed = list.value.find(r => r.id === started.value.id);
+  assert.equal(listed.profile.keys, undefined); assert.equal(listed.profile.keyCount, 2); assert.equal(listed.profile.hash, 'h'); assert.equal(listed.profile.stable, true);
+  const detail = await f.request(`/api/runs/${started.value.id}`);
+  assert.deepEqual(detail.value.profile.keys, keys);
+  const noProfile = await startRun(f, { environmentId: 'ba-uat' });
+  assert.equal(noProfile.value.profile, undefined);
 });

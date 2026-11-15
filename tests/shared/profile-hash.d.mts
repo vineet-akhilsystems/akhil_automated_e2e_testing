@@ -9,3 +9,4 @@ export function entryKey(url: string): string;
 export function hashBody(body: unknown): string;
 export function partsFromKeys(keys: Record<string, string>): Record<string, string>;
 export function profileFromKeys(keys: Record<string, string>): { hash: string; parts: Record<string, string> };
+export function isProfileKey(key: unknown): boolean;

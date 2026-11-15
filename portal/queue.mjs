@@ -4,7 +4,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { ROOT, adapters } from './registry.mjs';
 import { loginSchema } from './environment-settings.mjs';
-import { profileFromKeys } from './profile.mjs';
+import { profileFromKeys, isProfileKey } from './profile.mjs';
 
 // ---- Speed helpers (pure, exported for tests and for the rerun path) ----------------------------------------------
 const FAILED = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
@@ -93,13 +93,13 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
       const dirs = fs.readdirSync(shardsDir).filter(name => /^\d+$/.test(name)).sort((x, y) => Number(x) - Number(y));
       for (const name of dirs) files.push(path.join(shardsDir, name, 'profile.json'));
     }
-    const keys = {}, conflicts = [];
+    const keys = Object.create(null), conflicts = [];
     let shards = 0, reported = false;
     for (const file of files) {
       let doc;
       try { doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { continue; }
       if (!doc || typeof doc.keys !== 'object' || doc.keys === null || Array.isArray(doc.keys)) continue;
-      const valid = Object.entries(doc.keys).filter(([, hash]) => typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash));
+      const valid = Object.entries(doc.keys).filter(([key, hash]) => isProfileKey(key) && typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash));
       shards++;
       if (Array.isArray(doc.conflicts) && doc.conflicts.length) reported = true;
       for (const [key, hash] of valid) {
@@ -109,7 +109,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     }
     if (!shards) return;
     const { hash, parts } = profileFromKeys(keys);
-    run.profile = { hash, parts, keys, stable: !conflicts.length && !reported, shards };
+    run.profile = { hash, parts, keys: { ...keys }, stable: !conflicts.length && !reported, shards };
     if (conflicts.length) run.profile.conflicts = conflicts.slice(0, 20);
   }
   function syncEvents(run) {
@@ -117,7 +117,7 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     const root = dirFor(run.id), shardsDir = path.join(root, 'shards');
     syncProfile(run, root, shardsDir);
     const files = [path.join(root, 'events.jsonl')];
-    if (fs.existsSync(shardsDir)) for (const name of fs.readdirSync(shardsDir).sort((x, y) => Number(x) - Number(y))) files.push(path.join(shardsDir, name, 'events.jsonl'));
+    if (fs.existsSync(shardsDir)) for (const name of fs.readdirSync(shardsDir).filter(n => /^\d+$/.test(n)).sort((x, y) => Number(x) - Number(y))) files.push(path.join(shardsDir, name, 'events.jsonl'));
     const byId = new Map((run.results ?? []).map(r => [r.id, r]));
     for (const file of files) {
       if (!fs.existsSync(file)) continue;

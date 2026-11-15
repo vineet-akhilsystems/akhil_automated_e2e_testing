@@ -27,7 +27,8 @@ module.exports = class PortalReporter {
         const file = path.join(root, 'profile.json');
         let current = {};
         try { current = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* no file yet */ }
-        const keys = current.keys && typeof current.keys === 'object' ? { ...current.keys } : {};
+        const keys = Object.create(null), isKey = k => typeof k === 'string' && k.length <= 400 && /^(webpart|formSchema|workflow|lookups)\|/.test(k);
+        if (current.keys && typeof current.keys === 'object') for (const [k, h] of Object.entries(current.keys)) if (isKey(k) && typeof h === 'string') keys[k] = h;
         const conflicts = Array.isArray(current.conflicts) ? [...current.conflicts] : [];
         let count = Number(current.count) || 0;
         for (const attachment of found) {
@@ -35,13 +36,13 @@ module.exports = class PortalReporter {
           try { next = JSON.parse(attachment.body.toString()); } catch { continue; }
           if (!next || typeof next.keys !== 'object' || next.keys === null || Array.isArray(next.keys)) continue;
           for (const [key, hash] of Object.entries(next.keys)) {
-            if (typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash)) continue;
+            if (!isKey(key) || typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash)) continue;
             if (!(key in keys)) keys[key] = hash;
             else if (keys[key] !== hash && !conflicts.includes(key) && conflicts.length < 20) conflicts.push(key);
           }
           count += Number(next.count) || 0;
         }
-        const doc = { keys, count }; if (conflicts.length) doc.conflicts = conflicts;
+        const doc = { keys: { ...keys }, count }; if (conflicts.length) doc.conflicts = conflicts;
         fs.writeFileSync(file + '.tmp', JSON.stringify(doc));
         fs.renameSync(file + '.tmp', file);
       }

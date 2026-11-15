@@ -27,20 +27,26 @@ export function normalizeConfig(value) {
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 
 // Cache-buster query parameters change on every request without the configuration changing.
-const BUSTER_PARAMS = ['_', 't', 'ts', 'v', 'cb', 'nocache', 'timestamp'];
+const BUSTER_PARAMS = ['_', 'ts', 'cb', 'nocache', 'timestamp'];
 const ignoredParam = k => volatile.has(k.toLowerCase()) || BUSTER_PARAMS.includes(k.toLowerCase());
 
-// Key for one captured response: path plus sorted, non-volatile query, so arrival order never matters.
+// Key for one captured response: the path, plus a short hash of the sorted non-buster query. No query text is ever stored
+// (a query can carry tokens), yet different parameter values still give different keys. Arrival order never matters.
 // If the same key is seen twice in one test the last response wins (the page re-fetched it).
 export function responseKey(url) {
   const u = new URL(url);
   const query = [...u.searchParams.entries()].filter(([k]) => !ignoredParam(k)).map(([k, v]) => `${k}=${v}`).sort().join('&');
-  return `${u.pathname}${query ? '?' + query : ''}`;
+  return `${u.pathname}${query ? '?' + sha256(query).slice(0, 12) : ''}`;
 }
 
-// "<part>|<path?query>": the identity of one captured configuration response.
+// "<part>|<path>[?<12 hex>]": the identity of one captured configuration response.
 export function entryKey(url) {
   return `${partForUrl(url)}|${responseKey(url)}`;
+}
+
+// A stored key must look like one entryKey produced: a known part, a bar, and a bounded length.
+export function isProfileKey(key) {
+  return typeof key === 'string' && key.length <= 400 && /^(webpart|formSchema|workflow|lookups)\|/.test(key);
 }
 
 // sha256 of one response body after normalization. Only this hash ever leaves the browser process.

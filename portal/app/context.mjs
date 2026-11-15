@@ -164,7 +164,9 @@ export function createContext(options = {}) {
   const getRun = id => { const r = store.run(id); check(r, 'Not found.', 404); return r; };
   const visibleRun = (acc, r) => r.kind === 'authentication' ? acc.runStartIn(r.productId ?? 'augastam') : Boolean(store.module(r.module?.id)) && acc.module(store.module(r.module.id)).has('report.view');
   const summaryRun = r => {
-    const { cases, module, ...rest } = r;
+    const { cases, module, profile, ...rest } = r;
+    // The list carries the profile summary only; the per-response keys (hundreds) stay in the single-run detail.
+    if (profile) { const { keys, ...brief } = profile; rest.profile = { ...brief, keyCount: Object.keys(keys ?? {}).length }; }
     return { ...rest, module: { id: module.id, name: module.name, area: module.area }, total: cases.length };
   };
   function createRun(body, user = LOCAL_USER, { inheritVersion, ...extra } = {}) {
