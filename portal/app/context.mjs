@@ -194,6 +194,7 @@ export function createContext(options = {}) {
     }
     // A re-run (inheritVersion is set by the server only, never read from the request) keeps the original run's version, even when that was none.
     const typed = normalizeAppVersion(body.appVersion), appVersion = inheritVersion !== undefined ? inheritVersion : typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
+    // Test-only seams (never set in production): options.automationRoot (repo root to fingerprint), options.automationFingerprint (replaces the fingerprint function), options.automationGit (replaces the git helper).
     // Automated runs are stamped with the automation version (content hash). Failing to do so must never block a run.
     let automationVersion;
     if (body.mode === 'automated') {

@@ -10,8 +10,16 @@ export function createAutomationVersionsRepo(db) {
     automationVersions: moduleId => db.prepare('SELECT document FROM automation_versions WHERE module_id=? ORDER BY number DESC').all(String(moduleId)).map(decode),
     automationVersionByHash: (moduleId, hash) => decode(db.prepare('SELECT document FROM automation_versions WHERE module_id=? AND hash=?').get(String(moduleId), String(hash))),
     automationVersionByNumber: (moduleId, number) => decode(db.prepare('SELECT document FROM automation_versions WHERE module_id=? AND number=?').get(String(moduleId), Number(number))),
-    // Inserts a new version; updates the document of an existing (module, number) row (used to annotate git details).
-    saveAutomationVersion: record => db.prepare('INSERT INTO automation_versions VALUES (?,?,?,?,?) ON CONFLICT(module_id, number) DO UPDATE SET document=excluded.document')
-      .run(record.moduleId, record.number, record.hash, record.createdAt, JSON.stringify(record)),
+    latestAutomationVersion: moduleId => decode(db.prepare('SELECT document FROM automation_versions WHERE module_id=? ORDER BY number DESC LIMIT 1').get(String(moduleId))),
+    // Plain INSERT: a duplicate (module, number) or (module, hash) THROWS, an existing version is never overwritten.
+    insertAutomationVersion: record => db.prepare('INSERT INTO automation_versions VALUES (?,?,?,?,?)').run(record.moduleId, record.number, record.hash, record.createdAt, JSON.stringify(record)),
+    // Merges a patch into one stored document (keys set to undefined are dropped); never touches the hash or number.
+    updateAutomationVersion(moduleId, number, patch) {
+      const current = decode(db.prepare('SELECT document FROM automation_versions WHERE module_id=? AND number=?').get(String(moduleId), Number(number)));
+      if (!current) return undefined;
+      const text = JSON.stringify({ ...current, ...patch, moduleId: current.moduleId, number: current.number, hash: current.hash });
+      db.prepare('UPDATE automation_versions SET document=? WHERE module_id=? AND number=?').run(text, String(moduleId), Number(number));
+      return JSON.parse(text);
+    },
   };
 }

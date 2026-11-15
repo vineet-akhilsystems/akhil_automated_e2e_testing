@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boot } from './support.mjs';
+import { boot, until } from './support.mjs';
 import { normalizeAppVersion, describeVersion } from '../versioning.mjs';
 import { describeVersion as clientDescribe } from '../public/components/version.js';
 
@@ -344,7 +344,7 @@ test('run list omits profile.keys but reports keyCount; run detail keeps the key
 
 // ---- Automation versions (Task 3) ----
 import { openStore } from '../store.mjs';
-import { automationFiles, fingerprintAutomation, diffFiles, registerAutomationVersion, annotateAutomationVersion } from '../automation-versions.mjs';
+import { automationFiles, fingerprintAutomation, diffFiles, registerAutomationVersion, annotateAutomationVersion, defaultGit, parseStatus } from '../automation-versions.mjs';
 
 function autoRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-root-')), data = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-data-'));
@@ -395,18 +395,6 @@ test('reverting to the first content returns v1 again, not v3', t => {
   put('tests/modules/m1/a.spec.ts', 'changed\n'); assert.equal(reg().number, 2);
 });
 
-test('two simultaneous registrations of new content create exactly one new number', async t => {
-  const { put, reg, store, root } = autoRoot(t);
-  reg(); put('tests/modules/m1/a.spec.ts', 'new content\n');
-  const [x, y] = await Promise.all([Promise.resolve().then(() => reg()), Promise.resolve().then(() => reg())]);
-  assert.equal(x.number, 2); assert.equal(y.number, 2); assert.equal(store.automationVersions('m1').length, 2);
-  // A registration that raced past the existence checks hits the unique index and gets the winner back.
-  let misses = 2;
-  const stale = { ...store, automationVersionByHash: (m, h) => (misses-- > 0 ? undefined : store.automationVersionByHash(m, h)), automationVersions: () => [{ number: 1, files: [] }], transaction: fn => store.transaction(fn) };
-  const raced = registerAutomationVersion({ store: stale, root, moduleId: 'm1' });
-  assert.equal(raced.number, 2); assert.equal(store.automationVersions('m1').length, 2);
-});
-
 test('uncommitted is true when git reports dirty; a clean commit is recorded otherwise', async t => {
   const { put, reg, root, store } = autoRoot(t);
   const dirty = reg();
@@ -435,25 +423,160 @@ test('diffFiles reports added, changed and removed', () => {
 
 const autoCase = { id: 'AV-001', title: 'Auto', mode: 'automated', category: 'T', priority: 'P1', action: 'fill', input: { first_name: 'Alpha', last_name: 'Beta' }, expected: { outcome: 'field-state', values: { first_name: 'Alpha' } }, steps: [] };
 
-test('an automated run is stamped with automationVersion and a manual run is not', async t => {
-  const f = await boot(t, { automationGit: async () => ({ commit: 'c1', dirty: false }) });
-  assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
-  const auto = await f.request('/api/runs', 'POST', { name: 'A', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
-  assert.equal(auto.status, 201);
-  assert.equal(auto.value.automationVersion.number, 1); assert.match(auto.value.automationVersion.hash, /^[0-9a-f]{64}$/); assert.equal('uncommitted' in auto.value.automationVersion, false);
-  const again = await f.request('/api/runs', 'POST', { name: 'B', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
-  assert.equal(again.value.automationVersion.number, 1);
-  await new Promise(r => setTimeout(r, 30));
-  assert.equal(f.store.automationVersionByNumber('registration', 1).gitCommit, 'c1');
-  await f.request('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
-  await f.request('/api/modules/facility-setup/cases', 'POST', manualCase);
-  const manual = await f.request('/api/runs', 'POST', { name: 'M', moduleId: 'facility-setup', environmentId: 'local', mode: 'manual', caseIds: ['FAC-001'] });
-  assert.equal(manual.status, 201); assert.equal(manual.value.automationVersion, undefined);
-});
 
 test('a failing fingerprint does not block run creation', async t => {
   const f = await boot(t, { automationFingerprint: () => { throw new Error('disk gone'); } });
   assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
   const run = await f.request('/api/runs', 'POST', { name: 'A', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
   assert.equal(run.status, 201); assert.equal(run.value.automationVersion, undefined);
+});
+
+// A second SQLite handle on the same data directory (WAL) is the real cross-connection case.
+test('two store handles on the same data directory: same content one number, new content the next number, nothing overwritten', t => {
+  const { root, put } = autoRoot(t);
+  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-shared-'));
+  const A = openStore(data), B = openStore(data);
+  t.after(() => { A.close(); B.close(); fs.rmSync(data, { recursive: true, force: true }); });
+  const reg = (store, by) => registerAutomationVersion({ store, root, moduleId: 'm1', by });
+  const first = reg(A, 'alice');
+  assert.equal(reg(B, 'bob').number, 1);
+  put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  const viaB = reg(B, 'bob');
+  assert.equal(viaB.number, 2);
+  const viaA = reg(A, 'alice');
+  assert.equal(viaA.number, 2); assert.equal(viaA.createdBy, 'bob', 'the first registration of that content wins');
+  put('tests/modules/m1/a.spec.ts', 'content Z\n');
+  assert.equal(reg(A, 'alice').number, 3);
+  assert.deepEqual(B.automationVersions('m1').map(v => v.number), [3, 2, 1]);
+  assert.equal(B.automationVersionByNumber('m1', 1).hash, first.hash);
+  assert.deepEqual(B.automationVersionByNumber('m1', 2).changedFiles, { added: [], changed: ['tests/modules/m1/a.spec.ts'], removed: [] });
+});
+
+test('a stale writer colliding on the NUMBER with a different hash renumbers and never overwrites the stored version', t => {
+  const { put, root, store, reg } = autoRoot(t);
+  const v1 = reg(); put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  const v2 = reg();
+  const before = JSON.stringify(store.automationVersionByNumber('m1', 2));
+  put('tests/modules/m1/a.spec.ts', 'content Z\n');
+  let stale = true;
+  const staleStore = { ...store, transaction: fn => store.transaction(fn), latestAutomationVersion: m => { if (stale) { stale = false; return { number: 1, files: v1.files }; } return store.latestAutomationVersion(m); } };
+  const created = registerAutomationVersion({ store: staleStore, root, moduleId: 'm1', by: 'late' });
+  assert.equal(created.number, 3);
+  assert.equal(JSON.stringify(store.automationVersionByNumber('m1', 2)), before, 'v2 document untouched');
+  assert.equal(store.automationVersionByNumber('m1', 2).hash, v2.hash); assert.equal(store.automationVersionByNumber('m1', 2).createdBy, 'tester');
+  assert.deepEqual(store.automationVersions('m1').map(v => v.number), [3, 2, 1]);
+});
+
+test('a stale writer colliding on the HASH returns the existing version', t => {
+  const { put, root, store, reg } = autoRoot(t);
+  reg(); put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  const v2 = reg();
+  let misses = 2;
+  const staleStore = { ...store, transaction: fn => store.transaction(fn), automationVersionByHash: (m, h) => (misses-- > 0 ? undefined : store.automationVersionByHash(m, h)), latestAutomationVersion: () => ({ number: 1, files: [] }) };
+  const got = registerAutomationVersion({ store: staleStore, root, moduleId: 'm1', by: 'late' });
+  assert.equal(got.number, 2); assert.equal(got.hash, v2.hash); assert.equal(got.createdBy, 'tester');
+  assert.equal(store.automationVersions('m1').length, 2);
+});
+
+test('insertAutomationVersion throws on a duplicate number or hash; updateAutomationVersion cannot change hash or number', t => {
+  const { reg, store } = autoRoot(t);
+  const v1 = reg();
+  assert.throws(() => store.insertAutomationVersion({ ...v1, hash: 'other' }), /UNIQUE/i);
+  assert.throws(() => store.insertAutomationVersion({ ...v1, number: 9 }), /UNIQUE/i);
+  store.updateAutomationVersion('m1', 1, { hash: 'x', number: 7, note: 'n' });
+  assert.equal(store.automationVersionByNumber('m1', 1).hash, v1.hash); assert.equal(store.latestAutomationVersion('m1').number, 1);
+});
+
+// ---- git helper (injected runner) ----
+const gitRunner = (status, head = 'abc123\n') => async args => (args[0] === 'rev-parse' ? head : args[0] === 'status' ? status : null);
+
+test('default git: a dirty file inside the hashed set is dirty, outside it is clean', async () => {
+  const paths = ['tests/modules/m1/a.spec.ts', 'playwright.config.ts'];
+  assert.deepEqual(await defaultGit('.', gitRunner(' M tests/modules/m1/a.spec.ts\n'))(paths), { commit: 'abc123', dirty: true });
+  assert.deepEqual(await defaultGit('.', gitRunner(' M docs/readme.md\n?? qa/modules/m1/cases/new.json\n'))(paths), { commit: 'abc123', dirty: false });
+  assert.deepEqual(await defaultGit('.', gitRunner(''))(paths), { commit: 'abc123', dirty: false });
+  assert.equal((await defaultGit('.', gitRunner('R  old.txt -> tests/modules/m1/a.spec.ts\n'))(paths)).dirty, true, 'rename target');
+  assert.equal((await defaultGit('.', gitRunner('R  tests/modules/m1/a.spec.ts -> moved/a.ts\n'))(paths)).dirty, true, 'rename source');
+  assert.equal((await defaultGit('.', gitRunner('?? tests/modules/m1/\n'))(paths)).dirty, true, 'untracked directory containing hashed files');
+});
+
+test('default git: 600 paths work with one status call and no pathspec', async () => {
+  const paths = Array.from({ length: 600 }, (_, i) => `tests/shared/file-${i}.txt`), calls = [];
+  const run = async args => { calls.push(args); return args[0] === 'rev-parse' ? 'abc\n' : ' M tests/shared/file-599.txt\n'; };
+  assert.deepEqual(await defaultGit('.', run)(paths), { commit: 'abc', dirty: true });
+  assert.ok(calls.every(a => !a.includes('--') && a.join(' ').length < 100), 'no path list on the command line');
+});
+
+test('default git: any failure is unknown ({}), never clean', async () => {
+  assert.deepEqual(await defaultGit('.', async () => null)(['a']), {});
+  assert.deepEqual(await defaultGit('.', async args => (args[0] === 'rev-parse' ? 'abc\n' : null))(['a']), {});
+  assert.deepEqual(await defaultGit('.', async () => { throw new Error('boom'); })(['a']), {});
+  assert.deepEqual(await defaultGit('.', gitRunner('', ''))(['a']), {});
+});
+
+test('default git: paths with brackets, asterisks, spaces and quotes match literally', async () => {
+  const paths = ['tests/shared/we ird[1]*.ts', 'tests/shared/café.ts'];
+  assert.equal((await defaultGit('.', gitRunner(' M "tests/shared/we ird[1]*.ts"\n'))(paths)).dirty, true);
+  assert.equal((await defaultGit('.', gitRunner(' M tests/shared/we ird[1]*.ts\n'))(paths)).dirty, true);
+  assert.equal((await defaultGit('.', gitRunner(' M tests/shared/we ird[2]*.ts\n'))(paths)).dirty, false, 'no glob matching');
+  assert.equal((await defaultGit('.', gitRunner(' M "tests/shared/caf\\303\\251.ts"\n'))(paths)).dirty, true, 'quoted octal UTF-8');
+  assert.deepEqual(parseStatus('?? "a\\"b.ts"\n'), ['a"b.ts']);
+});
+
+// ---- fingerprint edge cases ----
+test('an unreadable listed file makes the fingerprint throw instead of silently changing the hash', t => {
+  const { root, store } = autoRoot(t);
+  assert.throws(() => fingerprintAutomation(root, 'm1', { hashFile: () => { throw new Error('EBUSY'); } }), /EBUSY/);
+  assert.throws(() => registerAutomationVersion({ store, root, moduleId: 'm1', fingerprint: (r, m) => fingerprintAutomation(r, m, { hashFile: () => { throw new Error('EBUSY'); } }) }), /EBUSY/);
+  assert.equal(store.automationVersions('m1').length, 0);
+});
+
+test('CRLF is normalized for text extensions only; other files hash raw', t => {
+  const { root, put } = autoRoot(t);
+  const digest = rel => fingerprintAutomation(root, 'm1').files.find(f => f.path === rel).sha256;
+  put('tests/fixtures/data.bin', 'x\ny'); put('tests/fixtures/code.ts', 'x\ny');
+  const [bin, ts] = [digest('tests/fixtures/data.bin'), digest('tests/fixtures/code.ts')];
+  put('tests/fixtures/data.bin', 'x\r\ny'); put('tests/fixtures/code.ts', 'x\r\ny');
+  assert.notEqual(digest('tests/fixtures/data.bin'), bin); assert.equal(digest('tests/fixtures/code.ts'), ts);
+});
+
+test('the 500-file cap sets truncated and the version still registers', t => {
+  const { root, put, reg } = autoRoot(t);
+  for (let i = 0; i < 520; i++) put(`tests/shared/f${String(i).padStart(3, '0')}.txt`, String(i));
+  const fp = fingerprintAutomation(root, 'm1');
+  assert.equal(fp.truncated, true); assert.equal(fp.files.length, 500);
+  const v = reg(); assert.equal(v.number, 1); assert.equal(v.truncated, true); assert.equal(v.files.length, 500);
+});
+
+test('symlinks are excluded', t => {
+  const { root, put } = autoRoot(t);
+  put('tests/shared/real.ts', 'real');
+  try { fs.symlinkSync(path.join(root, 'tests/shared/real.ts'), path.join(root, 'tests/shared/link.ts')); }
+  catch (e) { return t.skip(`symlink creation is not permitted on this machine (${e.code})`); }
+  const files = automationFiles(root, 'm1');
+  assert.ok(files.includes('tests/shared/real.ts')); assert.ok(!files.includes('tests/shared/link.ts'));
+});
+
+test('module ids that escape the module folders return no files', t => {
+  const { root } = autoRoot(t);
+  for (const id of ['../x', path.resolve(root), 'a/b', 'a\\b', '..', '']) assert.deepEqual(automationFiles(root, id), [], JSON.stringify(id));
+});
+
+test('an automated run is stamped with automationVersion and a manual run is not', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-run-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const fingerprint = () => ({ hash: 'a'.repeat(64), files: [{ path: 'tests/modules/registration/x.ts', sha256: 'b'.repeat(64) }], truncated: false });
+  const f = await boot(t, { automationRoot: root, automationFingerprint: fingerprint, automationGit: async () => ({ commit: 'c1', dirty: false }) });
+  assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
+  const auto = await f.request('/api/runs', 'POST', { name: 'A', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
+  assert.equal(auto.status, 201);
+  assert.deepEqual(auto.value.automationVersion, { number: 1, hash: 'a'.repeat(64) });
+  const again = await f.request('/api/runs', 'POST', { name: 'B', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
+  assert.equal(again.value.automationVersion.number, 1);
+  assert.equal((await until(() => f.store.automationVersionByNumber('registration', 1).gitCommit)), 'c1');
+  assert.equal(f.store.automationVersionByNumber('registration', 1).uncommitted, false);
+  await f.request('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
+  await f.request('/api/modules/facility-setup/cases', 'POST', manualCase);
+  const manual = await f.request('/api/runs', 'POST', { name: 'M', moduleId: 'facility-setup', environmentId: 'local', mode: 'manual', caseIds: ['FAC-001'] });
+  assert.equal(manual.status, 201); assert.equal(manual.value.automationVersion, undefined);
 });
