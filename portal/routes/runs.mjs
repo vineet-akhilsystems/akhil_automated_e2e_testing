@@ -122,7 +122,10 @@ export default async function handle(ctx, rc) {
             res.setHeader('Content-Disposition', `attachment; filename="${id}-results.json"`); return json(res, 200, redactRun(run));
           }
           if (resource === 'files' && req.method === 'GET') {
-            const runDir = queue.dirFor(id), target = path.resolve(runDir, decodeURIComponent(relative ?? ''));
+            const wanted = decodeURIComponent(relative ?? '');
+            // A colon never belongs in an artifact path; on Windows it opens NTFS stream aliases such as "packs::$INDEX_ALLOCATION" (the same folder under another name).
+            check(!wanted.includes(':'), 'Invalid artifact path.', 403);
+            const runDir = queue.dirFor(id), target = path.resolve(runDir, wanted);
             check(target.startsWith(runDir + path.sep), 'Invalid artifact path.', 403);
             // Report packs (job records with server paths, partial .tmp-* files) have their own download route.
             // Compared case-insensitively: on Windows "PACKS/x" is the same folder.
@@ -130,7 +133,7 @@ export default async function handle(ctx, rc) {
             check(!inPacks(runDir, target), 'Report packs are downloaded from the run\'s report pack list.', 403);
             check(/\.(png|zip|xlsx|json|md|log|pdf)$/.test(target), 'Unsupported artifact type.', 403);
             check(fs.existsSync(target), 'Artifact not found.', 404);
-            const realRun = fs.realpathSync(runDir), realTarget = fs.realpathSync(target);
+            const realRun = fs.realpathSync.native(runDir), realTarget = fs.realpathSync.native(target);
             check(realTarget.startsWith(realRun + path.sep), 'Invalid artifact path.', 403);
             check(!inPacks(realRun, realTarget), 'Report packs are downloaded from the run\'s report pack list.', 403);
             return await file(res, target, url.searchParams.has('download'));

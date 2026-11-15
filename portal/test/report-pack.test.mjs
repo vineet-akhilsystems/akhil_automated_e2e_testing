@@ -1419,7 +1419,9 @@ test('the run files route never serves anything under packs/', async t => {
   fs.writeFileSync(path.join(runDir, 'packs', '.tmp-1.zip'), 'partial');
   fs.writeFileSync(path.join(runDir, 'artifacts', 'ok.json'), '{}');
   assert.equal((await admin.request('/api/runs/rp-job-run/files/artifacts/ok.json')).status, 200);
-  for (const p of ['packs/job-1.json', 'packs/.tmp-1.zip', 'packs%2Fjob-1.json', 'artifacts%2F..%2Fpacks%2Fjob-1.json', 'PACKS/job-1.json', './packs/job-1.json']) {
+  for (const p of ['packs/job-1.json', 'packs/.tmp-1.zip', 'packs%2Fjob-1.json', 'artifacts%2F..%2Fpacks%2Fjob-1.json', 'PACKS/job-1.json', './packs/job-1.json',
+    // NTFS stream-syntax aliases of the packs folder (Windows): the same directory under another spelling.
+    'packs::$INDEX_ALLOCATION/job-1.json', 'packs:$I30:$INDEX_ALLOCATION/job-1.json', 'artifacts/..%5Cpacks%5Cjob-1.json']) {
     const r = await admin.request(`/api/runs/rp-job-run/files/${p}`);
     assert.ok([403, 404].includes(r.status), `${p}: ${r.status}`);
   }
