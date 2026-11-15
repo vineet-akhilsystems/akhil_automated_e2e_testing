@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveModuleFolder, legacyModuleFolder } from '../module-layout.mjs';
+import * as layout from '../module-layout.mjs';
+import { resolveModuleFolder, moduleFolder } from '../module-layout.mjs';
 import { loadModuleAdapters, validateAdapterDefinition } from '../registry.mjs';
 import { automationFiles, fingerprintAutomation } from '../automation-versions.mjs';
 import { loadTree } from '../tree.mjs';
 import { discoveryProduct } from '../../tests/shared/discovery-env.mjs';
 
-// Task 2 of the product-scoped layout: runtime code resolves folders through one resolver that, for now, also accepts the old flat folders.
+// Task 2 of the product-scoped layout: runtime code resolves folders through one resolver. The old flat layout (qa/modules/<id>) is gone and is no longer resolved.
 function tempRoot(t, dirs = []) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'product-layout-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -18,17 +19,16 @@ function tempRoot(t, dirs = []) {
 }
 const put = (root, rel, text) => { const f = path.join(root, ...rel.split('/')); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
 
-test('resolveModuleFolder: the product-scoped folder wins when it exists', t => {
-  const root = tempRoot(t, ['qa/augastam/billing', 'qa/modules/billing']);
-  assert.equal(resolveModuleFolder(root, 'qa', 'augastam', 'billing'), 'qa/augastam/billing');
-});
-
-test('resolveModuleFolder: falls back to the legacy flat folder only when that one exists', t => {
+test('resolveModuleFolder: always the product-scoped folder, even when old flat folders exist on disk', t => {
   const root = tempRoot(t, ['qa/modules/billing', 'tests/modules/billing', 'portal/modules/billing']);
-  assert.equal(resolveModuleFolder(root, 'qa', 'augastam', 'billing'), 'qa/modules/billing');
-  assert.equal(resolveModuleFolder(root, 'tests', 'augastam', 'billing'), 'tests/modules/billing');
-  assert.equal(resolveModuleFolder(root, 'portal', 'augastam', 'billing'), 'portal/modules/billing');
-  assert.equal(legacyModuleFolder('qa', 'billing'), 'qa/modules/billing');
+  for (const kind of ['qa', 'tests', 'portal']) {
+    assert.equal(resolveModuleFolder(root, kind, 'augastam', 'billing'), moduleFolder(kind, 'augastam', 'billing'));
+    assert.ok(!resolveModuleFolder(root, kind, 'augastam', 'billing').includes('modules/billing') || kind === 'portal');
+  }
+  assert.equal(resolveModuleFolder(root, 'qa', 'augastam', 'billing'), 'qa/augastam/billing');
+  assert.equal(resolveModuleFolder(root, 'tests', 'augastam', 'billing'), 'tests/augastam/billing');
+  assert.equal(resolveModuleFolder(root, 'portal', 'augastam', 'billing'), 'portal/modules/augastam/billing');
+  assert.equal('legacyModuleFolder' in layout, false);
 });
 
 test('resolveModuleFolder: a new module (neither folder exists) gets the product-scoped folder', t => {
@@ -38,9 +38,8 @@ test('resolveModuleFolder: a new module (neither folder exists) gets the product
   assert.equal(resolveModuleFolder(root, 'portal', 'augastam', 'registration'), 'portal/modules/augastam/registration');
 });
 
-test('resolveModuleFolder: a file is not a folder, and invalid ids still throw', t => {
+test('resolveModuleFolder: invalid ids still throw', t => {
   const root = tempRoot(t);
-  put(root, 'qa/modules/billing', 'not a directory');
   assert.equal(resolveModuleFolder(root, 'qa', 'augastam', 'billing'), 'qa/augastam/billing');
   assert.throws(() => resolveModuleFolder(root, 'qa', 'augastam', '../x'), /module id/);
   assert.throws(() => resolveModuleFolder(root, 'qa', 'Augastam', 'billing'), /product id/);
@@ -116,20 +115,20 @@ test('automation versions collect a product-scoped module (qa, tests and portal 
   assert.deepEqual(automationFiles(root, 'augastam', 'registration'), ['tests/augastam/registration/other.ts', 'tests/fixtures/f.png']);
 });
 
-test('automation versions still collect a module that lives in the old flat layout', t => {
+test('automation versions do not collect the old flat layout any more', t => {
   const root = tempRoot(t);
   put(root, 'tests/modules/m1/a.spec.ts', 'a');
   put(root, 'qa/modules/m1/adapter.json', '{}');
-  assert.deepEqual(automationFiles(root, 'augastam', 'm1'), ['qa/modules/m1/adapter.json', 'tests/modules/m1/a.spec.ts']);
+  assert.deepEqual(automationFiles(root, 'augastam', 'm1'), []);
 });
 
-test('loadTree reads tree.json from the product-scoped qa folder, falling back to the flat one', t => {
+test('loadTree reads tree.json from the product-scoped qa folder only (the flat one is ignored)', t => {
   const root = tempRoot(t);
   const tree = { module: 'x', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }] };
   put(root, 'qa/miracle/registration/tree.json', JSON.stringify(tree));
   put(root, 'qa/modules/old/tree.json', JSON.stringify(tree));
   assert.equal(loadTree(root, 'miracle', 'miracle-registration').nodes.length, 1);
-  assert.equal(loadTree(root, 'augastam', 'old').nodes.length, 1);
+  assert.equal(loadTree(root, 'augastam', 'old'), null);
   assert.equal(loadTree(root, 'augastam', 'nothing'), null);
 });
 

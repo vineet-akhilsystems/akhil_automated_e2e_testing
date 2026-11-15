@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveModuleFolder, legacyModuleFolder, moduleFolder } from '../module-layout.mjs';
+import { resolveModuleFolder, moduleFolder } from '../module-layout.mjs';
 import { loadModuleAdapters } from '../registry.mjs';
 import { automationFiles } from '../automation-versions.mjs';
 import { isIgnoredPath } from '../../qa/tools/impact-check.mjs';
 import { install, InstallError } from '../../qa/tools/install-module-adapter.mjs';
 import { scaffold } from '../../qa/tools/scaffold-module-fields.mjs';
 
-// Review fixes for Task 2: the legacy fallback belongs to augastam only, reserved products, and the --product tools.
+// Review fixes for Task 2: the old flat layout is not resolved for any product, reserved products, and the --product tools.
 function tempRoot(t, dirs = []) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'product-layout-tools-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -19,15 +19,14 @@ function tempRoot(t, dirs = []) {
 }
 const put = (root, rel, text) => { const f = path.join(root, ...rel.split('/')); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
 
-test('the legacy fallback never applies to a product other than augastam', t => {
+test('no product resolves to the old flat folders, whether or not they exist on disk', t => {
   const root = tempRoot(t, ['qa/modules/foo', 'tests/modules/foo', 'portal/modules/foo']);
   for (const kind of ['qa', 'tests', 'portal']) {
-    assert.equal(resolveModuleFolder(root, kind, 'miracle', 'foo'), moduleFolder(kind, 'miracle', 'foo'));
-    assert.equal(resolveModuleFolder(root, kind, 'augastam', 'foo'), legacyModuleFolder(kind, 'foo'));
+    for (const product of ['miracle', 'augastam']) assert.equal(resolveModuleFolder(root, kind, product, 'foo'), moduleFolder(kind, product, 'foo'));
   }
 });
 
-test('registry rejects qa/modules/foo/adapter.json declaring product miracle (the flat folder is augastam only)', t => {
+test('registry rejects qa/modules/foo/adapter.json declaring product miracle (the flat folder is not a module folder)', t => {
   const root = tempRoot(t);
   const adapter = { id: 'foo', product: 'miracle', name: 'Foo', spec: 'tests/modules/foo/cases.spec.ts', actions: { fill: 'Fill' }, outcomes: ['created'], variants: [], fields: { a: { label: 'A', kind: 'text' } } };
   put(root, 'qa/modules/foo/adapter.json', JSON.stringify(adapter));
@@ -37,16 +36,16 @@ test('registry rejects qa/modules/foo/adapter.json declaring product miracle (th
   assert.equal(warnings.length, 1); assert.match(warnings[0], /belongs in "qa\/miracle\/foo"/);
 });
 
-test('automationFiles for a miracle module never hashes the flat Augastam folders of the same name', t => {
+test('automationFiles never hashes the old flat folders, for any product', t => {
   const root = tempRoot(t);
   put(root, 'tests/modules/foo/a.spec.ts', 'a'); put(root, 'qa/modules/foo/adapter.json', '{}'); put(root, 'portal/modules/foo/index.mjs', 'x');
   assert.deepEqual(automationFiles(root, 'miracle', 'foo'), []);
-  assert.equal(automationFiles(root, 'augastam', 'foo').length, 3);
+  assert.deepEqual(automationFiles(root, 'augastam', 'foo'), []);
 });
 
-test('"modules" and the shared folder names cannot be a product; automation versions fail loudly for them', t => {
+test('the shared folder names cannot be a product; automation versions fail loudly for them', t => {
   const root = tempRoot(t);
-  for (const bad of ['modules', 'tools', 'knowledge', 'shared', 'fixtures', 'discovery', 'smoke']) {
+  for (const bad of ['tools', 'knowledge', 'shared', 'fixtures', 'discovery', 'smoke']) {
     assert.throws(() => resolveModuleFolder(root, 'qa', bad, 'x'), /reserved/, bad);
     assert.throws(() => automationFiles(root, bad, 'x'), /reserved/, bad);
   }
@@ -88,7 +87,7 @@ test('install-module-adapter --product installs into the product-scoped folders'
 
 test('install-module-adapter gives a plain InstallError for a reserved or malformed product', async t => {
   const s = proposal(t, { spec: 'tests/tools/bar/cases.spec.ts' });
-  for (const product of ['tools', 'modules', 'Bad_Product']) {
+  for (const product of ['tools', 'Bad_Product']) {
     await rejectsInstall(install(['--module', 'bar', '--product', product, '--from', s.from, '--dry-run'], s.opts), /--product/, product);
   }
 });

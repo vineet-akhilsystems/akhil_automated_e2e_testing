@@ -26,15 +26,13 @@ function checkId(label, value) {
   }
 }
 
-// "modules" is also blocked as a product while the old flat layout (qa/modules/<id>) exists: (qa, modules, x) would collide with it. Task 3 removes it.
-const BLOCKED_PRODUCT_NAMES = [...RESERVED_PRODUCT_NAMES, 'modules'];
-/** True when `productId` cannot be used as a product folder (reserved for shared folders or the legacy layout). */
-export function isReservedProductName(productId) { return BLOCKED_PRODUCT_NAMES.includes(productId); }
+/** True when `productId` cannot be used as a product folder (reserved for shared folders). */
+export function isReservedProductName(productId) { return RESERVED_PRODUCT_NAMES.includes(productId); }
 
 function checkProduct(productId) {
   checkId('product id', productId);
   if (isReservedProductName(productId)) {
-    throw new Error(`Invalid product id ${JSON.stringify(productId)}: that name is reserved for shared folders (${BLOCKED_PRODUCT_NAMES.join(', ')})`);
+    throw new Error(`Invalid product id ${JSON.stringify(productId)}: that name is reserved for shared folders (${RESERVED_PRODUCT_NAMES.join(', ')})`);
   }
 }
 
@@ -70,22 +68,8 @@ export function listProductFolders(root, kind) {
     .sort();
 }
 
-// TEMPORARY COMPATIBILITY (Task 2 of the product-scoped layout plan; Task 3 deletes this block and resolveModuleFolder's fallback):
-// the folders still live in the old flat layout (qa/modules/<id>, tests/modules/<id>, portal/modules/<id>) until they are moved.
-const LEGACY_BASE = { qa: 'qa/modules', tests: 'tests/modules', portal: 'portal/modules' };
-export function legacyModuleFolder(kind, moduleId) {
-  checkKind(kind);
-  checkId('module id', moduleId);
-  return `${LEGACY_BASE[kind]}/${moduleId}`;
-}
-
-// Runtime version of moduleFolder (reads the disk): the product-scoped folder when it exists under `root`; otherwise, for the
-// augastam product ONLY (the only product with flat content), the legacy flat folder when THAT exists; otherwise the product-scoped folder (so new modules get the new layout). moduleFolder itself stays pure and strict.
-export function resolveModuleFolder(root, kind, productId, moduleId) {
-  const scoped = moduleFolder(kind, productId, moduleId);
-  const isDir = rel => { try { return fs.statSync(path.join(root, ...rel.split('/'))).isDirectory(); } catch { return false; } };
-  if (isDir(scoped)) return scoped;
-  if (productId !== 'augastam') return scoped;
-  const legacy = legacyModuleFolder(kind, moduleId);
-  return isDir(legacy) ? legacy : scoped;
+// Kept so callers that pass a repo root keep one signature. The old flat layout (qa/modules/<id>) is no longer resolved,
+// so this is exactly moduleFolder and `root` is unused.
+export function resolveModuleFolder(_root, kind, productId, moduleId) {
+  return moduleFolder(kind, productId, moduleId);
 }

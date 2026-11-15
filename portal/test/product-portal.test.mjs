@@ -19,9 +19,9 @@ async function world(t, extra = {}) {
 }
 const newModule = (admin, name, productId, prefix = 'BIL') => admin.request('/api/modules', 'POST', { name, productId, prefix, area: 'Setup' });
 
-test('POST /api/products rejects names reserved for shared folders and the legacy "modules" folder', async t => {
+test('POST /api/products rejects names reserved for shared folders', async t => {
   const { admin } = await world(t);
-  for (const name of ['Tools', 'Knowledge', 'Shared', 'Fixtures', 'Discovery', 'Smoke', 'Modules']) {
+  for (const name of ['Tools', 'Knowledge', 'Shared', 'Fixtures', 'Discovery', 'Smoke']) {
     const r = await admin.request('/api/products', 'POST', { name });
     assert.equal(r.status, 400, name); assert.match(r.value.error, /reserved for shared folders/, name);
   }
