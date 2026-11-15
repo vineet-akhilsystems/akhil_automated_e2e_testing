@@ -710,3 +710,163 @@ test('the shipped Registration tree has an empty Registration type group and 132
   assert.equal(unassigned.length, 0);
   assert.equal(rollupTree(tree, byNode, [])['new-registration-type'].total, 0);
 });
+
+// ---- Version matrix and routes (Task 5) ----
+import { buildMatrix } from '../version-matrix.mjs';
+import { signedIn, makeUser } from './support.mjs';
+
+const ADMIN5 = { username: 'root', password: 'correct-horse-battery' };
+let seq = 0;
+const mrun = (o = {}) => ({ id: `r${++seq}`, kind: 'tests', mode: 'automated', status: 'passed', module: { id: 'm' }, createdAt: `2026-01-${String(10 + seq).padStart(2, '0')}T00:00:00Z`,
+  cases: [{ id: 'REG-2', title: 'Two' }, { id: 'REG-10', title: 'Ten' }], results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'PASS' }], ...o });
+const ver = (label, hash, n) => ({ ...(label ? { appVersion: { label, source: 'run' } } : {}), ...(hash ? { profile: { hash } } : {}), ...(n ? { automationVersion: { number: n, hash: 'h' } } : {}) });
+
+test('matrix groups runs by version combination and marks cases that differ', () => {
+  const old = mrun({ ...ver('1.57', 'aaaaaa111111', 3), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'FAIL' }] });
+  const mid = mrun({ ...ver('1.58', '3f9a1c000000', 4), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'PASS' }] });
+  const newer = mrun({ ...ver('1.58', '3f9a1c000000', 4), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'ERROR' }] });
+  const manual = mrun({ mode: 'manual', ...ver('9.9', null, null) }), running = mrun({ status: 'running', ...ver('9.8', null, null) });
+  const m = buildMatrix([old, mid, newer, manual, running]);
+  assert.deepEqual(m.columns.map(c => c.key), ['1.58|3f9a1c000000|4', '1.57|aaaaaa111111|3']);
+  assert.equal(m.columns[0].runId, newer.id); assert.equal(m.columns[0].at, newer.createdAt);
+  assert.match(m.columns[0].label, /1\.58 \(typed\)/);
+  assert.deepEqual(m.rows.map(r => r.caseId), ['REG-2', 'REG-10'], 'natural order');
+  assert.deepEqual(m.rows[1].cells, { '1.58|3f9a1c000000|4': 'ERROR', '1.57|aaaaaa111111|3': 'FAIL' });
+  assert.deepEqual(m.rows.map(r => r.differs), [false, true]);
+  assert.equal(m.rows[0].title, 'Two');
+  assert.equal(buildMatrix([old, mid, newer], { maxColumns: 1 }).columns.length, 1);
+});
+
+test('onlyDifferences hides cases with one status', () => {
+  const a = mrun({ ...ver('1', null, null), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'FAIL' }] });
+  const b = mrun({ ...ver('2', null, null), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'PASS' }] });
+  assert.deepEqual(buildMatrix([a, b], { onlyDifferences: true }).rows.map(r => r.caseId), ['REG-10']);
+  const missing = mrun({ ...ver('3', null, null), results: [{ id: 'REG-2', status: 'PASS' }] });
+  assert.equal(buildMatrix([missing, a]).rows.find(r => r.caseId === 'REG-10').differs, false, 'a missing result is not a status');
+});
+
+test('old runs without version fields form an "unknown" column', () => {
+  const m = buildMatrix([mrun(), mrun(), mrun(ver('1.0', null, null))]);
+  assert.deepEqual(m.columns.map(c => c.key), ['1.0|unknown|unknown', 'unknown']);
+  assert.equal(m.columns[1].label, 'version unknown');
+});
+
+test('matrix with 132 cases x 8 combinations over many runs stays fast', () => {
+  const cases = Array.from({ length: 132 }, (_, i) => ({ id: `REG-${i + 1}`, title: `t${i}` }));
+  const runs = [];
+  for (let v = 0; v < 8; v++) for (let k = 0; k < 40; k++) runs.push(mrun({ ...ver(`1.${v}`, null, null), cases, results: cases.map((c, i) => ({ id: c.id, status: (i + v) % 7 ? 'PASS' : 'FAIL' })) }));
+  const t0 = performance.now(), m = buildMatrix(runs);
+  assert.ok(performance.now() - t0 < 500);
+  assert.equal(m.columns.length, 8); assert.equal(m.rows.length, 132);
+});
+
+function fakeRoot(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vroutes-root-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const put = (rel, text) => { const f = path.join(root, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
+  put('tests/modules/registration/a.spec.ts', 'export const a = 1;\n');
+  return { root, put };
+}
+async function world5(t, extra = {}) {
+  const { root, put } = fakeRoot(t);
+  const f = await boot(t, { bootstrap: ADMIN5, automationRoot: root, automationGit: async () => ({ commit: 'abc', dirty: true }), ...extra });
+  const admin = await signedIn(f, ADMIN5.username, ADMIN5.password);
+  return { f, admin, root, put };
+}
+const V = '/api/modules/registration/automation-versions';
+
+test('list marks the current version and reports registered:false for new content; POST then repeat', async t => {
+  const { admin, put } = await world5(t);
+  const empty = await admin.request(V);
+  assert.equal(empty.status, 200); assert.deepEqual(empty.value.versions, []);
+  assert.equal(empty.value.current.registered, false); assert.equal(empty.value.current.number, null); assert.match(empty.value.current.hash, /^[0-9a-f]{64}$/);
+  const made = await admin.request(V, 'POST', { note: '  first  ' });
+  assert.equal(made.status, 201); assert.equal(made.value.number, 1); assert.equal(made.value.note, 'first'); assert.equal(made.value.trigger, 'manual'); assert.equal(made.value.createdBy, ADMIN5.username);
+  const again = await admin.request(V, 'POST', {});
+  assert.equal(again.status, 200); assert.equal(again.value.existing, true); assert.equal(again.value.number, 1);
+  await until(() => admin.request(V).then(r => r.value.versions[0].gitCommit));
+  const list = (await admin.request(V)).value;
+  assert.deepEqual(list.current, { hash: list.versions[0].hash, number: 1, registered: true });
+  const v = list.versions[0];
+  assert.equal(v.current, true); assert.equal(v.uncommitted, true); assert.equal(v.gitCommit, 'abc'); assert.equal(v.changedFilesSince, null);
+  assert.equal('pendingGit' in v, false); assert.equal('files' in v, false); assert.equal(v.fileCount, 1);
+  assert.deepEqual([v.runs, v.passRate], [0, null]);
+  put('tests/modules/registration/a.spec.ts', 'export const a = 2;\n');
+  const changed = (await admin.request(V)).value;
+  assert.equal(changed.current.registered, false); assert.equal(changed.versions[0].current, false);
+  assert.equal((await admin.request(V, 'POST', {})).value.number, 2);
+  const two = (await admin.request(V)).value;
+  assert.deepEqual(two.versions.map(x => [x.number, x.current, x.changedFilesSince]), [[2, true, 1], [1, false, null]]);
+  put('tests/modules/registration/a.spec.ts', 'export const a = 1;\n');
+  const reverted = (await admin.request(V)).value;
+  assert.equal(reverted.current.number, 1); assert.deepEqual(reverted.versions.map(x => [x.number, x.current]), [[2, false], [1, true]]);
+});
+
+test('PUT edits a note, rejects overlong notes and unknown numbers; passRate counts only pass/fail/error', async t => {
+  const { f, admin } = await world5(t);
+  await admin.request(V, 'POST', {});
+  const ok1 = await admin.request(`${V}/1`, 'PUT', { note: ' hello ' });
+  assert.equal(ok1.status, 200); assert.equal(ok1.value.note, 'hello'); assert.equal('files' in ok1.value, false);
+  assert.equal((await admin.request(`${V}/1`, 'PUT', { note: 'x'.repeat(301) })).status, 400);
+  assert.equal((await admin.request(`${V}/1`, 'PUT', { note: 'x'.repeat(300) })).status, 200);
+  assert.equal((await admin.request(`${V}/7`, 'PUT', { note: 'n' })).status, 404);
+  assert.equal((await admin.request('/api/modules/nope/automation-versions')).status, 404);
+  const base = { kind: 'tests', mode: 'automated', status: 'failed', module: { id: 'registration' }, automationVersion: { number: 1, hash: 'h' }, cases: [], createdAt: new Date().toISOString(), productId: 'augastam' };
+  f.store.saveRun({ ...base, id: 'pr1', results: [{ id: 'A', status: 'PASS' }, { id: 'B', status: 'FAIL' }, { id: 'C', status: 'SKIPPED' }, { id: 'D', status: 'PASS' }] });
+  f.store.saveRun({ ...base, id: 'pr2', status: 'running', results: [{ id: 'A', status: 'FAIL' }] });
+  const v = (await admin.request(V)).value.versions[0];
+  assert.deepEqual([v.runs, v.passRate], [1, 66.7]);
+});
+
+test('a viewer can read but gets 403 on POST and PUT', async t => {
+  const { f, admin } = await world5(t);
+  await admin.request(V, 'POST', {});
+  const vic = await makeUser(admin, 'vic', 'viewer');
+  const grant = await admin.request('/api/modules/registration/members', 'POST', { subjectType: 'user', subjectId: vic.id, role: 'viewer' });
+  assert.equal(grant.status, 201, JSON.stringify(grant.value));
+  const c = await signedIn(f, 'vic', vic.password);
+  assert.equal((await c.request(V)).status, 200);
+  assert.equal((await c.request('/api/modules/registration/version-matrix')).status, 200);
+  assert.equal((await c.request(V, 'POST', {})).status, 403);
+  assert.equal((await c.request(`${V}/1`, 'PUT', { note: 'x' })).status, 403);
+});
+
+test('version-matrix route returns columns for finished automated runs and honors onlyDifferences', async t => {
+  const { f, admin } = await world5(t);
+  const base = { kind: 'tests', mode: 'automated', status: 'passed', module: { id: 'registration' }, productId: 'augastam', cases: [{ id: 'A', title: 'a' }, { id: 'B', title: 'b' }] };
+  f.store.saveRun({ ...base, id: 'm1', createdAt: '2026-01-01T00:00:00Z', appVersion: { label: '1.57', source: 'run' }, results: [{ id: 'A', status: 'PASS' }, { id: 'B', status: 'FAIL' }] });
+  f.store.saveRun({ ...base, id: 'm2', createdAt: '2026-01-02T00:00:00Z', appVersion: { label: '1.58', source: 'run' }, results: [{ id: 'A', status: 'PASS' }, { id: 'B', status: 'PASS' }] });
+  const all = await admin.request('/api/modules/registration/version-matrix');
+  assert.equal(all.status, 200); assert.equal(all.value.columns.length, 2); assert.equal(all.value.rows.length, 2);
+  assert.deepEqual((await admin.request('/api/modules/registration/version-matrix?onlyDifferences=1')).value.rows.map(r => r.caseId), ['B']);
+});
+
+test('tree route: 404 without a tree, 200 with rollup for registration, other-module run 404, invalid tree 422', async t => {
+  const { f, admin, put } = await world5(t);
+  const T = '/api/modules/registration/tree';
+  assert.deepEqual([(await admin.request(T)).status, (await admin.request(T)).value.error], [404, 'No tree defined for this module.']);
+  put('qa/modules/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }, { id: 'grp', name: 'Group', parent: 'root', kind: 'group', match: { category: ['Gate'] } }] }));
+  assert.equal((await admin.request('/api/modules/registration/cases', 'POST', { id: 'TR-001', title: 'T', mode: 'manual', category: 'Gate', priority: 'P1', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
+  const none = await admin.request(`${T}?run=latest`);
+  assert.equal(none.status, 200); assert.equal(none.value.run, null); assert.deepEqual(none.value.assigned.grp, ['TR-001']); assert.equal(none.value.rollup.grp.total, 1);
+  const base = { kind: 'tests', mode: 'automated', module: { id: 'registration' }, productId: 'augastam', cases: [{ id: 'TR-001' }], results: [{ id: 'TR-001', status: 'PASS' }] };
+  f.store.saveRun({ ...base, id: 'old', name: 'Old', status: 'failed', createdAt: '2026-01-01T00:00:00Z' });
+  f.store.saveRun({ ...base, id: 'new', name: 'New', status: 'passed', createdAt: '2026-01-02T00:00:00Z' });
+  f.store.saveRun({ ...base, id: 'live', name: 'Live', status: 'running', createdAt: '2026-01-03T00:00:00Z' });
+  f.store.saveRun({ ...base, id: 'other', name: 'Other', status: 'passed', module: { id: 'elsewhere' }, createdAt: '2026-01-04T00:00:00Z' });
+  const latest = (await admin.request(`${T}?run=latest`)).value;
+  assert.deepEqual(latest.run, { id: 'new', name: 'New', at: '2026-01-02T00:00:00Z', status: 'passed' }); assert.equal(latest.rollup.grp.passed, 1);
+  assert.equal((await admin.request(`${T}?run=old`)).value.run.id, 'old');
+  assert.equal((await admin.request(`${T}?run=other`)).status, 404);
+  assert.equal((await admin.request(`${T}?run=nope`)).status, 404);
+  put('qa/modules/registration/tree.json', '{ not json');
+  const bad = await admin.request(T);
+  assert.equal(bad.status, 422); assert.match(bad.value.error, /not valid JSON/);
+});
+
+test('the real registration tree loads and rolls up against a seeded run', async t => {
+  const f = await boot(t, { bootstrap: ADMIN5 });
+  const admin = await signedIn(f, ADMIN5.username, ADMIN5.password);
+  const r = await admin.request('/api/modules/registration/tree?run=latest');
+  assert.equal(r.status, 200); assert.ok(r.value.tree.nodes.length > 3); assert.equal(r.value.run, null);
+});
