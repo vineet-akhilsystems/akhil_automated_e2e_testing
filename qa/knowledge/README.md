@@ -23,3 +23,5 @@ Rules for keeping it useful:
 - Each file is read up to a limit (mindset 6,000, domain 8,000, module 8,000 characters). Put the most important points first.
 - When a real defect is found, add it to the module's lessons as a pattern to look for again.
 - Replace a draft with confirmed facts as soon as the business analyst answers an "Ask" question.
+
+Versions: runs record an application version (typed on the login profile or per run) and an automatic automation version (v1, v2, ... by content hash of the automation files). Tester notes should say which version a lesson was observed on; see the "Versions" section of the main README.

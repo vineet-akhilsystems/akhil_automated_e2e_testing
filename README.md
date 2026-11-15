@@ -140,6 +140,43 @@ Default exit criteria, applied in this order: **Do not release** when any open f
 
 **Planned.** Phase B: an interactive HTML evidence report, plus requirements coverage and automation-health reports. Phase C: a release pack across several runs, a recorded approval and retention rules for old packs.
 
+## Versions
+
+The portal records which application version and which automation version each run used, so results can be compared across versions. This is a spike: it records and displays, it does not change how tests run.
+
+**Application version (typed).** Type the version on the login profile (environment settings). A run uses the profile's value unless the run dialog supplies an override. The run stores the label and where it came from (profile or override). Re-running failures keeps the original run's version, not the profile's current value.
+
+**Detected profile (automatic).** While a run executes, the reporter notes which configuration-service endpoints the application answered and builds a fingerprint from those responses. Each key is made of the endpoint path and a short hash of its non-cache-buster query parameters, so keys never contain query text. The portal derives the parts and an overall hash from the keys, shown as a short code (6 characters). A key is marked unstable only when the same key returned different content within one run. Runs of different case subsets touch different endpoints, so a partial-subset run gives a different overall hash than a full run; this is a known limitation, and comparing on common keys is not built. The detected profile helps spot that two runs saw different application configuration; it does not state a version number.
+
+**Automation versions (automatic).** At run start the portal fingerprints the automation files (a content hash of the test code and module files; line endings are normalised, run results and evidence are not hashed) and looks up the hash. A new hash becomes the next number (v1, v2, ...); an unchanged hash reuses its number, so reverting a change returns to the earlier number. The run stores the number and hash. The version record keeps who or what registered it, any note, the git commit (when available) and an **uncommitted** badge when files differ from that commit; an uncommitted version shows its git commit together with the badge. Git details are added in the background after registration. If the files cannot be read, the run starts without a version rather than creating a spurious one.
+
+**Versions tab (module page).** Lists each automation version with its number, hash, date, who or what created it, run count, pass rate, changed files since the previous version and the current marker (the version whose hash matches the files now, which after a revert is not always the highest number). You can edit a version's note and press **Register now** to record the current files as a version without running. Below the list is the **matrix**: rows are cases, columns are version combinations (typed application version, detected profile, automation version; at most 8, newest first), cells are the result in the latest finished automated run of that combination. Tick **Only differences** to hide rows whose result is the same in every column. A blank cell means the case was not run in that combination.
+
+**Tree tab (read-only).** Shows how a module's cases group under steps, variants and groups, with the latest run's results rolled up per node. Developers edit the tree in the file `qa/modules/<module>/tree.json`; the portal never writes it. Format:
+
+```json
+{ "module": "registration", "note": "optional text",
+  "nodes": [
+    { "id": "root", "name": "Registration", "kind": "root" },
+    { "id": "walkin", "name": "Walk-in", "kind": "variant", "parent": "root",
+      "match": { "registrationType": ["Walk-in"] } } ] }
+```
+
+Validation rules: module and node ids match `/^[A-Za-z0-9_-]+$/`; exactly one root, without `match`; every other node has an existing `parent`; node names are unique; `kind` is `root`, `step`, `variant` or `group`; `match` keys are `registrationType`, `category` or `action`, each a non-empty array of strings; no cycles; at most 6 levels. A case goes to the node with the most matching keys (ties go to the first in file order). Cases that match no node appear in the **unassigned** list. An invalid file is reported with its first errors (HTTP 422) and the tab shows the message.
+
+**API.** All under `/api/modules/<id>/`: `GET automation-versions` (versions, current hash and number), `POST automation-versions` (register now, body `{ "note": "..." }`; returns the existing record with `existing: true` if the files are unchanged), `PUT automation-versions/<number>` (body `{ "note": "..." }`), `GET version-matrix?onlyDifferences=1`, `GET tree` (optional `?run=latest` or `?run=<runId>` for the rollup). Reading needs module view access; registering and editing notes need module settings access, and both are audited.
+
+**Report packs.** The pack `00-README.txt` ("Version:" line), the PDF run details and the workbook Summary sheet carry the run's version text, for example `1.58 (typed) · profile a1b2c3 (detected) · automation v2`, or "version unknown" for older runs. In `MANIFEST.json`, `run.version` is that text as a string; in the internal report model, `run.version` is an object (typed, profile, automation and `text`). The bug register workbook, Jira CSV and HTML report do not carry a version yet.
+
+**Limitations.**
+- Re-run keeps the original run's version; older automation versions cannot be run again (the portal stores fingerprints, not copies of the code).
+- Versions are never retired or deleted.
+- The tree is edited by developers in files; there is no tree editor.
+- The Tree tab checks for a tree file only on modules with an automation adapter.
+- The detected profile is read only from configuration responses seen during the run; it is not a complete description of the application.
+- This branch builds on the report-pack branch, which must merge first.
+- Verdicts stay "Suggested" and need a person to confirm them; version data is context for that decision, not an approval.
+
 ## Multiple modules
 
 The hierarchy is **workspace → business area → module → suite → test case**, with executions stored separately. Business areas and suites are labels in this version; they are not nested folders. Module cards show whether automation is connected. Creating a module never claims that its browser automation already exists.

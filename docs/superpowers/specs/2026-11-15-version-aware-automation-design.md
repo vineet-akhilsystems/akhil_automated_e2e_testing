@@ -1,6 +1,6 @@
 # Version-aware, tree-based automation
 
-Status: DRAFT, owner's answers recorded below. Nothing in this document is built yet.
+Status: Spike implemented (see plan); later phases not started.
 
 ## The problem in one paragraph
 
