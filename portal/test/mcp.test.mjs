@@ -164,3 +164,76 @@ test('MCP list_runs and get_run read the run history', async t => {
   assert.equal(one.error, false, String(one.data));
   assert.equal(one.data.id, run.value.id); assert.equal(one.data.cases.length, 1);
 });
+
+// ---- version-aware tools ----
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const autoRun = (id, at, extra = {}) => ({ id, name: id, kind: 'tests', mode: 'automated', status: 'failed', module: { id: 'billing' }, environmentId: 'local', createdAt: at, finishedAt: at,
+  cases: [{ id: 'BIL-001', title: 'Reject total 0' }], results: [{ id: 'BIL-001', title: 'Reject total 0', status: 'FAIL', actual: 'bad', mismatches: ['x'] }], ...extra });
+
+test('MCP version tools, tree, change impact and version hints on failures and compare', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-versions-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'tree.json'), JSON.stringify({ module: 'billing', nodes: [{ id: 'root', name: 'Billing', kind: 'root' }, { id: 'val', name: 'Validation', kind: 'group', parent: 'root', match: { category: ['Validation'] } }] }));
+  const f = await boot(t, { bootstrap: ADMIN, automationRoot: root, automationFingerprint: () => ({ hash: 'h-current', files: [] }) });
+  const admin = await signedIn(f, ADMIN.username, ADMIN.password);
+  const ba = await makeUser(admin, 'rita', 'ba');
+  assert.equal((await admin.request('/api/modules', 'POST', { name: 'Billing', prefix: 'BIL', area: 'Finance' })).status, 201);
+  assert.equal((await admin.request('/api/modules/billing/cases', 'POST', { id: 'BIL-001', title: 'Reject total 0', category: 'Validation', priority: 'P1', mode: 'manual', reviewStatus: 'approved', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
+  f.store.saveRun(autoRun('r-old', '2026-01-01T00:00:00.000Z', { status: 'passed', results: [{ id: 'BIL-001', status: 'PASS' }], appVersion: { label: '1.58', source: 'run' }, profile: { hash: 'aaaaaaaaaaaa1111', keys: { secret: 'KEYVALUE' } }, automationVersion: { number: 3 } }));
+  f.store.saveRun(autoRun('r-new', '2026-02-01T00:00:00.000Z', { appVersion: { label: '1.59', source: 'run' }, profile: { hash: 'bbbbbbbbbbbb2222', keys: { secret: 'KEYVALUE' } }, automationVersion: { number: 5 } }));
+  f.store.saveRun(autoRun('r-legacy', '2026-03-01T00:00:00.000Z'));
+
+  const m = mcpClient({ PORTAL_URL: f.base, PORTAL_MCP_USER: 'rita', PORTAL_MCP_PASSWORD: ba.password });
+  t.after(() => m.close());
+  await m.rpc('initialize', {});
+  const names = (await m.rpc('tools/list')).result.tools.map(x => x.name);
+  for (const n of ['list_automation_versions', 'get_version_matrix', 'get_tree', 'check_change_impact']) assert.ok(names.includes(n), n);
+
+  const versions = await m.call('list_automation_versions', { moduleId: 'billing' });
+  assert.equal(versions.error, false, String(versions.data));
+  assert.ok(Array.isArray(versions.data.versions));
+  const matrix = await m.call('get_version_matrix', { moduleId: 'billing', onlyDifferences: true });
+  assert.equal(matrix.error, false, String(matrix.data));
+  assert.ok(matrix.data.columns.length >= 2);
+  assert.ok(matrix.data.rows.every(r => r.differs));
+  assert.equal(JSON.stringify(matrix.data).includes('KEYVALUE'), false);
+  const tree = await m.call('get_tree', { moduleId: 'billing', run: 'latest' });
+  assert.equal(tree.error, false, String(tree.data));
+  assert.equal(tree.data.assigned.val[0], 'BIL-001');
+  assert.equal((await m.call('get_tree', { moduleId: 'billing' })).data.run, null);
+
+  // validation
+  for (const bad of ['../x', 'a b', '', 5]) assert.equal((await m.call('list_automation_versions', { moduleId: bad })).error, true);
+  assert.equal((await m.call('get_tree', { moduleId: 'billing', run: '../x' })).error, true);
+  assert.equal((await m.call('get_tree', { moduleId: 'nope' })).error, true);
+  assert.equal((await m.call('check_change_impact', { changed: [] })).error, true);
+  assert.equal((await m.call('check_change_impact', { changed: [5] })).error, true);
+
+  // change impact: a mapped file matches, credential-looking paths are dropped
+  const impact = await m.call('check_change_impact', { changed: ['portal/mcp-server.mjs', '.' + 'env', 'qa/.' + 'auth/state.json'] });
+  assert.equal(impact.error, false, String(impact.data));
+  assert.ok(impact.data.rules.some(r => r.id === 'mcp-tools'));
+  assert.equal(impact.data.ignoredCount, 2);
+  assert.equal(JSON.stringify(impact.data).includes('state.json'), false);
+  const many = await m.call('check_change_impact', { changed: Array.from({ length: 500 }, (_, i) => `portal/x${i}.mjs`) });
+  assert.equal(many.data.truncatedInput, true);
+  assert.ok(many.data.changed.length <= 50);
+
+  // hints on failures and compare
+  const cmp = await m.call('compare_runs', { runId: 'r-new' });
+  assert.equal(cmp.error, false, String(cmp.data));
+  assert.match(cmp.data.versionDifferences.hint, /Automation version differs \(v3 vs v5\): check the changed files before blaming the app/);
+  assert.match(cmp.data.versionDifferences.hint, /Application version differs \(1\.58 vs 1\.59\)/);
+  assert.equal(cmp.data.versionDifferences.head.profileHash, 'bbbbbb');
+  assert.equal(JSON.stringify(cmp.data).includes('KEYVALUE'), false);
+  const fails = await m.call('get_run_failures', { runId: 'r-new' });
+  assert.equal(fails.error, false, String(fails.data));
+  assert.match(fails.data.versionDifferences.hint, /v3 vs v5/);
+  const legacy = await m.call('get_run_failures', { runId: 'r-legacy' });
+  assert.equal(legacy.error, false, String(legacy.data));
+  assert.match(legacy.data.versionDifferences.hint, /unknown/);
+});

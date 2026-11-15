@@ -1,6 +1,8 @@
 // Failure analysis for a finished run: classify every failing result, group identical failures, and give a rule-based hint.
 // Nothing here calls an AI model and nothing edits a test. Hints are starting points for a person (or the healer agent) to review.
 
+import { versionDifferences } from './compare.mjs';
+
 const BAD = new Set(['FAIL', 'FAIL (assumed requirement)', 'ERROR']);
 
 export const CLASSES = {
@@ -47,7 +49,7 @@ export function locatorAdvice(result) {
 const agentPrompt = (r, moduleId) => `Use the playwright-test-healer agent on ${r.id} (${moduleId}). Fix only locators and waiting; do not change the expected results. Show me the diff before anything is kept.`;
 
 /** Groups, clusters and per-case hints for a run. Quarantined failures are listed but flagged. */
-export function analyzeRun(run) {
+export function analyzeRun(run, previous = null) {
   const failing = (run.results ?? []).filter(r => BAD.has(r.status));
   const items = failing.map(r => ({ id: r.id, title: r.title, status: r.status, quarantined: Boolean(r.quarantined), cls: classify(r), sig: signature(r), result: r }));
   const groups = Object.keys(CLASSES).map(cls => {
@@ -61,7 +63,7 @@ export function analyzeRun(run) {
   }
   const clusters = [...byKey.values()].map(c => ({ ...c, count: c.caseIds.length })).sort((a, b) => b.count - a.count);
   const suggestions = items.filter(i => i.cls === 'locator' || i.cls === 'timeout').map(i => ({ caseId: i.id, class: i.cls, locator: locatorAdvice(i.result), prompt: agentPrompt(i.result, run.module?.id ?? 'module'), review: 'A person must review the change. Business expectations must stay as they are.' }));
-  return { total: items.length, gating: items.filter(i => !i.quarantined).length, groups, clusters, suggestions, postmortem: postmortem(run, items, groups, clusters) };
+  return { total: items.length, gating: items.filter(i => !i.quarantined).length, groups, clusters, suggestions, postmortem: postmortem(run, items, groups, clusters), versionDifferences: versionDifferences(previous, run) };
 }
 
 /** Plain-language summary written from the facts above; an assistant can refine it, but this is always available. */

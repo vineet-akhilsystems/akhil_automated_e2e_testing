@@ -132,6 +132,7 @@ async function loadCompare(runId) {
     const d = c.head.passRate !== null && c.base.passRate !== null ? Math.round((c.head.passRate - c.base.passRate) * 10) / 10 : null;
     node.innerHTML = `<div class="panel-heading"><h2>Compared with the previous run</h2><span class="badge">${esc(c.base.name)} · ${esc(when(c.base.at))}</span></div>
       <p>Pass rate ${c.base.passRate ?? '—'}% → <strong>${c.head.passRate ?? '—'}%</strong>${d === null ? '' : ` (${d > 0 ? '+' : ''}${d} points)`} · duration ${fmtMs(c.base.wallMs)} → ${fmtMs(c.head.wallMs)}</p>
+      ${c.versionDifferences?.hint ? `<p class="form-help">${esc(c.versionDifferences.hint)}</p>` : ''}
       ${list('newly failing', c.newlyFailing, 'fail')}${list('fixed', c.fixed, 'green')}${list('still failing', c.stillFailing, 'orange')}${list('newly flaky', c.newlyFlaky, 'orange')}${list('much slower', c.slower, '')}${list('new cases', c.added, '')}${list('no longer in the run', c.removed, '')}
       ${Object.values(c.counts).every(n => !n) ? '<p class="muted">Nothing changed between the two runs.</p>' : ''}`;
   } catch (error) { node.innerHTML = `<h2>Compared with the previous run</h2><p class="form-help">${esc(error.message)}</p>`; }

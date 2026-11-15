@@ -87,3 +87,23 @@ test('API: trends, alerts and schedules respect access and validate input', asyn
   assert.equal((await f.request(`/api/schedules/${id}`, 'DELETE')).status, 200);
   await until(() => true);
 });
+
+import { versionDifferences, runVersions, compareRuns as compareRunsForVersions } from '../compare.mjs';
+import { analyzeRun as analyzeForVersions } from '../failures.mjs';
+
+test('versionDifferences gives hints, says unknown for missing values and never throws on old runs', () => {
+  const a = { appVersion: { label: '1.58', source: 'run' }, profile: { hash: 'abcdef123456' }, automationVersion: { number: 3 } };
+  const b = { appVersion: { label: '1.58', source: 'run' }, profile: { hash: 'abcdef999999' }, automationVersion: { number: 5 } };
+  const d = versionDifferences(a, b);
+  assert.deepEqual(d.differs, { appVersion: false, profile: false, automation: true });
+  assert.match(d.hint, /^HINT \(not a verdict\): Automation version differs \(v3 vs v5\): check the changed files before blaming the app\.$/);
+  assert.equal(d.head.profileHash, 'abcdef');
+  const old = versionDifferences({}, a);
+  assert.deepEqual(old.differs, { appVersion: null, profile: null, automation: null });
+  assert.match(old.hint, /unknown for the earlier run, so it cannot be compared/);
+  assert.equal(runVersions(undefined).automationVersion, 'unknown');
+  assert.equal(versionDifferences(null, a).hints[0], 'No earlier run to compare versions with.');
+  assert.match(versionDifferences(a, a).hint, /No version difference recorded/);
+  assert.equal(compareRunsForVersions({ results: [] }, { results: [] }).versionDifferences.differs.automation, null);
+  assert.equal(analyzeForVersions({ results: [] }).versionDifferences.head.appVersion.label, 'unknown');
+});

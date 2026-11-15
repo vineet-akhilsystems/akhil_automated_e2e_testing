@@ -27,7 +27,7 @@ export default async function handle(ctx, rc) {
   if ((m = /^\/api\/runs\/([\w-]+)\/(failures|compare)$/.exec(route)) && req.method === 'GET') {
     const run = store.run(m[1]);
     check(run && run.kind === 'tests', 'Run not found.', 404);
-    if (m[2] === 'failures') return json(res, 200, { ...analyzeRun(run), written: run.postmortem ?? null });
+    if (m[2] === 'failures') return json(res, 200, { ...analyzeRun(run, previousRun(store.runs().filter(r => visibleRun(acc, r)), run)), written: run.postmortem ?? null });
     const other = url.searchParams.get('to');
     const base = other ? store.run(other) : previousRun(store.runs().filter(r => visibleRun(acc, r)), run);
     if (other) check(base && base.kind === 'tests' && base.module?.id === run.module?.id && visibleRun(acc, base), 'Choose another run of the same module.', 404);

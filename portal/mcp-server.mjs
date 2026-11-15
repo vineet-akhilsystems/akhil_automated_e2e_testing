@@ -5,6 +5,10 @@
 //   PORTAL_URL            default http://127.0.0.1:4173
 //   PORTAL_MCP_USER / PORTAL_MCP_PASSWORD   a portal account with a "ba" or "tester" membership on the modules it should work on (it only sees modules it is a member of; drafts always need human approval)
 //   PORTAL_MCP_TOKEN      only if the portal runs in old single-access-key mode
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { checkImpact, repoFiles, isIgnoredPath, norm, matchGlob, hasMagic } from '../qa/tools/impact-check.mjs';
 const BASE = (process.env.PORTAL_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 let cookie = '';
 
@@ -59,6 +63,40 @@ function moduleSchema(boot, moduleId) {
   const adapter = m.adapter ? (boot.adapters ?? []).find(a => a.id === m.adapter || a.name === m.adapter || a.key === m.adapter) ?? { id: m.adapter } : null;
   return { moduleId: m.id, productId: m.productId, productName: m.productName, name: m.name, prefix: m.prefix, adapter, templates: m.config?.bases ?? {}, requirements: m.config?.requirements ?? [],
     note: adapter ? 'Cases for this module may be automated; they are saved as drafts needing human approval.' : 'No adapter: manual cases only.' };
+}
+
+const validId = id => { if (typeof id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(id)) throw new Error('Invalid module id.'); return id; };
+
+// Defensive: whatever the portal sends, never pass on a login profile's keys or any query text.
+function stripSecrets(v, parent = '') {
+  if (Array.isArray(v)) return v.map(x => stripSecrets(x, parent));
+  if (!v || typeof v !== 'object') return v;
+  const out = {};
+  for (const [k, x] of Object.entries(v)) {
+    if (k === 'query' || (k === 'keys' && parent === 'profile')) continue;
+    out[k] = stripSecrets(x, k);
+  }
+  return out;
+}
+
+const MAX_CHANGED = 200, MAX_PATH = 300, MAX_RULES = 50, MAX_LIST = 50;
+const IMPACT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+function checkChangeImpact(changed) {
+  if (!Array.isArray(changed) || !changed.length) throw new Error('Send changed as a non-empty list of repo-relative file paths.');
+  if (changed.some(p => typeof p !== 'string' || !p.trim() || p.length > MAX_PATH || p.includes('\0'))) throw new Error(`Each path must be a text of 1-${MAX_PATH} characters.`);
+  const given = changed.slice(0, MAX_CHANGED).filter(p => !isIgnoredPath(p)); // credential and session paths are dropped, exactly like the CLI
+  const map = JSON.parse(fs.readFileSync(path.join(IMPACT_ROOT, 'qa', 'impact-map.json'), 'utf8'));
+  let files = null;
+  try { files = repoFiles(); } catch { /* not a git checkout: existence is then unknown */ }
+  const exists = p => files === null ? true : hasMagic(p) ? files.some(f => matchGlob(p, f)) : files.includes(norm(p));
+  const r = checkImpact({ changed: given, map, exists });
+  const cap = l => l.slice(0, MAX_LIST);
+  return {
+    changed: cap(r.changed), ignoredCount: changed.length - given.length, truncatedInput: changed.length > MAX_CHANGED,
+    rules: r.rules.slice(0, MAX_RULES).map(x => ({ ...x, changed: cap(x.changed), targets: cap(x.targets), verify: cap(x.verify) })),
+    rulesTotal: r.rules.length, missing: r.missing,
+    note: 'Hints from a hand-kept map, not a verdict: an unmatched change does not mean nothing else is affected.',
+  };
 }
 
 const TOOLS = [
@@ -126,10 +164,25 @@ const TOOLS = [
     run: async () => { const b = await api('GET', '/api/runs'); return Array.isArray(b) ? b.slice(0, 30) : b; } },
   { name: 'get_run', description: 'Get one run with per-case expected vs actual results.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' } } },
     run: ({ runId }) => api('GET', `/api/runs/${enc(runId)}`) },
-  { name: 'get_run_failures', description: 'For a finished run: failing cases grouped by cause (login/session, application error, test data, element not found, timeout, expected result not met), cases that failed with the same message, rule-based fix hints, and a plain-language summary. Read this before writing a post-mortem.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' } } },
+  { name: 'get_run_failures', description: 'For a finished run: failing cases grouped by cause (login/session, application error, test data, element not found, timeout, expected result not met), cases that failed with the same message, rule-based fix hints, a plain-language summary, and versionDifferences (application version, profile hash, automation version versus the previous run, with a HINT line; hints only, never a verdict). Read this before writing a post-mortem.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' } } },
     run: ({ runId }) => api('GET', `/api/runs/${enc(runId)}/failures`) },
-  { name: 'compare_runs', description: 'What changed between a run and the previous finished automated run of the same module and login profile (or a run you name in "to"): newly failing, fixed, still failing, newly flaky, slower, added and removed cases.', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' }, to: { type: 'string', description: 'Optional id of an older run of the same module to compare against.' } } },
+  { name: 'compare_runs', description: 'What changed between a run and the previous finished automated run of the same module and login profile (or a run you name in "to"): newly failing, fixed, still failing, newly flaky, slower, added and removed cases. Includes versionDifferences with a HINT line (hints only, never a verdict).', inputSchema: { type: 'object', required: ['runId'], properties: { runId: { type: 'string' }, to: { type: 'string', description: 'Optional id of an older run of the same module to compare against.' } } },
     run: ({ runId, to }) => api('GET', `/api/runs/${enc(runId)}/compare${to ? `?to=${enc(to)}` : ''}`) },
+  { name: 'list_automation_versions', description: 'Registered automation versions of a module (number, note, file count, whether it is the current one, run count, pass rate). Read-only. Use it to see which automation changes sit between two runs.',
+    inputSchema: moduleOnly,
+    run: async ({ moduleId }) => stripSecrets(await api('GET', `/api/modules/${enc(validId(moduleId))}/automation-versions`)) },
+  { name: 'get_version_matrix', description: 'Version matrix of a module: one column per application version / login profile hash / automation version among finished automated runs, one row per case with its newest result in each column. Set onlyDifferences to keep only the cases whose result differs between columns. Read-only; hints only, not a verdict.',
+    inputSchema: { type: 'object', required: ['moduleId'], properties: { moduleId: { type: 'string' }, onlyDifferences: { type: 'boolean' } } },
+    run: async ({ moduleId, onlyDifferences }) => stripSecrets(await api('GET', `/api/modules/${enc(validId(moduleId))}/version-matrix${onlyDifferences === true ? '?onlyDifferences=1' : ''}`)) },
+  { name: 'get_tree', description: 'The module test tree (node ids and names), which cases sit under each node, and a pass/fail roll-up. Pass run="latest" or a run id to roll up that run\'s results. Read-only.',
+    inputSchema: { type: 'object', required: ['moduleId'], properties: { moduleId: { type: 'string' }, run: { type: 'string', description: '"latest" or a run id' } } },
+    run: async ({ moduleId, run }) => {
+      if (run !== undefined && !(typeof run === 'string' && /^[A-Za-z0-9_-]+$/.test(run))) throw new Error('run must be "latest" or a run id.');
+      return stripSecrets(await api('GET', `/api/modules/${enc(validId(moduleId))}/tree${run ? `?run=${enc(run)}` : ''}`));
+    } },
+  { name: 'check_change_impact', description: 'Given changed file paths (repo-relative), list the coupled files and checks to look at too, from qa/impact-map.json ("you changed X, so also check Y"). Hints only; it never reads file contents, and credential or session paths are dropped.',
+    inputSchema: { type: 'object', required: ['changed'], properties: { changed: { type: 'array', items: { type: 'string' }, description: `Up to ${MAX_CHANGED} repo-relative paths` } } },
+    run: async ({ changed }) => checkChangeImpact(changed) },
   { name: 'save_run_postmortem', description: 'Save a short post-mortem for a finished run (plain language, at most 4000 characters): the likely cause, which failures share it, and what to do next. Shown on the run page as written by the assistant. Base it on get_run_failures and compare_runs; do not invent causes.', inputSchema: { type: 'object', required: ['runId', 'text'], properties: { runId: { type: 'string' }, text: { type: 'string' } } },
     run: ({ runId, text }) => api('PUT', `/api/runs/${enc(runId)}/postmortem`, { text }) },
 ];

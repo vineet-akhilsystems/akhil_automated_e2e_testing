@@ -11,6 +11,45 @@ export function previousRun(runs, run) {
     .sort((a, b) => String(b.finishedAt ?? b.createdAt).localeCompare(String(a.finishedAt ?? a.createdAt)))[0] ?? null;
 }
 
+const UNKNOWN = 'unknown';
+/** The three version facts of one run, with "unknown" for anything missing (old runs have none of these fields). */
+export function runVersions(run) {
+  const label = typeof run?.appVersion?.label === 'string' && run.appVersion.label ? run.appVersion.label : null;
+  const hash = run?.profile?.hash ? String(run.profile.hash).slice(0, 6) : null;
+  const number = Number.isInteger(run?.automationVersion?.number) ? run.automationVersion.number : null;
+  return { appVersion: { label: label ?? UNKNOWN, source: label ? (run.appVersion.source ?? UNKNOWN) : UNKNOWN }, profileHash: hash ?? UNKNOWN, automationVersion: number ?? UNKNOWN };
+}
+
+/**
+ * Version facts for two runs (base = older, may be null; head = newer) plus plain-language HINTS.
+ * A hint says what to check, never what caused a failure. An unknown value is never treated as a difference.
+ */
+export function versionDifferences(base, head) {
+  const h = runVersions(head), b = base ? runVersions(base) : null;
+  const out = { head: h, ...(b ? { base: b } : {}) };
+  const hints = [];
+  if (!b) hints.push('No earlier run to compare versions with.');
+  else {
+    const dims = [
+      ['appVersion', 'Application version', b.appVersion.label, h.appVersion.label, x => x, 'the application may have changed, so confirm the behaviour with the team before changing a test'],
+      ['profile', 'Login profile settings', b.profileHash, h.profileHash, x => x, 'check that both runs used the same login profile settings'],
+      ['automation', 'Automation version', b.automationVersion, h.automationVersion, x => 'v' + x, 'check the changed files before blaming the app'],
+    ];
+    out.differs = {};
+    for (const [key, label, was, now, fmt, advice] of dims) {
+      if (was === UNKNOWN || now === UNKNOWN) {
+        out.differs[key] = null;
+        hints.push(`${label} unknown for ${was === UNKNOWN && now === UNKNOWN ? 'both runs' : was === UNKNOWN ? 'the earlier run' : 'the newer run'}, so it cannot be compared.`);
+      } else if (was !== now) { out.differs[key] = true; hints.push(`${label} differs (${fmt(was)} vs ${fmt(now)}): ${advice}.`); }
+      else out.differs[key] = false;
+    }
+    if (Object.values(out.differs).every(v => v === false)) hints.push('No version difference recorded between the two runs.');
+  }
+  out.hints = hints;
+  out.hint = `HINT (not a verdict): ${hints.join(' ')}`;
+  return out;
+}
+
 /** What changed between `base` (older) and `head` (newer), case by case. */
 export function compareRuns(base, head) {
   const b = new Map((base.results ?? []).map(r => [r.id, r])), h = new Map((head.results ?? []).map(r => [r.id, r]));
@@ -30,7 +69,7 @@ export function compareRuns(base, head) {
   const rate = run => { const c = (run.results ?? []).filter(r => !['SKIPPED', 'OBSERVED', 'BLOCKED'].includes(r.status) && !r.quarantined); return c.length ? Math.round(c.filter(r => r.status === 'PASS').length / c.length * 1000) / 10 : null; };
   const wall = run => run.timing?.wallMs ?? (run.startedAt && run.finishedAt ? Date.parse(run.finishedAt) - Date.parse(run.startedAt) : null);
   const info = run => ({ id: run.id, name: run.name, at: run.finishedAt ?? run.createdAt, status: run.status, passRate: rate(run), wallMs: wall(run) });
-  return { base: info(base), head: info(head), ...out, counts: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.length])) };
+  return { base: info(base), head: info(head), versionDifferences: versionDifferences(base, head), ...out, counts: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.length])) };
 }
 
 const xml = v => String(v ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
