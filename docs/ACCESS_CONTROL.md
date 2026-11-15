@@ -35,7 +35,7 @@ A product-level membership applies to every module in that product. Individual p
 
 ## Permission list
 
-`module.view`, `module.settings`, `members.manage`, `intake.upload`, `intake.delete`, `agent.run`, `case.create`, `case.edit`, `case.delete`, `case.review`, `run.start`, `run.cancel`, `triage.write`, `report.view`; at product scope also `module.create` and `product.view`. `GET /api/access/roles` returns the catalogue; `GET /api/me/access` returns what the signed-in person can do.
+`module.view`, `module.settings`, `members.manage`, `intake.upload`, `intake.delete`, `agent.run`, `case.create`, `case.edit`, `case.delete`, `case.review`, `case.approve.own`, `run.start`, `run.cancel`, `triage.write`, `report.view`; at product scope also `module.create` and `product.view`. `GET /api/access/roles` returns the catalogue; `GET /api/me/access` returns what the signed-in person can do.
 
 How permissions combine on a module: product-level memberships (direct or through teams) plus the module part. At module scope a person's **direct** membership replaces what their teams would give them on that module (a direct Viewer entry overrides a team's Lead); with no direct entry, the union of their teams' entries applies. Expired entries are ignored. Without `module.view` nothing else works.
 
@@ -58,8 +58,9 @@ A team is a reusable group of people that can be attached to modules or products
 
 Module setting `requireSecondApprover` (default on, switchable by the lead). While on:
 
-- Nobody can approve or reject a case they created, last changed the content of, or last saved. Administrators are not exempt.
-- A reviewer's own new cases start as drafts.
+- Nobody can approve or reject a case they created, last changed the content of, or last saved, unless they hold `case.approve.own` ("Approve cases you wrote yourself"). Administrators hold it by default; no preset role does, but it can be granted to a person, team or role override like any permission (you can only grant it if you hold it, and the expiry cap applies). It does not replace `case.review`: approving still needs both.
+- A reviewer's own new cases start as drafts. For someone holding `case.approve.own` (and `case.review`) they are approved on creation, and their edits do not send the case back to draft.
+- A self-approval is recorded: `reviewedBy.self` is `true`, and the `case.review` (or `case.create`/`case.update`) audit entry carries `selfApproved: true`.
 - Changing a case's content (title, steps, input and its key order, action, base template, expected, target, requirement, preconditions, type, mode) sends it back to draft for any editor. Priority, category, enabled and notes do not.
 - Changing a data template resets the cases built on it and makes the editor their content author.
 - The rule applies once user accounts exist.

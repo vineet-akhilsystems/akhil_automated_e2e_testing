@@ -95,6 +95,44 @@
       ]
     },
     {
+      "id": "permissions-catalog",
+      "title": "A new or renamed permission lives in the catalogue and is also listed, labelled and documented elsewhere",
+      "when": [
+        "portal/access.mjs",
+        "portal/public/permissions.js",
+        "portal/public/pages/members.js"
+      ],
+      "alsoCheck": [
+        {
+          "path": "portal/access.mjs",
+          "why": "PERMISSIONS catalogue, preset ROLES and the effective-permission functions (Admins hold every module permission automatically)"
+        },
+        {
+          "path": "portal/public/pages/members.js",
+          "why": "FALLBACK_ACCESS_META permission labels and role lists used when /api/access/roles is unavailable"
+        },
+        {
+          "path": "portal/public/permissions.js",
+          "why": "legacy role lists used when the server has no /api/me/access"
+        },
+        {
+          "path": "docs/ACCESS_CONTROL.md",
+          "why": "permission list, role table and the rules built on permissions (for example the second-approver rule)"
+        },
+        {
+          "path": "portal/test/access.test.mjs",
+          "why": "unit tests of the catalogue, roles and effective permissions"
+        },
+        {
+          "path": "portal/test/self-approve.test.mjs",
+          "why": "API tests of the rights-based second-approver rule (case.approve.own)"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/access.test.mjs portal/test/self-approve.test.mjs portal/test/access-api.test.mjs"
+      ]
+    },
+    {
       "id": "audit-actions",
       "title": "A new audit action string needs a plain-language label in the Members page (advisory: fires on any route change)",
       "when": [
