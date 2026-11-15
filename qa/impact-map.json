@@ -4,143 +4,341 @@
     {
       "id": "profile-hash",
       "title": "Configuration profile fingerprint has one algorithm shared by several places",
-      "when": ["tests/shared/profile-hash.mjs", "portal/profile.mjs", "tests/fixtures/profile.ts", "portal/reporter.cjs", "portal/queue.mjs"],
-      "alsoCheck": [
-        { "path": "tests/shared/profile-hash.mjs", "why": "the single hash algorithm; portal and Playwright must keep using it" },
-        { "path": "portal/profile.mjs", "why": "re-exports the shared algorithm for the portal" },
-        { "path": "tests/fixtures/profile.ts", "why": "the Playwright fixture imports partForUrl, entryKey and hashBody from it" },
-        { "path": "portal/reporter.cjs", "why": "reporter side of profile capture" },
-        { "path": "portal/queue.mjs", "why": "queue side of profile capture and run stamping" }
+      "when": [
+        "tests/shared/profile-hash.mjs",
+        "portal/profile.mjs",
+        "tests/fixtures/profile.ts",
+        "portal/reporter.cjs",
+        "portal/queue.mjs"
       ],
-      "verify": ["node --test portal/test/versions.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "tests/shared/profile-hash.mjs",
+          "why": "the single hash algorithm; portal and Playwright must keep using it"
+        },
+        {
+          "path": "portal/profile.mjs",
+          "why": "re-exports the shared algorithm for the portal"
+        },
+        {
+          "path": "tests/fixtures/profile.ts",
+          "why": "the Playwright fixture imports partForUrl, entryKey and hashBody from it"
+        },
+        {
+          "path": "portal/reporter.cjs",
+          "why": "reporter side of profile capture"
+        },
+        {
+          "path": "portal/queue.mjs",
+          "why": "queue side of profile capture and run stamping"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/versions.test.mjs"
+      ]
     },
     {
       "id": "version-describe-copy",
       "title": "describeVersion exists twice: server and a hand-synced browser copy",
-      "when": ["portal/versioning.mjs", "portal/public/components/version.js"],
-      "alsoCheck": [
-        { "path": "portal/versioning.mjs", "why": "server describeVersion" },
-        { "path": "portal/public/components/version.js", "why": "browser copy; the browser cannot import server code" },
-        { "path": "portal/test/versions.test.mjs", "why": "compares the server and browser describeVersion" }
+      "when": [
+        "portal/versioning.mjs",
+        "portal/public/components/version.js"
       ],
-      "verify": ["node --test portal/test/versions.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/versioning.mjs",
+          "why": "server describeVersion"
+        },
+        {
+          "path": "portal/public/components/version.js",
+          "why": "browser copy; the browser cannot import server code"
+        },
+        {
+          "path": "portal/test/versions.test.mjs",
+          "why": "compares the server and browser describeVersion"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/versions.test.mjs"
+      ]
     },
     {
       "id": "api-routes",
       "title": "A changed API route needs the API contract, route snapshot, agent view and docs kept in step",
-      "when": ["portal/routes/*.mjs"],
-      "alsoCheck": [
-        { "path": "portal/openapi.json", "why": "the documented local interface; api.test.mjs reads it" },
-        { "path": "portal/test/route-snapshot.golden.json", "why": "golden list of routes; a new or removed route changes it" },
-        { "path": "portal/mcp-server.mjs", "why": "add or adjust an MCP tool if agents should see this data" },
-        { "path": "portal/test/api.test.mjs", "why": "API tests against a real local server" },
-        { "path": "README.md", "why": "feature and API description" }
+      "when": [
+        "portal/routes/*.mjs"
       ],
-      "verify": ["node --test portal/test/route-snapshot.test.mjs portal/test/api.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/openapi.json",
+          "why": "the documented local interface; api.test.mjs reads it"
+        },
+        {
+          "path": "portal/test/route-snapshot.golden.json",
+          "why": "golden list of routes; a new or removed route changes it"
+        },
+        {
+          "path": "portal/mcp-server.mjs",
+          "why": "add or adjust an MCP tool if agents should see this data"
+        },
+        {
+          "path": "portal/test/api.test.mjs",
+          "why": "API tests against a real local server"
+        },
+        {
+          "path": "README.md",
+          "why": "feature and API description"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/route-snapshot.test.mjs portal/test/api.test.mjs"
+      ]
     },
     {
       "id": "audit-actions",
-      "title": "A new audit action string needs a plain-language label in the Members page",
-      "when": ["portal/routes/*.mjs", "portal/app/context.mjs", "portal/services/*.mjs"],
-      "alsoCheck": [
-        { "path": "portal/public/pages/members.js", "why": "ACTIONS maps audit action strings to readable text; unknown ones fall back to a guessed label" }
+      "title": "A new audit action string needs a plain-language label in the Members page (advisory: fires on any route change)",
+      "when": [
+        "portal/routes/*.mjs",
+        "portal/app/context.mjs",
+        "portal/services/*.mjs"
       ],
-      "verify": ["node --test portal/test/access-api.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/public/pages/members.js",
+          "why": "ACTIONS maps audit action strings to readable text; unknown ones fall back to a guessed label"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/access-api.test.mjs"
+      ],
+      "severity": "advisory"
     },
     {
       "id": "report-model",
       "title": "Report model fields are consumed by the report pack, the PDF and the workbook",
-      "when": ["portal/quality.mjs"],
-      "alsoCheck": [
-        { "path": "portal/reports/pack.mjs", "why": "builds the pack from reportModel" },
-        { "path": "portal/pdf-report.mjs", "why": "builds the PDF from reportModel" },
-        { "path": "portal/reports/xlsx.mjs", "why": "execution log workbook reads the model" },
-        { "path": "portal/report_pdf.py", "why": "renders the sanitized run model to PDF" },
-        { "path": "portal/test/report-pack.test.mjs", "why": "report pack tests" },
-        { "path": "portal/test/report-pdf.test.mjs", "why": "PDF tests" },
-        { "path": "README.md", "why": "Report packs and Coverage and final PDF reports sections" }
+      "when": [
+        "portal/quality.mjs"
       ],
-      "verify": ["node --test portal/test/quality.test.mjs portal/test/report-pack.test.mjs portal/test/report-pdf.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/reports/pack.mjs",
+          "why": "builds the pack from reportModel"
+        },
+        {
+          "path": "portal/pdf-report.mjs",
+          "why": "builds the PDF from reportModel"
+        },
+        {
+          "path": "portal/reports/xlsx.mjs",
+          "why": "execution log workbook reads the model"
+        },
+        {
+          "path": "portal/report_pdf.py",
+          "why": "renders the sanitized run model to PDF"
+        },
+        {
+          "path": "portal/test/report-pack.test.mjs",
+          "why": "report pack tests"
+        },
+        {
+          "path": "portal/test/report-pdf.test.mjs",
+          "why": "PDF tests"
+        },
+        {
+          "path": "README.md",
+          "why": "Report packs and Coverage and final PDF reports sections"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/quality.test.mjs portal/test/report-pack.test.mjs portal/test/report-pdf.test.mjs"
+      ]
     },
     {
       "id": "run-case-shape",
       "title": "Run and case record shape is read by data stores, run summaries, snapshot export and MCP",
-      "when": ["portal/data/cases.mjs", "portal/data/runs.mjs"],
-      "alsoCheck": [
-        { "path": "portal/app/context.mjs", "why": "summaryRun and related helpers shape runs for the API" },
-        { "path": "portal/snapshot.mjs", "why": "snapshot export of shared team data" },
-        { "path": "portal/mcp-server.mjs", "why": "agent-visible run and case fields" },
-        { "path": "portal/test/snapshot.test.mjs", "why": "snapshot round trip" }
+      "when": [
+        "portal/data/cases.mjs",
+        "portal/data/runs.mjs"
       ],
-      "verify": ["node --test portal/test/snapshot.test.mjs portal/test/mcp.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/app/context.mjs",
+          "why": "summaryRun and related helpers shape runs for the API"
+        },
+        {
+          "path": "portal/snapshot.mjs",
+          "why": "snapshot export of shared team data"
+        },
+        {
+          "path": "portal/mcp-server.mjs",
+          "why": "agent-visible run and case fields"
+        },
+        {
+          "path": "portal/test/snapshot.test.mjs",
+          "why": "snapshot round trip"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/snapshot.test.mjs portal/test/mcp.test.mjs"
+      ]
     },
     {
       "id": "portal-page-tab",
       "title": "A new or changed portal page or tab needs routing, module tabs and click handlers",
-      "when": ["portal/public/pages/*.js"],
-      "alsoCheck": [
-        { "path": "portal/public/router.js", "why": "parses the hash route into state.route" },
-        { "path": "portal/public/pages/modules.js", "why": "moduleTabs lists the tabs of a module page" },
-        { "path": "portal/public/app.js", "why": "loads the data each route needs" },
-        { "path": "portal/public/handlers/*.js", "why": "click and form handlers for the page" }
+      "when": [
+        "portal/public/pages/*.js"
       ],
-      "verify": ["node --test portal/test/router.test.mjs portal/test/ui-audit.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/public/router.js",
+          "why": "parses the hash route into state.route"
+        },
+        {
+          "path": "portal/public/pages/modules.js",
+          "why": "moduleTabs lists the tabs of a module page"
+        },
+        {
+          "path": "portal/public/app.js",
+          "why": "loads the data each route needs"
+        },
+        {
+          "path": "portal/public/handlers/*.js",
+          "why": "click and form handlers for the page"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/router.test.mjs portal/test/ui-audit.test.mjs"
+      ]
     },
     {
       "id": "knowledge-layers",
       "title": "Tester knowledge files and their size limits are described in three places",
-      "when": ["qa/knowledge/**", "portal/knowledge.mjs"],
-      "alsoCheck": [
-        { "path": "portal/knowledge.mjs", "why": "LIMITS caps how much of each layer is read" },
-        { "path": "qa/knowledge/README.md", "why": "documents the per-file character limits" },
-        { "path": "portal/test/senior-tester.test.mjs", "why": "tests knowledge loading and limits" }
+      "when": [
+        "qa/knowledge/**",
+        "portal/knowledge.mjs"
       ],
-      "verify": ["node --test portal/test/senior-tester.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/knowledge.mjs",
+          "why": "LIMITS caps how much of each layer is read"
+        },
+        {
+          "path": "qa/knowledge/README.md",
+          "why": "documents the per-file character limits"
+        },
+        {
+          "path": "portal/test/senior-tester.test.mjs",
+          "why": "tests knowledge loading and limits"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/senior-tester.test.mjs"
+      ]
     },
     {
       "id": "module-trees",
-      "title": "A module lives in three folders that must stay separate but consistent",
-      "when": ["portal/modules/*/**", "qa/modules/*/**", "tests/modules/*/**"],
-      "alsoCheck": [
-        { "path": "portal/registry.mjs", "why": "registers module plugins and adapter specs" },
-        { "path": "portal/modules/*/index.mjs", "why": "the module plugin entry" },
-        { "path": "qa/modules/*/**", "why": "module data and cases tree" },
-        { "path": "tests/modules/*/**", "why": "module Playwright tree" },
-        { "path": ".claude/skills/checking-module-isolation/check-module-isolation.mjs", "why": "module code must not mix across modules" }
+      "title": "A module lives in three folders (portal, qa, tests) that must stay separate but consistent",
+      "when": [
+        "portal/modules/{module}/**",
+        "qa/modules/{module}/**",
+        "tests/modules/{module}/**"
       ],
-      "verify": ["node .claude/skills/checking-module-isolation/check-module-isolation.mjs", "node --test portal/test/module-plugins.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/modules/{module}/**",
+          "why": "the module plugin tree for the same module"
+        },
+        {
+          "path": "qa/modules/{module}/**",
+          "why": "module data and cases tree for the same module"
+        },
+        {
+          "path": "tests/modules/{module}/**",
+          "why": "module Playwright tree for the same module"
+        },
+        {
+          "path": "portal/registry.mjs",
+          "why": "registers module plugins and adapter specs"
+        },
+        {
+          "path": ".claude/skills/checking-module-isolation/check-module-isolation.mjs",
+          "why": "module code must not mix across modules (run it)"
+        }
+      ],
+      "verify": [
+        "node .claude/skills/checking-module-isolation/check-module-isolation.mjs",
+        "node --test portal/test/module-plugins.test.mjs"
+      ]
     },
     {
       "id": "module-plugin-golden",
       "title": "Changing a module plugin can change the plugin golden",
-      "when": ["portal/modules/*/**", "portal/modules/*.mjs"],
-      "alsoCheck": [
-        { "path": "portal/test/module-plugins.golden.json", "why": "golden that registration plugin behavior must keep matching" },
-        { "path": "portal/test/module-plugins.test.mjs", "why": "reads the golden" }
+      "when": [
+        "portal/modules/*/**",
+        "portal/modules/*.mjs",
+        "portal/ai-generator.mjs"
       ],
-      "verify": ["node --test portal/test/module-plugins.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/test/module-plugins.golden.json",
+          "why": "golden that registration plugin behavior must keep matching"
+        },
+        {
+          "path": "portal/test/module-plugins.test.mjs",
+          "why": "reads the golden"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/module-plugins.test.mjs"
+      ]
     },
     {
       "id": "mcp-tools",
       "title": "An MCP tool added, renamed or changed must be reflected in tests, docs and skills that name it",
-      "when": ["portal/mcp-server.mjs"],
-      "alsoCheck": [
-        { "path": "portal/test/mcp.test.mjs", "why": "MCP tool tests" },
-        { "path": "README.md", "why": "documents the MCP tools (for example get_run_failures)" },
-        { "path": ".claude/skills/analyzing-module-intake/SKILL.md", "why": "names MCP tools such as list_modules and save_insights" }
+      "when": [
+        "portal/mcp-server.mjs"
       ],
-      "verify": ["node --test portal/test/mcp.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/test/mcp.test.mjs",
+          "why": "MCP tool tests"
+        },
+        {
+          "path": "README.md",
+          "why": "documents the MCP tools (for example get_run_failures)"
+        },
+        {
+          "path": ".claude/skills/analyzing-module-intake/SKILL.md",
+          "why": "names MCP tools such as list_modules and save_insights"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/mcp.test.mjs"
+      ]
     },
     {
       "id": "ai-policy-presets",
       "title": "AI policy presets are shown in Settings and described in the README",
-      "when": ["portal/ai-policy.mjs"],
-      "alsoCheck": [
-        { "path": "portal/public/pages/ai-settings.js", "why": "Settings > AI usage shows the presets in plain language" },
-        { "path": "portal/test/ai-policy.test.mjs", "why": "preset tests" },
-        { "path": "README.md", "why": "AI cost and quality settings section" }
+      "when": [
+        "portal/ai-policy.mjs"
       ],
-      "verify": ["node --test portal/test/ai-policy.test.mjs"]
+      "alsoCheck": [
+        {
+          "path": "portal/public/pages/ai-settings.js",
+          "why": "Settings > AI usage shows the presets in plain language"
+        },
+        {
+          "path": "portal/test/ai-policy.test.mjs",
+          "why": "preset tests"
+        },
+        {
+          "path": "README.md",
+          "why": "AI cost and quality settings section"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/ai-policy.test.mjs"
+      ]
     }
   ]
 }

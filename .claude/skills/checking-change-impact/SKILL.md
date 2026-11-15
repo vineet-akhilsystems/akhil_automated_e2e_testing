@@ -14,7 +14,7 @@ description: Use before committing, and after editing any file that is coupled t
 | Working tree (default) | `npm run impact` |
 | Only what is staged | `npm run impact -- --staged` |
 | A commit range | `npm run impact -- --range A..B` |
-| Fail when a partner is missing | add `--strict` (exit 1) |
+| Fail when a partner is missing | add `--strict` (exit 1; advisory rules do not count) |
 | Machine output | add `--json` |
 | Check the map itself is not stale | `npm run impact -- --validate` |
 
@@ -29,6 +29,8 @@ Credential and saved-session files are skipped entirely: never read, never liste
 1. Find a real coupling by reading code (an import, a hand-synced copy, a golden file, a doc list). Do not add guesses.
 2. Add to `qa/impact-map.json`: `id`, `title`, `when[]` (globs that trigger), `alsoCheck[]` (`path` or `glob`, plus `why`), `verify[]` (commands).
 3. Run `npm run impact -- --validate`. A path or glob that matches nothing is reported as stale; fix or drop it.
-4. Glob syntax: `*` stays in one folder, `**` crosses folders, `?`, `{a,b}`. No other features.
+4. Glob syntax: `*` stays in one folder, `**` crosses folders, `?`, `{a,b}` (nesting allowed). `{module}` matches one folder name and is reused in targets, so a rule can point at the same module in another tree. No other features.
+5. A target equal to one of the rule's own `when` entries is listed only while it is still missing (use this for files that must change together). Mark a noisy rule `"severity": "advisory"`: it is shown but `--strict` ignores it.
+6. `--validate` also checks that test files and npm scripts named in `verify` exist.
 
 When a coupling is removed or a file is renamed, update the rule; `--validate` will flag the stale path.

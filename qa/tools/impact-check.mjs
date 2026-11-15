@@ -14,18 +14,39 @@ const ENV_PREFIX = '.' + 'env';
 const SECRET_FILES = new Set([['login', 'txt'].join('.'), ['portal_login', 'txt'].join('.')]);
 const SESSION_DIR = '.' + 'auth';
 
+export class UsageError extends Error {}
+
 export const norm = p => String(p).replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/');
 
-/** True for credential or session paths. They are skipped everywhere: matching, validation and output. */
+/** True for credential or session paths. Every path segment is tested, so a folder with such a name is dropped too. */
 export function isIgnoredPath(p) {
-  const parts = norm(p).split('/').filter(Boolean);
-  if (!parts.length) return false;
-  const base = parts[parts.length - 1].toLowerCase();
-  return parts.slice(0, -1).some(s => s.toLowerCase() === SESSION_DIR) || parts[parts.length - 1].toLowerCase() === SESSION_DIR
-    || base.startsWith(ENV_PREFIX) || SECRET_FILES.has(base);
+  return norm(p).split('/').filter(Boolean).some(seg => {
+    const s = seg.toLowerCase();
+    return s === SESSION_DIR || s.startsWith(ENV_PREFIX) || SECRET_FILES.has(s);
+  });
 }
 
 const escapeRe = c => c.replace(/[.+^$()|[\]\\{}*?]/g, '\\$&');
+
+// Index of the brace that closes the one opening at `open`, tracking nesting; -1 when unbalanced.
+function closingBrace(glob, open) {
+  let depth = 0;
+  for (let i = open; i < glob.length; i++) {
+    if (glob[i] === '{') depth++;
+    else if (glob[i] === '}' && --depth === 0) return i;
+  }
+  return -1;
+}
+function splitTopLevel(text) {
+  const parts = []; let depth = 0, start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') depth--;
+    else if (text[i] === ',' && depth === 0) { parts.push(text.slice(start, i)); start = i + 1; }
+  }
+  parts.push(text.slice(start));
+  return parts;
+}
 
 function globToSource(glob) {
   let out = '';
@@ -38,16 +59,21 @@ function globToSource(glob) {
       } else out += '[^/]*';
     } else if (c === '?') out += '[^/]';
     else if (c === '{') {
-      const end = glob.indexOf('}', i);
+      if (glob.startsWith('{module}', i)) { out += '(?<module>[^/]+)'; i += 7; continue; }
+      const end = closingBrace(glob, i);
       if (end === -1) out += '\\{';
-      else { out += '(?:' + glob.slice(i + 1, end).split(',').map(globToSource).join('|') + ')'; i = end; }
+      else { out += '(?:' + splitTopLevel(glob.slice(i + 1, end)).map(globToSource).join('|') + ')'; i = end; }
     } else out += escapeRe(c);
   }
   return out;
 }
 
 const cache = new Map();
-/** Self-contained glob matcher: `*` stays inside a folder, `**` crosses folders (`a/**` also needs something below a), `?`, `{x,y}`; a trailing `/` means the folder. */
+/**
+ * Self-contained glob matcher: `*` stays inside a folder, `**` crosses folders, `?`, `{x,y}` (nesting allowed),
+ * a trailing `/` means the folder. `{module}` matches one folder name and is captured, so a rule can name the
+ * same module in another tree.
+ */
 export function globToRegExp(glob) {
   let re = cache.get(glob);
   if (!re) {
@@ -61,28 +87,66 @@ export function globToRegExp(glob) {
 export const matchGlob = (glob, file) => globToRegExp(glob).test(norm(file));
 export const hasMagic = p => /[*?{]/.test(p);
 const targetOf = t => t.path ?? t.glob;
+const withModule = (pattern, module) => module == null ? pattern : pattern.replaceAll('{module}', module);
 
 /**
  * changed: file paths. map: parsed impact-map. exists(pathOrGlob): optional, true when the target exists in the repo.
- * Returns the matched rules with, per target, whether it is in this change.
+ * A target that is also one of the rule's own `when` patterns is only listed while it is still missing from the change
+ * (it lets a rule describe a group of files that must move together).
+ * A rule with severity "advisory" is shown but never counts toward --strict.
  */
 export function checkImpact({ changed = [], map, exists = () => true }) {
   const files = [...new Set(changed.map(norm))].filter(f => f && !isIgnoredPath(f));
   const results = [];
   for (const rule of map?.rules ?? []) {
-    const hit = files.filter(f => (rule.when ?? []).some(g => matchGlob(g, f)));
-    if (!hit.length) continue;
-    const targets = (rule.alsoCheck ?? []).map(t => {
-      const target = norm(targetOf(t));
-      return { target, why: t.why ?? '', changedToo: files.some(f => matchGlob(target, f)), exists: Boolean(exists(target)) };
-    }).filter(t => !isIgnoredPath(t.target));
-    results.push({ id: rule.id, title: rule.title ?? rule.id, changed: hit, targets, verify: rule.verify ?? [], missing: targets.filter(t => !t.changedToo).length });
+    const whens = (rule.when ?? []).filter(g => !isIgnoredPath(g));
+    const groups = new Map(); // module name (or '') -> matched files
+    for (const f of files) {
+      for (const g of whens) {
+        const m = globToRegExp(g).exec(f);
+        if (!m) continue;
+        const key = m.groups?.module ?? '';
+        if (!groups.has(key)) groups.set(key, new Set());
+        groups.get(key).add(f);
+        break;
+      }
+    }
+    for (const [key, set] of groups) {
+      const module = key === '' ? null : key;
+      const targets = [];
+      for (const t of rule.alsoCheck ?? []) {
+        const raw = norm(targetOf(t));
+        if (isIgnoredPath(raw)) continue;
+        const target = withModule(raw, module);
+        const changedToo = files.some(f => matchGlob(target, f));
+        const isOwn = (rule.when ?? []).map(norm).includes(raw);
+        if (isOwn && changedToo) continue;
+        targets.push({ target, why: t.why ?? '', changedToo, exists: Boolean(exists(target)) });
+      }
+      const advisory = rule.severity === 'advisory';
+      const missing = targets.filter(t => !t.changedToo).length;
+      results.push({ id: rule.id, title: rule.title ?? rule.id, ...(module ? { module } : {}), advisory, changed: [...set], targets, verify: rule.verify ?? [], missing });
+    }
   }
-  return { changed: files, rules: results, missing: results.reduce((n, r) => n + r.missing, 0) };
+  return { changed: files, rules: results, missing: results.filter(r => !r.advisory).reduce((n, r) => n + r.missing, 0), advisoryMissing: results.filter(r => r.advisory).reduce((n, r) => n + r.missing, 0) };
+}
+
+const NODE_FILE = /\.(?:mjs|cjs|js|ts)$/;
+/** Problems with `verify` commands: a script or test file they name must exist. */
+export function verifyProblems(command, { exists, scripts }) {
+  const out = [];
+  const tokens = String(command).trim().split(/\s+/);
+  if (tokens[0] === 'npm' && tokens[1] === 'run' && scripts && tokens[2] && !scripts.includes(tokens[2])) out.push(`npm script "${tokens[2]}" does not exist`);
+  if (tokens[0] === 'node') for (const tok of tokens.slice(1)) {
+    if (tok.startsWith('-') || !NODE_FILE.test(tok)) continue;
+    if (isIgnoredPath(tok)) continue;
+    if (!exists(norm(tok))) out.push(`file "${tok}" does not exist`);
+  }
+  return out;
 }
 
 /** Stale-rule detection. exists(pathOrGlob) must say whether the pattern matches anything. Returns a list of problems. */
-export function validateMap({ map, exists }) {
+export function validateMap({ map, exists, scripts }) {
   const problems = [];
   const ids = new Set();
   for (const rule of map?.rules ?? []) {
@@ -90,15 +154,19 @@ export function validateMap({ map, exists }) {
     if (!rule.id || !rule.title) problems.push(`${where}: id and title are required`);
     if (ids.has(rule.id)) problems.push(`${where}: duplicate id`);
     ids.add(rule.id);
+    if (rule.severity != null && rule.severity !== 'advisory') problems.push(`${where}: severity must be "advisory" or absent`);
     if (!rule.when?.length) problems.push(`${where}: when[] is empty`);
     if (!rule.alsoCheck?.length) problems.push(`${where}: alsoCheck[] is empty`);
-    for (const g of rule.when ?? []) if (!exists(norm(g))) problems.push(`${where}: when "${g}" matches nothing`);
+    for (const g of rule.when ?? []) if (!isIgnoredPath(g) && !exists(norm(g))) problems.push(`${where}: when "${g}" matches nothing`);
     for (const t of rule.alsoCheck ?? []) {
-      if (!targetOf(t)) problems.push(`${where}: an alsoCheck entry has no path or glob`);
-      else if (!exists(norm(targetOf(t)))) problems.push(`${where}: alsoCheck "${targetOf(t)}" matches nothing`);
-      if (!t.why) problems.push(`${where}: alsoCheck "${targetOf(t)}" has no why`);
+      const target = targetOf(t);
+      if (!target) { problems.push(`${where}: an alsoCheck entry has no path or glob`); continue; }
+      if (isIgnoredPath(target)) continue;
+      if (!exists(norm(target))) problems.push(`${where}: alsoCheck "${target}" matches nothing`);
+      if (!t.why) problems.push(`${where}: alsoCheck "${target}" has no why`);
     }
     if (!Array.isArray(rule.verify)) problems.push(`${where}: verify must be a list`);
+    else for (const v of rule.verify) for (const p of verifyProblems(v, { exists, scripts })) problems.push(`${where}: verify "${v}": ${p}`);
   }
   return problems;
 }
@@ -108,23 +176,30 @@ export function formatReport(result) {
   if (!result.rules.length) return 'No mapped coupling touched by this change.';
   const lines = [];
   for (const r of result.rules) {
-    lines.push(`[${r.id}] ${r.title}`);
+    lines.push(`[${r.id}] ${r.title}${r.module ? ` (module ${r.module})` : ''}${r.advisory ? ' (advisory: not counted by --strict)' : ''}`);
     for (const f of r.changed) lines.push(`  You changed ${f}`);
     for (const t of r.targets) lines.push(`    -> also check ${t.target} (${t.why}) - ${t.changedToo ? 'changed too' : 'NOT in this change'}`);
     for (const v of r.verify) lines.push(`    verify: ${v}`);
     lines.push('');
   }
-  lines.push(`${result.rules.length} rule(s) matched, ${result.missing} target(s) NOT in this change.`);
+  lines.push(`${result.rules.length} rule(s) matched, ${result.missing} target(s) NOT in this change${result.advisoryMissing ? ` (+${result.advisoryMissing} advisory)` : ''}.`);
   return lines.join('\n');
 }
 
-const git = args => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+const git = (args, root = ROOT) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 const lines = s => s.split(/\r?\n/).filter(Boolean);
+const RANGE_OK = /^[\w@{}^~./:+-]+$/;
 
-export function changedFiles({ staged, range } = {}) {
-  if (staged) return lines(git(['diff', '--cached', '--name-only', '--no-renames']));
-  if (range) return lines(git(['diff', '--name-only', '--no-renames', range]));
-  const out = git(['status', '--porcelain=v1', '-z', '-uall']).split('\0').filter(Boolean);
+/** A git revision range is data, never an option: no leading dash, no whitespace or control characters. */
+export function checkRange(range) {
+  if (typeof range !== 'string' || !range || range.startsWith('-') || !RANGE_OK.test(range)) throw new UsageError('--range needs a plain git range such as A..B (no leading dash, no spaces).');
+  return range;
+}
+
+export function changedFiles({ staged, range } = {}, root = ROOT) {
+  if (staged) return lines(git(['diff', '--cached', '--name-only', '--no-renames', '--end-of-options', '--'], root));
+  if (range) return lines(git(['diff', '--name-only', '--no-renames', '--end-of-options', checkRange(range), '--'], root));
+  const out = git(['status', '--porcelain=v1', '-z', '-uall'], root).split('\0').filter(Boolean);
   const files = [];
   for (let i = 0; i < out.length; i++) {
     const entry = out[i];
@@ -134,11 +209,12 @@ export function changedFiles({ staged, range } = {}) {
   return files;
 }
 
-export function repoFiles() {
-  return lines(git(['ls-files', '-co', '--exclude-standard'])).map(norm).filter(f => !isIgnoredPath(f));
+/** Files that exist now (tracked-but-deleted files do not count), minus credential and session paths. */
+export function repoFiles(root = ROOT) {
+  return lines(git(['ls-files', '-co', '--exclude-standard'], root)).map(norm).filter(f => !isIgnoredPath(f) && fs.existsSync(path.join(root, f)));
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const o = { staged: false, strict: false, json: false, validate: false, range: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -146,30 +222,37 @@ function parseArgs(argv) {
     else if (a === '--strict') o.strict = true;
     else if (a === '--json') o.json = true;
     else if (a === '--validate') o.validate = true;
-    else if (a === '--range') o.range = argv[++i];
-    else if (a.startsWith('--range=')) o.range = a.slice(8);
-    else throw new Error(`Unknown option ${a}. Use --staged, --range A..B, --strict, --json or --validate.`);
+    else if (a === '--range') o.range = checkRange(argv[++i]);
+    else if (a.startsWith('--range=')) o.range = checkRange(a.slice(8));
+    else throw new UsageError(`Unknown option ${a}. Use --staged, --range A..B, --strict, --json or --validate.`);
   }
-  if (o.staged && o.range) throw new Error('Use either --staged or --range, not both.');
+  if (o.staged && o.range) throw new UsageError('Use either --staged or --range, not both.');
   return o;
 }
 
-export function main(argv) {
-  const opts = parseArgs(argv);
-  const map = JSON.parse(fs.readFileSync(MAP_FILE, 'utf8'));
-  const files = repoFiles();
-  const exists = pattern => hasMagic(pattern) ? files.some(f => matchGlob(pattern, f)) : files.includes(pattern);
-  if (opts.validate) {
-    const problems = validateMap({ map, exists });
-    if (opts.json) console.log(JSON.stringify({ ok: !problems.length, problems }, null, 2));
-    else console.log(problems.length ? problems.map(p => `STALE: ${p}`).join('\n') : `impact-map OK: ${map.rules.length} rules, every path and glob matches something.`);
-    return problems.length ? 1 : 0;
+/** Returns the exit code: 0 ok, 1 strict-missing or stale map, 2 usage or git error. */
+export function run(argv, { root = ROOT, out = console.log, err = console.error } = {}) {
+  try {
+    const opts = parseArgs(argv);
+    const map = JSON.parse(fs.readFileSync(path.join(root, 'qa', 'impact-map.json'), 'utf8'));
+    const files = repoFiles(root);
+    const exists = pattern => hasMagic(pattern) ? files.some(f => matchGlob(pattern, f)) : files.includes(pattern);
+    if (opts.validate) {
+      let scripts;
+      try { scripts = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts ?? {}); } catch { scripts = undefined; }
+      const problems = validateMap({ map, exists, scripts });
+      if (opts.json) out(JSON.stringify({ ok: !problems.length, problems }, null, 2));
+      else out(problems.length ? problems.map(p => `STALE: ${p}`).join('\n') : `impact-map OK: ${map.rules.length} rules, every path, glob and verify command matches something.`);
+      return problems.length ? 1 : 0;
+    }
+    const result = checkImpact({ changed: changedFiles(opts, root), map, exists });
+    out(opts.json ? JSON.stringify(result, null, 2) : formatReport(result));
+    return opts.strict && result.missing ? 1 : 0;
+  } catch (e) {
+    err(e instanceof UsageError ? e.message : `impact-check failed: ${String(e.stderr || e.message).trim()}`);
+    return 2;
   }
-  const result = checkImpact({ changed: changedFiles(opts), map, exists });
-  console.log(opts.json ? JSON.stringify(result, null, 2) : formatReport(result));
-  return opts.strict && result.missing ? 1 : 0;
 }
+export const main = run;
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { process.exitCode = main(process.argv.slice(2)); } catch (e) { console.error(e.message); process.exitCode = 2; }
-}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = run(process.argv.slice(2));
