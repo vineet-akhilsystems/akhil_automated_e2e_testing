@@ -580,3 +580,85 @@ test('an automated run is stamped with automationVersion and a manual run is not
   const manual = await f.request('/api/runs', 'POST', { name: 'M', moduleId: 'facility-setup', environmentId: 'local', mode: 'manual', caseIds: ['FAC-001'] });
   assert.equal(manual.status, 201); assert.equal(manual.value.automationVersion, undefined);
 });
+
+import { validateTree, loadTree, assignCases, rollupTree } from '../tree.mjs';
+
+const N = (id, parent, extra = {}) => ({ id, name: id, ...(parent ? { parent } : {}), kind: parent ? 'step' : 'root', ...extra });
+const T = nodes => ({ module: 'm', version: 1, nodes });
+
+test('validateTree accepts a small valid tree', () => {
+  assert.deepEqual(validateTree(T([N('r'), N('a', 'r'), N('b', 'a', { kind: 'group', match: { category: ['x'] } })])), []);
+});
+
+test('validateTree rejects a cycle, a duplicate id, a missing parent, two roots and a seventh level', () => {
+  const has = (tree, re) => assert.ok(validateTree(tree).some(m => re.test(m)), `${re} in ${JSON.stringify(validateTree(tree))}`);
+  has(T([N('r'), N('a', 'b'), N('b', 'a')]), /Node "a" is part of a cycle/);
+  has(T([N('r'), N('a', 'r'), N('a', 'r')]), /Node id "a" is used more than once/);
+  has(T([N('r'), N('a', 'zzz')]), /Node "a" has parent "zzz" which does not exist/);
+  has(T([N('r'), N('r2')]), /Exactly one root is allowed, found 2/);
+  const deep = [N('l1')]; for (let i = 2; i <= 7; i++) deep.push(N(`l${i}`, `l${i - 1}`));
+  has(T(deep), /Node "l7" is at level 7; at most 6 levels are allowed/);
+  has(T([N('r', undefined, { match: { category: ['x'] } })]), /Root node "r" must not have match/);
+  has(T([N('r'), N('a', 'r', { kind: 'nope' })]), /Node "a" has unknown kind "nope"/);
+  has(T([N('r'), N('a', 'r', { match: { colour: ['x'] } })]), /Node "a" has unknown match key "colour"/);
+  has(T([N('r'), N('a', 'r', { match: { category: [''] } })]), /Node "a" match\.category must be an array of non-empty strings/);
+  has({ module: 'm', nodes: [] }, /non-empty nodes array/);
+  has(null, /Tree must be an object/);
+});
+
+const treeA = T([N('r'), N('v', 'r', { kind: 'variant', match: { registrationType: ['New'] } }), N('g', 'v', { kind: 'group', match: { registrationType: ['New'], category: ['phone'] } }), N('plain', 'r')]);
+
+test('assignCases prefers the more specific node and sends unmatched cases to unassigned', () => {
+  const r = assignCases(treeA, [
+    { id: 'A', registrationType: 'New', category: 'phone' },
+    { id: 'B', registrationType: 'New', category: 'name' },
+    { id: 'C', category: 'phone' },
+    { id: 'D', registrationType: 'Other', category: 'x' }]);
+  assert.deepEqual(r.byNode, { r: [], v: ['B'], g: ['A'], plain: [] });
+  assert.deepEqual(r.unassigned, ['C', 'D']);
+});
+
+test('assignCases breaks ties by file order', () => {
+  const t = T([N('r'), N('first', 'r', { match: { category: ['p'] } }), N('second', 'r', { match: { category: ['p'] } })]);
+  assert.deepEqual(assignCases(t, [{ id: 'X', category: 'p' }]).byNode, { r: [], first: ['X'], second: [] });
+});
+
+test('rollupTree sums children into subtree totals and counts FAIL, ERROR and assumed failures as failed', () => {
+  const byNode = { r: [], v: ['B', 'E'], g: ['A', 'C', 'D', 'F'], plain: [] };
+  const roll = rollupTree(treeA, byNode, [
+    { id: 'A', status: 'PASS' }, { id: 'B', status: 'FAIL' }, { id: 'C', status: 'ERROR' },
+    { id: 'D', status: 'FAIL (assumed requirement)' }, { id: 'E', status: 'BLOCKED' }, { id: 'Z', status: 'PASS' }]);
+  assert.deepEqual(roll.g, { total: 4, passed: 1, failed: 2, blocked: 0, other: 1, subtree: { total: 4, passed: 1, failed: 2, blocked: 0, other: 1 } });
+  assert.deepEqual(roll.v.subtree, { total: 6, passed: 1, failed: 3, blocked: 1, other: 1 });
+  assert.deepEqual(roll.v, { total: 2, passed: 0, failed: 1, blocked: 1, other: 0, subtree: roll.v.subtree });
+  assert.deepEqual(roll.r.subtree, roll.v.subtree);
+  assert.equal(roll.r.total, 0); assert.equal(roll.plain.subtree.total, 0);
+});
+
+test('loadTree returns null when no file exists, rejects ../x, and explains an invalid file', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-'));
+  try {
+    assert.equal(loadTree(root, 'nothing'), null);
+    assert.throws(() => loadTree(root, '../x'), /Invalid module id/);
+    assert.throws(() => loadTree(root, '..'), /Invalid module id/);
+    fs.mkdirSync(path.join(root, 'qa/modules/bad'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), '{ nope');
+    assert.throws(() => loadTree(root, 'bad'), /bad.*not valid JSON/);
+    fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), JSON.stringify(T([N('r'), N('a', 'zzz')])));
+    assert.throws(() => loadTree(root, 'bad'), /Invalid tree for "bad".*Node "a" has parent "zzz"/);
+    fs.mkdirSync(path.join(root, 'qa/modules/ok'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'qa/modules/ok/tree.json'), JSON.stringify(T([N('r')])));
+    assert.equal(loadTree(root, 'ok').nodes.length, 1);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('the shipped Registration tree is valid and attaches at least 95% of the 132 cases', () => {
+  const root = path.resolve(import.meta.dirname, '../..');
+  const tree = loadTree(root, 'registration');
+  assert.ok(tree, 'tree.json exists');
+  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
+  assert.equal(cases.length, 132);
+  const { byNode, unassigned } = assignCases(tree, cases);
+  assert.ok((cases.length - unassigned.length) / cases.length >= 0.95, `unassigned: ${unassigned.join(', ')}`);
+  assert.equal(Object.values(byNode).flat().length + unassigned.length, cases.length);
+});

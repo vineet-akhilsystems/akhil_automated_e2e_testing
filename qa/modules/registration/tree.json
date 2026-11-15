@@ -1,0 +1,305 @@
+{
+  "module": "registration",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "login",
+      "name": "Login and facility",
+      "kind": "root",
+      "note": "Shared start of every test: the portal saved login session and chosen facility."
+    },
+    {
+      "id": "open-registration",
+      "name": "Open Registration",
+      "parent": "login",
+      "kind": "step",
+      "note": "Navigate to the Registration page."
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "parent": "open-registration",
+      "kind": "group",
+      "match": {
+        "action": [
+          "search"
+        ]
+      },
+      "note": "Patient search; no registration type."
+    },
+    {
+      "id": "update",
+      "name": "Update an existing patient",
+      "parent": "open-registration",
+      "kind": "group",
+      "match": {
+        "action": [
+          "update"
+        ]
+      },
+      "note": "Needs a saved patient: {{name@CASE-ID}} dependencies stay as they are."
+    },
+    {
+      "id": "new",
+      "name": "New Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ]
+      }
+    },
+    {
+      "id": "newborn",
+      "name": "New Born Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "New Born Registration"
+        ]
+      }
+    },
+    {
+      "id": "international",
+      "name": "International Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "International Registration"
+        ]
+      }
+    },
+    {
+      "id": "outside",
+      "name": "Outside Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "Outside Registration"
+        ]
+      }
+    },
+    {
+      "id": "staff",
+      "name": "Staff Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "Staff Registration"
+        ]
+      }
+    },
+    {
+      "id": "diagnostic",
+      "name": "Diagnostic Registration",
+      "parent": "open-registration",
+      "kind": "variant",
+      "match": {
+        "registrationType": [
+          "Diagnostic Registration"
+        ]
+      }
+    },
+    {
+      "id": "new-phone",
+      "name": "Phone",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "phone"
+        ]
+      }
+    },
+    {
+      "id": "new-dob-age",
+      "name": "Date of birth and age",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "dob-age"
+        ]
+      }
+    },
+    {
+      "id": "new-mandatory",
+      "name": "Mandatory fields",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "mandatory"
+        ]
+      }
+    },
+    {
+      "id": "new-name",
+      "name": "Name",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "name"
+        ]
+      }
+    },
+    {
+      "id": "new-email",
+      "name": "Email",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "email"
+        ]
+      }
+    },
+    {
+      "id": "new-address",
+      "name": "Address",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "new-payer",
+      "name": "Payer",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "payer"
+        ]
+      }
+    },
+    {
+      "id": "new-real-names",
+      "name": "Real names",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "real-names"
+        ]
+      }
+    },
+    {
+      "id": "new-identity",
+      "name": "Identity",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "identity"
+        ]
+      }
+    },
+    {
+      "id": "new-happy",
+      "name": "Happy path",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "happy"
+        ]
+      }
+    },
+    {
+      "id": "new-duplicate",
+      "name": "Duplicates",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "duplicate"
+        ]
+      }
+    },
+    {
+      "id": "new-data-integrity",
+      "name": "Data integrity",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "data-integrity"
+        ]
+      }
+    },
+    {
+      "id": "new-ui",
+      "name": "UI",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "ui"
+        ]
+      }
+    },
+    {
+      "id": "new-registration-type",
+      "name": "Registration type",
+      "parent": "new",
+      "kind": "group",
+      "match": {
+        "registrationType": [
+          "New Registration"
+        ],
+        "category": [
+          "registration-type"
+        ]
+      }
+    }
+  ]
+}
