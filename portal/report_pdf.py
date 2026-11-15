@@ -641,6 +641,7 @@ def build_story(model, root, prev, pages, limit=8):
     story.append(p('Run details', 'h2'))
     case_time = duration_text(sum((c.get('durationMs') or 0) for c in cases))
     details = [('Module', f"{run['module']} / {run['area']}"), ('Environment', f"{run['environment']} - {run['url']}"),
+               ('Version', (run.get('version') or {}).get('text') or 'version unknown'),
                ('Release / build', f"{model['release']} / {model['build']}"), ('Tester', model['preparedBy']),
                ('Run', f"{run['name']} ({run['mode'].capitalize()}, {run['status'].upper()})"),
                ('Started', timestamp(run.get('startedAt') or run.get('createdAt'))), ('Finished', timestamp(run.get('finishedAt'))),

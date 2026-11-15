@@ -642,7 +642,7 @@ test('default pack contains README, selected reports and a manifest whose sha256
     const data = zip.get(f.path)();
     assert.equal(f.bytes, data.length, f.path); assert.equal(f.sha256, sha(data), f.path);
   }
-  assert.deepEqual(manifest.run, { id: 'rp-pk-1x-abcdef', name: 'Pack', module: 'Registration', environment: 'UAT', status: 'failed' });
+  assert.deepEqual(manifest.run, { id: 'rp-pk-1x-abcdef', name: 'Pack', module: 'Registration', environment: 'UAT', status: 'failed', version: 'version unknown' });
   assert.equal(manifest.generatedAt, fixedNow().toISOString()); assert.equal(manifest.generatedBy, 'Tester');
   assert.deepEqual(manifest.reports, ['summary', 'bugs', 'log']); assert.deepEqual(manifest.filter, {});
   assert.equal(manifest.filterDescription, 'All cases'); assert.equal(manifest.evidence, 'findings');

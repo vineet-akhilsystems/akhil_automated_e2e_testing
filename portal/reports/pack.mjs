@@ -167,7 +167,7 @@ const sha256File = file => new Promise((resolve, reject) => {
 
 function readme({ model, listing, summary, req, files, plan, who, generatedAt, note }) {
   const t = safeReportText, run = model.run;
-  const lines = [model.title, '', `Report pack for run "${run.name}" (${run.id})`, `Module: ${run.module}`, `Environment: ${run.environment}`, `Run status: ${run.status}`,
+  const lines = [model.title, '', `Report pack for run "${run.name}" (${run.id})`, `Module: ${run.module}`, `Environment: ${run.environment}`, `Run status: ${run.status}`, `Version: ${run.version?.text ?? 'version unknown'}`,
     `Generated: ${generatedAt} by ${who}`, '', 'WHAT IS INSIDE', '', '- 00-README.txt: this file'];
   for (const f of files) lines.push(`- ${f}: ${FILE_TEXT[f]}`);
   if (req.evidence !== 'none') lines.push(`- evidence/: ${EVIDENCE_TEXT[req.evidence]} (${plan.entries.length} file(s)), one folder per case`);
@@ -251,7 +251,7 @@ export async function buildPack({ run, runDir, req: rawReq, who, previous, now =
       if (!digests.has(e.file)) digests.set(e.file, await sha256File(e.file));
       manifestFiles.push({ path: e.name, bytes: e.size, sha256: digests.get(e.file) });
     }
-    const manifest = { run: { id: model.run.id, name: model.run.name, module: model.run.module, environment: model.run.environment, status: model.run.status },
+    const manifest = { run: { id: model.run.id, name: model.run.name, module: model.run.module, environment: model.run.environment, status: model.run.status, version: model.run.version?.text ?? 'version unknown' },
       generatedAt, generatedBy: by, reports: req.reports, filter: redactRun(req.filter), filterDescription: safeReportText(listing.description),
       evidence: req.evidence, listed: listing.shown, total: listing.total, files: manifestFiles, missingEvidence: plan.missing, modelVersion: model.version };
     put('MANIFEST.json', JSON.stringify(manifest, null, 2));

@@ -1,4 +1,5 @@
 import { adapters } from './registry.mjs';
+import { describeVersion } from './versioning.mjs';
 
 export const TERMINAL = ['passed', 'failed', 'error', 'cancelled', 'interrupted', 'blocked'];
 export const FINDINGS = {
@@ -101,6 +102,14 @@ function reproduce(run, c, input, adapter) {
   rows.push({ action: adapter?.actions[c.action] ?? c.action, expected: safeReportText(c.expected?.outcome) });
   return rows;
 }
+// Version facts for the report: typed label, first 6 characters of the profile hash, automation number, and one line of text. Never the profile keys.
+function versionModel(run) {
+  const v = { text: safeReportText(describeVersion(run)) };
+  if (run.appVersion?.label) v.typed = safeReportText(run.appVersion.label);
+  if (run.profile?.hash) v.profile = safeReportText(String(run.profile.hash).slice(0, 6));
+  if (run.automationVersion?.number) v.automation = Number(run.automationVersion.number);
+  return v;
+}
 export function reportModel(run) {
   const adapter = adapters[run.module.adapter], counts = summarizeRun(run);
   const findings = [];
@@ -190,7 +199,7 @@ export function reportModel(run) {
     preparedBy: safeReportText(run.reportDetails?.preparedBy || 'Not specified'), release: safeReportText(run.reportDetails?.release || 'Not specified'),
     build: safeReportText(run.reportDetails?.build || 'Not specified'), notes: safeReportText(run.reportDetails?.notes),
     run: { id: run.id, name: safeReportText(run.name), productId: run.productId ?? 'augastam', productName: safeReportText(run.productName || 'Augastam'), module: safeReportText(run.module.name), area: safeReportText(run.module.area), environment: safeReportText(run.environmentName), url: safeReportText(run.environmentUrl), status: run.status,
-      mode: run.mode, createdAt: run.createdAt, startedAt: run.startedAt, finishedAt: run.finishedAt, error: safeReportText(run.error), scope: run.scope ?? null, workers: run.timing?.shardCount ?? null, wallTimeMs: run.timing?.wallMs ?? null },
+      mode: run.mode, createdAt: run.createdAt, startedAt: run.startedAt, finishedAt: run.finishedAt, error: safeReportText(run.error), scope: run.scope ?? null, version: versionModel(run), workers: run.timing?.shardCount ?? null, wallTimeMs: run.timing?.wallMs ?? null },
     counts, totalsByClass, evidenceCounts, assumedCases: run.cases.filter(c => c.expected?.assumed).length, findings, cases,
     scopeNote: 'This report covers only the selected case snapshots in this run. Passing cases do not prove untested requirements or modules. Observations, skipped, blocked and unexecuted cases are not passes. Severity is assessed separately from test priority. Raw server responses and saved login/session files are excluded. Review screenshot contents before sharing outside the team.' };
 }

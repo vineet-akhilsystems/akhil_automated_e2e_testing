@@ -870,3 +870,87 @@ test('the real registration tree loads and rolls up against a seeded run', async
   const r = await admin.request('/api/modules/registration/tree?run=latest');
   assert.equal(r.status, 200); assert.ok(r.value.tree.nodes.length > 3); assert.equal(r.value.run, null);
 });
+
+// ---- Task 7: version information in reports
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { reportModel } from '../quality.mjs';
+import { buildPack } from '../reports/pack.mjs';
+import { readZip } from '../zip.mjs';
+
+const requireCjs = createRequire(import.meta.url);
+const STAMPED_TEXT = '1.58 (typed) · profile 3f9a1c (detected) · automation v4';
+const reportModule = { id: 'registration', name: 'Registration', area: 'Patient Care', adapter: 'registration', config: { bases: {} } };
+const reportCase = { id: 'V-1', version: 1, title: 'Case V-1', mode: 'automated', enabled: true, priority: 'P1', category: 'Validation', action: 'fill', input: { mobile: '123' }, expected: { outcome: 'field-state' } };
+const reportRun = (extra = {}) => ({ id: 'ver-run-1234', name: 'Versioned', kind: 'tests', mode: 'automated', status: 'passed', environmentId: 'local', environmentName: 'UAT', environmentUrl: 'https://example.test', productId: 'augastam',
+  module: structuredClone(reportModule), cases: [{ ...reportCase }], results: [{ id: 'V-1', status: 'PASS', expected: 'ok', actual: 'ok', attachments: [] }], createdAt: '2026-11-01T10:00:00Z', ...extra });
+const stamped = () => reportRun({ appVersion: { label: '1.58', source: 'typed' }, automationVersion: { number: 4, hash: 'abcdef123456' },
+  profile: { hash: '3f9a1cdeadbeef', keys: ['GET /secret?token=abc123 query text'], stable: true } });
+
+test('report model carries typed, profile (6 chars), automation and text; never the profile keys', () => {
+  const v = reportModel(stamped()).run.version;
+  assert.deepEqual(v, { text: STAMPED_TEXT, typed: '1.58', profile: '3f9a1c', automation: 4 });
+  assert.ok(!JSON.stringify(reportModel(stamped())).includes('abc123'));
+});
+
+test('an old run without version fields reports "version unknown" and does not throw', () => {
+  assert.deepEqual(reportModel(reportRun()).run.version, { text: 'version unknown' });
+});
+
+test('version text goes through redaction', () => {
+  const run = reportRun({ appVersion: { label: 'password=hunter2' } });
+  const v = reportModel(run).run.version;
+  assert.ok(!v.text.includes('hunter2') && !v.typed.includes('hunter2'));
+});
+
+async function packFor(t, run, reports = ['log']) {
+  const runDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ver-pack-'));
+  t.after(() => fs.rmSync(runDir, { recursive: true, force: true }));
+  const out = await buildPack({ run, runDir, req: { reports, filter: {}, evidence: 'none' }, who: 'T', now: () => new Date('2026-11-02T09:00:00Z') });
+  const raw = readZip(fs.readFileSync(out.file));
+  const root = [...raw.keys()][0].split('/')[0];
+  const get = name => raw.get(`${root}/${name}`)();
+  return { out, get };
+}
+async function summaryRows(buffer) {
+  const wb = new (requireCjs('exceljs').Workbook)();
+  await wb.xlsx.load(buffer);
+  const rows = new Map();
+  wb.getWorksheet('Summary').eachRow(r => rows.set(String(r.getCell(1).value), r.getCell(2).value));
+  return rows;
+}
+
+test('pack manifest, README and workbook Summary show the version text for a stamped run', async t => {
+  const { out, get } = await packFor(t, stamped());
+  assert.equal(out.manifest.run.version, STAMPED_TEXT);
+  assert.ok(get('00-README.txt').toString('utf8').includes(`Version: ${STAMPED_TEXT}`));
+  assert.equal((await summaryRows(get('03-Execution-Log.xlsx'))).get('Version'), STAMPED_TEXT);
+  assert.ok(!get('MANIFEST.json').toString('utf8').includes('abc123'));
+});
+
+test('pack for an old run says "version unknown" in manifest, README and workbook', async t => {
+  const { out, get } = await packFor(t, reportRun());
+  assert.equal(out.manifest.run.version, 'version unknown');
+  assert.match(get('00-README.txt').toString('utf8'), /^Version: version unknown$/m);
+  assert.equal((await summaryRows(get('03-Execution-Log.xlsx'))).get('Version'), 'version unknown');
+});
+
+const pyScript = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'report_pdf.py');
+const py = process.env.PORTAL_PYTHON ?? 'python';
+const pdfText = spawnSync(py, ['-c', 'import reportlab, PIL, pypdf'], { stdio: 'ignore' }).status === 0;
+function pdfPlainText(run) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ver-pdf-'));
+  try {
+    const output = path.join(dir, 'out.pdf');
+    const made = spawnSync(py, [pyScript, '--output', output, '--assets-dir', dir], { input: JSON.stringify(reportModel(run)), encoding: 'utf8' });
+    assert.equal(made.status, 0, made.stderr);
+    const read = spawnSync(py, ['-I', '-c', 'import sys, pypdf; print(" ".join((p.extract_text() or "") for p in pypdf.PdfReader(sys.argv[1]).pages))', output], { encoding: 'utf8' });
+    assert.equal(read.status, 0, read.stderr);
+    return read.stdout.replace(/\s+/g, ' ');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+test('PDF run details show the version for stamped and old runs', { skip: !pdfText && 'reportlab/Pillow/pypdf not installed' }, () => {
+  const text = pdfPlainText(stamped());
+  assert.match(text, /Version/); assert.ok(text.includes('1.58 (typed)') && text.includes('profile 3f9a1c (detected)') && text.includes('automation v4'), text.slice(0, 600));
+  assert.ok(pdfPlainText(reportRun()).includes('version unknown'));
+});

@@ -39,7 +39,7 @@ export async function executionLogWorkbook(model, listing, ctx = {}) {
     add('Not tested', summary.notTested.length ? summary.notTested.join('; ') : 'none recorded');
     for (const r of summary.verdict.reasons) add('', r);
   }
-  add('Run', `${model.run.name} (${model.run.id})`); add('Module', model.run.module); add('Environment', model.run.environment);
+  add('Run', `${model.run.name} (${model.run.id})`); add('Module', model.run.module); add('Environment', model.run.environment); add('Version', model.run.version?.text ?? 'version unknown');
   if (listing.active) add('Filter', `Showing ${listing.shown} of ${listing.total} cases. Filter: ${listing.description}`);
   add('Totals (whole run, unfiltered)');
   for (const [k, v] of Object.entries(model.totalsByClass ?? {})) add(k, v);
