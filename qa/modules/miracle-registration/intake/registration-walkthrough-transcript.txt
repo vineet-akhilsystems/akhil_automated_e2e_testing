@@ -1,0 +1,107 @@
+[00:33] (login details are spoken here; removed on purpose, never stored)
+[00:45] So, now this is the menu bar.
+[00:48] Now, we are just doing a registration
+[00:52] from the demographic page.
+[00:57] You can search.
+[01:08] So, this is the registration page.
+[01:10] We have the registration type
+[01:12] like new registration, new born diagnostic
+[01:16] stop international, stop dependent.
+[01:19] As per your registration type,
+[01:21] on the registration page, we have just changes.
+[01:25] For example, for the international
+[01:28] registration type, here you can see
+[01:31] you will get the visa number, expiry date,
+[01:34] and nationality.
+[01:36] So, the user have to fill this.
+[01:38] If we select the new born,
+[01:40] then you have to select the mother
+[01:43] UHD just to click from here.
+[01:46] You will get the female details
+[01:50] from here.
+[01:52] In this page, all the female patients
+[01:55] are available.
+[01:56] For the diagnostic, there are some
+[02:11] minor changes for that.
+[02:14] For the staff, you will need to
+[02:17] add the employer relation and card details.
+[02:20] You can get the staff details
+[02:25] from here.
+[02:26] These are the employer you have already
+[02:29] registered in administration.
+[02:31] So, next is staff dependent.
+[02:39] You have to select first the employer
+[02:41] and then the dependent.
+[02:43] You will get the dependent link over here.
+[02:47] So, let's do the registration
+[02:51] for new registration type.
+[02:53] Here, I can select the titles
+[02:55] for the patient.
+[02:57] This is Somya.
+[03:04] Mobile number, ask for the Indian address.
+[03:13] What's up number?
+[03:14] If you want to copy,
+[03:15] then use this checkbox.
+[03:16] Otherwise, you can put another number
+[03:18] over here.
+[03:19] State, district.
+[03:27] This is the unwanted.
+[03:35] So, ask for the area.
+[03:40] You will get the pen code.
+[03:46] You can directly put the date of birth
+[03:48] from this calendar.
+[03:50] Or you can just give the age.
+[03:53] System will calculate,
+[03:54] ask for today.
+[03:56] So, rest we have the other things
+[04:05] like VIP narrations,
+[04:06] name masking,
+[04:07] handle with care.
+[04:08] If you are using this VIP narration,
+[04:11] then this patient will be considered
+[04:13] as a VIP.
+[04:14] Name masking.
+[04:15] Then you will get the alias name.
+[04:17] System will not going to see this Somya.
+[04:20] If you are just selecting the handle with care,
+[04:23] then system will give the alert
+[04:26] just to give the notification
+[04:31] for the handle with care.
+[04:34] The rest refer type
+[04:36] from where like patient
+[04:38] got the referral
+[04:40] through camp,
+[04:41] external provider,
+[04:42] facility, internal provider,
+[04:44] or some
+[04:45] through from the staff.
+[04:48] So, all the star
+[04:50] columns are mandatory to fill.
+[04:53] So, now we have the pair type direct patient company
+[04:56] and insurance.
+[04:57] For the direct patient,
+[04:58] we have the pair
+[04:59] is tariff version 9.0.
+[05:02] If you are selecting the company,
+[05:03] then you have to select the first pair.
+[05:05] Sponsor will auto select.
+[05:10] Then you need to add the insurance detail.
+[05:13] Same for the insurance.
+[05:21] If you are selecting any insurance,
+[05:23] sponsor will come.
+[05:26] If it is not mapped, change it.
+[05:29] Now just save.
+[05:45] So, the company is expired.
+[05:50] As you know,
+[05:52] system needs to give the each and every pop-up.
+[06:03] So, here this is the UHD.
+[06:05] This is the unique number for this patient.
+[06:09] Now the record says successfully
+[06:11] and we got this five options.
+[06:14] Through you can create the admission.
+[06:17] You can do the appointment.
+[06:19] You can attach the document to this particular patient
+[06:22] or you can directly redirect to the OP bill.
+[06:25] If you don't want to do these activities,
+[06:28] just do the cancel.
+[06:30] So, now this is all done for the registration.

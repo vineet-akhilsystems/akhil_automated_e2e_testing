@@ -1,0 +1,22 @@
+module: miracle-registration
+product: miracle
+route: /PRegistration/Demographics.aspx?mode=N      # path seen in the walkthrough; the full address also carries session parameters, confirm on discovery
+base_url_env: MIRACLE_BASE_URL                       # default https://uatbilling.miracleoncloud.com (tests/auth.miracle.setup.ts)
+login:
+  page: /LoginNova.aspx
+  fields: [User id, Password, Facility, Group, Entry site]   # values come from the portal login profile; never store them here
+registration_types:
+  - New Registration
+  - New Born
+  - Diagnostic Only
+  - Staff
+  - International
+  - Staff Dependent
+rules: rules.md
+intake: intake/                                      # walkthrough notes and redacted transcript
+cases: cases-draft.md                                # draft list for review; becomes portal cases after the BA reviews it
+test_data:
+  naming: "Agent Testing <Words>"                    # keep every synthetic patient obviously fake and findable
+  phones: unique 10-digit mobiles generated per case # never reuse a number seen in a video
+  cleanup: unknown                                   # Ask: can a test patient be inactivated or removed on UAT?
+status: drafted from one walkthrough video; automation not built (needs a saved Miracle session and a read-only discovery run)
