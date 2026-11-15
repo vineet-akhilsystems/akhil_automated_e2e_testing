@@ -173,3 +173,77 @@ test('turning the module rule off still works and records no self flag', async t
   const made = ok(await admin.request(`${M}/cases`, 'POST', manual('AL-001')), 201);
   assert.deepEqual([made.reviewStatus, made.reviewedBy.self], ['approved', undefined]);
 });
+
+test('content edits by an admin: own or approver-of-record cases stay approved with a new self approval; another person\'s approved case goes back to draft', async t => {
+  const { f, admin, grant, login, review, audit } = await world(t);
+  ok(await grant('ben', 'tester'), 201); ok(await grant('cat', 'lead'), 201);
+  const ben = await login('ben'), cat = await login('cat');
+  // ben wrote AL-001, cat approved it: the admin is neither author nor approver
+  const b1 = ok(await ben.request(`${M}/cases`, 'POST', manual('AL-001')), 201);
+  ok(await review(cat, ['AL-001']));
+  const cur = () => f.store.case('alpha', 'AL-001');
+  const edited = ok(await admin.request(`${M}/cases/AL-001`, 'PUT', { ...cur(), title: 'Admin changed it' }));
+  assert.deepEqual([edited.reviewStatus, edited.reviewedBy], ['draft', undefined]);
+  assert.equal(edited.contentBy.user, 'root');
+  assert.equal((await audit('case.update'))[0].detail.selfApproved, undefined);
+  ok(await review(admin, ['AL-001']));                                                       // at once, through the review route (audited)
+  assert.equal(cur().reviewedBy.self, true);
+  assert.equal((await audit('case.review'))[0].detail.selfApproved, true);
+  // the admin is now the approver of record: a later content change is covered by a new approval in their name
+  const again = ok(await admin.request(`${M}/cases/AL-001`, 'PUT', { ...cur(), title: 'Admin changed it again' }));
+  assert.deepEqual([again.reviewStatus, again.reviewedBy.user, again.reviewedBy.self], ['approved', 'root', true]);
+  assert.equal((await audit('case.update'))[0].detail.selfApproved, true);
+  // a metadata-only edit by someone else is not logged as a self-approval
+  const before = (await audit('case.update')).length;
+  ok(await cat.request(`${M}/cases/AL-001`, 'PUT', { ...cur(), priority: 'P0' }));
+  const latest = (await audit('case.update'))[0];
+  assert.equal((await audit('case.update')).length, before + 1);
+  assert.equal(latest.detail.selfApproved, undefined);
+  // the admin's own case: content edit keeps it approved with a fresh self approval
+  const mine = ok(await admin.request(`${M}/cases`, 'POST', manual('AL-002')), 201);
+  const e2 = ok(await admin.request(`${M}/cases/AL-002`, 'PUT', { ...mine, title: 'Mine, changed' }));
+  assert.deepEqual([e2.reviewStatus, e2.reviewedBy.self], ['approved', true]);
+  void b1;
+});
+
+test('import with upsert applies the same per-case rule and audits self-approvals', async t => {
+  const { f, admin, grant, login, review, audit } = await world(t);
+  ok(await grant('ben', 'tester'), 201); ok(await grant('cat', 'lead'), 201);
+  const ben = await login('ben'), cat = await login('cat');
+  ok(await ben.request(`${M}/cases`, 'POST', manual('AL-001')), 201);
+  ok(await review(cat, ['AL-001']));                                                         // another person's approved case
+  ok(await admin.request(`${M}/cases`, 'POST', manual('AL-002')), 201);                      // the admin's own approved case
+  const imp = await admin.request(`${M}/import`, 'POST', { format: 'json', upsert: true, data: { cases: [manual('AL-001', { title: 'Upserted' }), manual('AL-002', { title: 'Upserted' }), manual('AL-003')] } });
+  assert.equal(imp.status, 201, JSON.stringify(imp.value));
+  assert.deepEqual([f.store.case('alpha', 'AL-001').reviewStatus, f.store.case('alpha', 'AL-001').reviewedBy], ['draft', undefined]);
+  assert.deepEqual([f.store.case('alpha', 'AL-002').reviewStatus, f.store.case('alpha', 'AL-002').reviewedBy.self], ['approved', true]);
+  const entry = (await audit('case.import'))[0];
+  assert.equal(entry.detail.selfApproved, true);
+  assert.deepEqual(entry.detail.selfApprovedIds, ['AL-002', 'AL-003']);
+});
+
+test('a template edit by an admin keeps the cases they may approve themselves, resets other people’s, and audits both; a tester still resets everything', async t => {
+  const { f, admin, ids, login } = await world(t);
+  const R = '/api/modules/registration';
+  ok(await admin.request(`${R}/members`, 'POST', { subjectType: 'user', subjectId: ids.ben, role: 'tester' }), 201);
+  const ben = await login('ben');
+  const put = (c, input) => c.request(`${R}/templates`, 'PUT', { name: 'tpl', input, version: f.store.module('registration').version });
+  const auto = (id, extra = {}) => ({ id, title: `Auto ${id}`, mode: 'automated', category: 'T', priority: 'P1', base: 'tpl', action: 'fill', input: { first_name: 'Alpha' }, expected: { outcome: 'field-state', values: { first_name: 'Alpha' } }, steps: [], ...extra });
+  const templateAudit = async () => ok(await admin.request('/api/audit?scopeType=module&scopeId=registration')).filter(e => e.action === 'template.update')[0];
+  ok(await put(admin, { first_name: 'Alpha' }));
+  ok(await admin.request(`${R}/cases`, 'POST', auto('ZZ-040')), 201);                         // the admin's own case, approved
+  ok(await ben.request(`${R}/cases`, 'POST', auto('ZZ-041')), 201);
+  ok(await admin.request(`${R}/cases/review`, 'POST', { ids: ['ZZ-041'], decision: 'approved' }));   // ben's case, approved by the admin (approver of record)
+  f.store.saveCase('registration', { ...auto('ZZ-042'), createdBy: { user: 'ben' }, reviewStatus: 'approved', reviewedBy: { user: 'cat', decision: 'approved' } });   // approved by someone else
+  const saved = ok(await put(admin, { first_name: 'Beta' }));
+  assert.deepEqual(saved.resetCases, ['ZZ-042']);
+  assert.equal(f.store.case('registration', 'ZZ-042').reviewStatus, 'draft');
+  assert.deepEqual(['ZZ-040', 'ZZ-041'].map(id => [f.store.case('registration', id).reviewStatus, f.store.case('registration', id).reviewedBy.self]), [['approved', true], ['approved', true]]);
+  const log = await templateAudit();
+  assert.equal(log.detail.casesReset, 1);
+  assert.deepEqual(log.detail.selfApprovedIds, ['ZZ-040', 'ZZ-041']);
+  // a tester without the right: every approved dependent case goes back to draft, nothing is self-approved
+  const second = ok(await put(ben, { first_name: 'Gamma' }));
+  assert.deepEqual(second.resetCases.sort(), ['ZZ-040', 'ZZ-041']);
+  assert.equal((await templateAudit()).detail.selfApprovedIds, undefined);
+});

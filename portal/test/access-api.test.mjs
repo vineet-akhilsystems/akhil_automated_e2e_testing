@@ -328,8 +328,8 @@ test('second approver: nobody approves their own case; the module lead can switc
   assert.equal((await review(cat)).status, 200);
   assert.equal(caseOf(ok(await ann.request('/api/modules/alpha/cases')), 'AL-001').reviewedBy.user, 'cat');
   // administrators hold case.approve.own, so the rule does not stop them approving their own case (see the self-approval tests)
-  ok(await admin.request('/api/modules/alpha/cases', 'POST', manual('AL-002')), 201);
-  assert.equal((await review(admin, 'approved', ['AL-002'])).status, 200);
+  const made2 = ok(await admin.request('/api/modules/alpha/cases', 'POST', manual('AL-002')), 201);
+  assert.deepEqual([made2.reviewStatus, made2.reviewedBy.self], ['approved', true]);                    // approved on creation, flagged as self-approved
   // a batch is all-or-nothing
   ok(await ann.request('/api/modules/alpha/cases', 'POST', manual('AL-003')), 201);
   ok(await ben.request('/api/modules/alpha/cases', 'POST', manual('AL-004')), 201);
