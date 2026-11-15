@@ -58,6 +58,33 @@ test('the repository ships a mindset, a domain draft and Registration lessons th
   assert.ok(pack.chars < 16000, `pack is ${pack.chars} characters`);
 });
 
+test('both products ship their own domain notes, and the EMR module ships lessons; none is cut by the reading budget', () => {
+  const root = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
+  const load = module => loadKnowledge({ root, module });
+  const emr = load({ id: 'emr', productId: 'augastam' });
+  assert.deepEqual(emr.files.map(f => f.name), ['mindset.md', 'domain/augastam.md', 'modules/emr.md']);
+  assert.match(emr.text, /Search builder/); assert.match(emr.text, /seen on screen/i);
+  // Miracle has no modules yet: any of its modules gets the shared mindset and the Miracle domain notes.
+  const miracle = load({ id: 'billing', productId: 'miracle' });
+  assert.deepEqual(miracle.files.map(f => f.name), ['mindset.md', 'domain/miracle.md']);
+  assert.match(miracle.text, /Telerik/); assert.match(miracle.text, /uatbilling\.miracleoncloud\.com/);
+  assert.ok(!/Augastam registration/i.test(miracle.text), 'the Miracle pack must not carry another products module lessons');
+  for (const pack of [emr, miracle, load({ id: 'registration', productId: 'augastam' })]) {
+    for (const f of pack.files) assert.equal(f.truncated, false, `${f.name} is cut off by the reading budget (${f.chars} characters)`);
+    assert.ok(pack.chars < 16000, `pack is ${pack.chars} characters`);
+  }
+});
+
+test('draft domain notes say they are drafts and label what is confirmed versus assumed', () => {
+  const root = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
+  for (const name of ['domain/augastam.md', 'domain/miracle.md', 'modules/emr.md']) {
+    const text = fs.readFileSync(path.join(root, 'qa', 'knowledge', name), 'utf8');
+    assert.match(text, /DRAFT|seen on screen/i, `${name} must say how far it can be trusted`);
+    assert.match(text, /Observed|Confirmed/, `${name} must label its evidence`);
+  }
+  assert.match(fs.readFileSync(path.join(root, 'qa', 'knowledge', 'domain', 'miracle.md'), 'utf8'), /Nothing about Miracle's billing rules has been confirmed/);
+});
+
 // ---- the brief ------------------------------------------------------------------------------------------------------
 test('with a knowledge pack the brief asks for risks first, a basis on every case, and treats the notes as guidance only', () => {
   const pack = { text: '### mindset.md\nThink in risk.', files: [] };
