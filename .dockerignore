@@ -22,7 +22,7 @@ output
 **/*.mp4
 *.xlsx
 *.pdf
-!qa/modules/registration/data/agent-test-id-proof.pdf
+!qa/augastam/registration/data/agent-test-id-proof.pdf
 *.log
 Dockerfile
 docker-compose.yml

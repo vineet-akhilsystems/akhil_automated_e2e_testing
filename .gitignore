@@ -27,5 +27,5 @@ head.err
 .DS_Store
 akhil_automated_e2e_testing/
 tmp/
-qa/modules/registration/results/.*
+qa/augastam/registration/results/.*
 ~$*
