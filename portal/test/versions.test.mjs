@@ -803,6 +803,34 @@ test('matrix with 132 cases x 8 combinations over many runs stays fast', () => {
   assert.equal(m.columns.length, 8); assert.equal(m.rows.length, 132);
 });
 
+test('matrix: a partial re-run replaces only the cases it ran; older results stay for the rest', () => {
+  const full = mrun({ ...ver('1.58', null, 2), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'FAIL' }] });
+  const partial = mrun({ ...ver('1.58', null, 2), cases: [{ id: 'REG-10', title: 'Ten' }], results: [{ id: 'REG-10', status: 'PASS' }] });
+  const m = buildMatrix([full, partial]);
+  assert.equal(m.columns.length, 1); assert.equal(m.columns[0].runId, partial.id);
+  const key = m.columns[0].key;
+  assert.deepEqual(m.rows.map(r => [r.caseId, r.cells[key]]), [['REG-2', 'PASS'], ['REG-10', 'PASS']]);
+});
+
+test('matrix: a run with no results is ignored and does not blank cells or form a column', () => {
+  const full = mrun({ ...ver('1.58', null, 2), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'FAIL' }] });
+  const empty = mrun({ ...ver('1.58', null, 2), status: 'error', results: [] });
+  const emptyOther = mrun({ ...ver('1.59', null, 3), status: 'error', results: [] });
+  const m = buildMatrix([full, empty, emptyOther]);
+  assert.equal(m.columns.length, 1); assert.equal(m.columns[0].runId, full.id);
+  assert.deepEqual(m.rows.map(r => Object.values(r.cells)[0]), ['PASS', 'FAIL']);
+  assert.deepEqual(buildMatrix([empty, emptyOther]), { columns: [], rows: [] });
+});
+
+test('tree run=latest skips a newer finished run that has no results', async t => {
+  const { f, admin, put } = await world5(t);
+  put('qa/modules/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }] }));
+  const base = { kind: 'tests', mode: 'automated', module: { id: 'registration' }, productId: 'augastam', cases: [{ id: 'TR-001' }] };
+  f.store.saveRun({ ...base, id: 'good', name: 'Good', status: 'failed', createdAt: '2026-01-01T00:00:00Z', results: [{ id: 'TR-001', status: 'PASS' }] });
+  f.store.saveRun({ ...base, id: 'hollow', name: 'Hollow', status: 'error', createdAt: '2026-01-02T00:00:00Z', results: [] });
+  assert.equal((await admin.request('/api/modules/registration/tree?run=latest')).value.run.id, 'good');
+});
+
 function fakeRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vroutes-root-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

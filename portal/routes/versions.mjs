@@ -61,7 +61,7 @@ export default async function handle(ctx, rc) {
     const which = url.searchParams.get('run');
     let run = null;
     if (which === 'latest') {
-      run = moduleRuns().filter(r => finishedAutomated(r) && ctx.helpers.visibleRun(rc.acc, r))
+      run = moduleRuns().filter(r => finishedAutomated(r) && (r.results ?? []).length > 0 && ctx.helpers.visibleRun(rc.acc, r))
         .sort((a, b) => String(b.finishedAt ?? b.createdAt ?? '').localeCompare(String(a.finishedAt ?? a.createdAt ?? '')))[0] ?? null;
     } else if (which) {
       run = store.run(which);
