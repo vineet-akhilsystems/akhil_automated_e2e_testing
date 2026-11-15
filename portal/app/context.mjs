@@ -167,7 +167,7 @@ export function createContext(options = {}) {
     const { cases, module, ...rest } = r;
     return { ...rest, module: { id: module.id, name: module.name, area: module.area }, total: cases.length };
   };
-  function createRun(body, user = LOCAL_USER, extra = {}) {
+  function createRun(body, user = LOCAL_USER, { inheritVersion, ...extra } = {}) {
     check(typeof body?.moduleId === 'string' && body.moduleId, 'Choose a module.');
     const { acc: runAcc } = authorize(user, 'run.start', { module: body.moduleId });
     // A profile of a product the caller cannot see is reported exactly like a missing one.
@@ -189,7 +189,8 @@ export function createContext(options = {}) {
       check(adapters[module.adapter], 'This module has no automation connection.');
       if (cases.some(c => c.action !== 'unavailable')) check(publicEnvironment(environment).session === 'saved', 'The application session is missing or expired. Open Settings, check this profile and refresh application login first.', 409);
     }
-    const typed = normalizeAppVersion(body.appVersion), appVersion = typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
+    // A re-run (inheritVersion is set by the server only, never read from the request) keeps the original run's version, even when that was none.
+    const typed = normalizeAppVersion(body.appVersion), appVersion = inheritVersion !== undefined ? inheritVersion : typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
     const run = { id: randomUUID(), name: textValue(body.name, 'Run name', 200, true), environmentId: environment.id,
       environmentName: environment.name, environmentUrl: environment.url, mode: body.mode, kind: 'tests', productId, productName: productName(productId),
       module: structuredClone(module), ...(appVersion ? { appVersion } : {}), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,

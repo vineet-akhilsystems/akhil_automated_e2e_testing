@@ -24,6 +24,7 @@ export default async function handle(ctx, rc) {
           check(!store.runs().some(r => r.environmentId === body.id && ['queued', 'running'].includes(r.status)), 'Wait for this profile\'s queued or running jobs to finish before changing login settings.', 409);
           // Which fields changed is logged, never their values.
           const before = previous ? credentialsFor(previous) : {}, fieldsChanged = previous ? ['name', 'url'].filter(k => body[k] !== undefined && body[k] !== previous[k]) : [];
+          if (previous && typeof body.appVersion === 'string' && body.appVersion.trim() !== (previous.appVersion ?? '')) fieldsChanged.push('appVersion');
           for (const k of Object.keys(loginSchema(productId)?.fields ?? {})) { const v = body.credentials?.[k]; if (v !== undefined && v !== '' && (!previous || v !== before?.[k])) fieldsChanged.push(k); }
           const saved = settings.save(body, previous, previous ? credentialsFor(previous) : null);
           record(user, { action: previous ? 'environment.update' : 'environment.create', scopeType: 'product', scopeId: productId, subject: null, detail: { environment: saved.id, ...(previous ? { fieldsChanged } : {}) } });

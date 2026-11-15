@@ -31,6 +31,13 @@ test('a login profile saves and returns its appVersion', async t => {
   assert.equal((await f.request('/api/bootstrap?product=augastam')).value.environments.find(e => e.id === 'ba-uat').appVersion, '');
 });
 
+async function setup(f, appVersion) {
+  await f.request('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
+  await f.request('/api/modules/facility-setup/cases', 'POST', manualCase);
+  await f.request('/api/environments', 'POST', profile({ appVersion }));
+}
+const startRun = (f, body) => f.request('/api/runs', 'POST', { name: 'R', moduleId: 'facility-setup', mode: 'manual', caseIds: ['FAC-001'], ...body });
+
 test('createRun stores the profile version and a per-run override wins', async t => {
   const f = await boot(t);
   await f.request('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
@@ -43,11 +50,56 @@ test('createRun stores the profile version and a per-run override wins', async t
   assert.equal((await run({ environmentId: 'ba-uat', appVersion: '<x>' })).status, 400);
 });
 
-test('describeVersion handles none, typed only, typed plus profile plus automation (server and browser copies)', () => {
-  for (const d of [describeVersion, clientDescribe]) {
-    assert.equal(d({}), 'version unknown');
-    assert.equal(d({ appVersion: { label: '1.58', source: 'run' } }), '1.58 (typed)');
-    assert.equal(d({ appVersion: { label: '1.58' }, profile: { hash: 'abcdef123456' }, automationVersion: { number: 3 } }), '1.58 (typed) · profile abcdef (detected) · automation v3');
-    assert.equal(d({ automationVersion: { number: 2 } }), 'automation v2');
-  }
+test('describeVersion handles none, typed only, typed plus profile plus automation', () => {
+  assert.equal(describeVersion({}), 'version unknown');
+  assert.equal(describeVersion({ appVersion: { label: '1.58', source: 'run' } }), '1.58 (typed)');
+  assert.equal(describeVersion({ appVersion: { label: '1.58' }, profile: { hash: 'abcdef123456' }, automationVersion: { number: 3 } }), '1.58 (typed) · profile abcdef (detected) · automation v3');
+});
+
+test('the browser copy of describeVersion matches the server copy for many inputs', () => {
+  const inputs = [undefined, null, {}, { appVersion: {} }, { appVersion: { label: '1.58', source: 'run' } }, { appVersion: { label: '2.0 beta 3', source: 'profile' } },
+    { profile: { hash: 'abc' } }, { profile: { hash: 'abcdef' } }, { profile: { hash: 'abcdef123456' } }, { profile: {} },
+    { automationVersion: { number: 0 } }, { automationVersion: { number: 1 } }, { automationVersion: { number: 12 } },
+    { appVersion: { label: '1.58 hotfix' }, profile: { hash: 'abcdef123456' }, automationVersion: { number: 12 } }];
+  for (const run of inputs) assert.equal(clientDescribe(run), describeVersion(run), JSON.stringify(run));
+  assert.equal(describeVersion({ profile: { hash: 'abc' } }), 'profile abc (detected)');
+  assert.equal(describeVersion({ automationVersion: { number: 0 } }), 'version unknown');
+});
+
+test('a whitespace-only run override counts as blank and the profile version is used', async t => {
+  const f = await boot(t); await setup(f, '1.58');
+  const r = await startRun(f, { environmentId: 'ba-uat', appVersion: '   ' });
+  assert.deepEqual(r.value.appVersion, { label: '1.58', source: 'profile' });
+});
+
+test('a re-run keeps the original run version and never reads the profile again', async t => {
+  const f = await boot(t); await setup(f, '1.58');
+  const changeProfile = async (version, appVersion) => assert.equal((await f.request('/api/environments', 'POST', profile({ version, appVersion, credentials: { ...credentials, password: '' } }))).status, 200);
+  const rerun = async id => {
+    assert.equal((await f.request(`/api/runs/${id}/results`, 'POST', { id: 'FAC-001', status: 'FAIL', actual: 'bad' })).status, 200);
+    assert.equal((await f.request(`/api/runs/${id}/complete`, 'POST', {})).status, 200);
+    const again = await f.request(`/api/runs/${id}/rerun-failures`, 'POST', { appVersion: '9.9', inheritVersion: { label: 'forged', source: 'run' } });
+    assert.equal(again.status, 201); return again.value;
+  };
+  const override = await startRun(f, { environmentId: 'ba-uat', appVersion: '1.59' });
+  const fromProfile = await startRun(f, { environmentId: 'ba-uat' });
+  await changeProfile(1, '2.0');
+  assert.deepEqual((await rerun(override.value.id)).appVersion, { label: '1.59', source: 'run' });
+  assert.deepEqual((await rerun(fromProfile.value.id)).appVersion, { label: '1.58', source: 'profile' });
+  const none = await startRun(f, { environmentId: 'local' });
+  assert.equal((await rerun(none.value.id)).appVersion, undefined);
+  // and a run created with no version stays without one after its profile gains one
+  await f.request('/api/environments', 'POST', profile({ id: 'blank', name: 'Blank' }));
+  const blank = await startRun(f, { environmentId: 'blank' });
+  await f.request('/api/environments', 'POST', profile({ id: 'blank', name: 'Blank', version: 1, appVersion: '3.0', credentials: { ...credentials, password: '' } }));
+  assert.equal((await rerun(blank.value.id)).appVersion, undefined);
+});
+
+test('changing the application version is recorded in the profile audit detail', async t => {
+  const f = await boot(t);
+  await f.request('/api/environments', 'POST', profile());
+  await f.request('/api/environments', 'POST', profile({ version: 1, appVersion: '1.60', credentials: { ...credentials, password: '' } }));
+  const entry = f.store.auditLog({ scopeType: 'product', scopeId: 'augastam' }).find(e => e.action === 'environment.update');
+  assert.ok(entry.detail.fieldsChanged.includes('appVersion'));
+  assert.ok(!JSON.stringify(entry.detail).includes('1.60'));
 });

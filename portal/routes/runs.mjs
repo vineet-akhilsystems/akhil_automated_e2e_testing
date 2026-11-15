@@ -70,7 +70,7 @@ export default async function handle(ctx, rc) {
             const ids = run.cases.filter(c => failed.has(c.id) && live.get(c.id)?.enabled !== false && live.has(c.id)).map(c => c.id);
             check(ids.length > 0, 'This run has no failed cases that can be re-run.', 409);
             const name = `${run.name} (re-run failures)`.slice(0, 200);
-            return json(res, 201, createRun({ moduleId: run.module.id, environmentId: run.environmentId, mode: run.mode, caseIds: ids, name }, user, { rerunOf: run.id }));
+            return json(res, 201, createRun({ moduleId: run.module.id, environmentId: run.environmentId, mode: run.mode, caseIds: ids, name }, user, { rerunOf: run.id, inheritVersion: run.appVersion ?? null }));
           }
           if (resource === 'cancel' && req.method === 'POST') { check(queue.cancel(id), 'Only queued or running automated runs can be cancelled.', 409); runEvent(user, 'run.cancel', run, {}); return json(res, 200, summaryRun(getRun(id))); }
           if (resource === 'results' && req.method === 'POST') {

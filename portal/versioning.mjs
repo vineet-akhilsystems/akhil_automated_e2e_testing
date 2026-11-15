@@ -6,7 +6,7 @@ export function normalizeAppVersion(value) {
   if (typeof value !== 'string') throw new HttpError(400, 'Application version must be text, for example 1.58.');
   const label = value.trim();
   if (label.length > 40) throw new HttpError(400, 'Application version must be 40 characters or fewer.');
-  if (!/^[A-Za-z0-9 ._+/-]*$/.test(label)) throw new HttpError(400, 'Application version can use letters, digits, spaces and . _ + / - only.');
+  if (!/^[A-Za-z0-9 ._+/-]*$/.test(label)) throw new HttpError(400, 'Application version can use English letters, digits, spaces and . _ + / - only.');
   return label;
 }
 
