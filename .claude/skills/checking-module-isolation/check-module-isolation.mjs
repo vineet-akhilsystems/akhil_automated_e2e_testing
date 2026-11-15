@@ -11,6 +11,7 @@
 // playwright.config.ts and the other qa/tools/ scripts.
 //
 // ERROR  a module's file refers to ANOTHER module (path "<product>/<other>" or string literal '<other>' / '/<other>').
+// qa/<product>/** is scanned too (code, .json, .yaml, .yml; results/ folders are historical outputs and skipped).
 // ERROR  a file inside a PRODUCT folder (qa/<product>/**, tests/<product>/**, portal/modules/<product>/**) refers to another product's
 //        folders (path "qa|tests|portal/modules/<other-product>" or a layout-resolver call naming the other product).
 // NEW    shared code refers to a module and is not in BASELINE below. Fix it, or add it to BASELINE with a reason.
@@ -27,6 +28,7 @@ const ROOT = rootArg >= 0 ? path.resolve(process.argv[rootArg + 1]) : path.resol
 const rel = p => path.relative(ROOT, p).split(path.sep).join('/');
 const SKIP_DIRS = new Set(['node_modules', '.git', '.portal', 'test-results', 'playwright-report', 'tmp', 'output']);
 const CODE = /\.(m?js|cjs|ts)$/;
+const DATA = /\.(json|ya?ml)$/; // also scanned inside qa/<product>/** (case files, workflows, manifests); results/ folders are historical outputs and skipped
 
 // Allowed references from shared code to a module. Each entry: file, module id, a substring of the line, and why.
 // Keep reasons factual and point at the file that documents the decision.
@@ -44,13 +46,13 @@ const BASELINE = [
   { file: 'qa/tools/make-test-pdf.js', id: 'registration', contains: "'augastam', 'registration')}/data", reason: 'issue (low): generically named tool defaults its output into Registration data' },
 ];
 
-function walk(dir, out = []) {
+function walk(dir, out = [], withData = false) {
   if (!fs.existsSync(dir)) return out;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (SKIP_DIRS.has(e.name)) continue;
+    if (SKIP_DIRS.has(e.name) || (withData && e.name === 'results')) continue;
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) walk(p, out);
-    else if (CODE.test(e.name)) out.push(p);
+    if (e.isDirectory()) walk(p, out, withData);
+    else if (CODE.test(e.name) || (withData && DATA.test(e.name))) out.push(p);
   }
   return out;
 }
@@ -75,6 +77,8 @@ const modPatterns = Object.fromEntries(mods.map(m => [`${m.product}/${m.id}`, pa
 const productPatterns = Object.fromEntries(products.map(p => [p, [
   new RegExp(String.raw`(?<![\w-])(?:qa|tests|portal/modules)/` + esc(p) + String.raw`(?![\w-])`),
   new RegExp(String.raw`(?:resolveModuleFolder|moduleFolder|productFolder|moduleDir)\([^)]*['"\`]` + esc(p) + String.raw`['"\`]`),
+  new RegExp(String.raw`['"\`](?:qa|tests)['"\`]\s*,\s*['"\`]` + esc(p) + String.raw`['"\`]`), // path.join(root, 'qa', '<product>', ...)
+  new RegExp(String.raw`['"\`]portal['"\`]\s*,\s*['"\`]modules['"\`]\s*,\s*['"\`]` + esc(p) + String.raw`['"\`]`),
 ]]));
 
 function ownerOf(file) {
@@ -88,11 +92,12 @@ const productOf = file => { const m = rel(file).match(/^(?:(?:tests|qa)|portal\/
 const isScanned = file => {
   const r = rel(file);
   if (r.startsWith('portal/test/')) return false; // portal tests use Registration as their fixture on purpose
+  if (/^qa\/[^/]+\//.test(r) && !r.startsWith('qa/tools/')) return products.includes(r.split('/')[1]) && !/\/results\//.test(r);
   return r === 'playwright.config.ts' || /^(portal|tests|qa\/tools)\//.test(r);
 };
 
 const files = [...walk(path.join(ROOT, 'portal')), ...walk(path.join(ROOT, 'tests')), ...walk(path.join(ROOT, 'qa', 'tools')),
-  path.join(ROOT, 'playwright.config.ts')].filter(f => fs.existsSync(f) && isScanned(f));
+  ...products.flatMap(p => walk(path.join(ROOT, 'qa', p), [], true)), path.join(ROOT, 'playwright.config.ts')].filter(f => fs.existsSync(f) && isScanned(f));
 
 const findings = [];
 for (const file of files) {
@@ -100,7 +105,7 @@ for (const file of files) {
   const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
   lines.forEach((line, i) => {
     const t = line.trim();
-    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return;
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || (/\.ya?ml$/.test(file) && t.startsWith('#'))) return;
     const where = `${rel(file)}:${i + 1}`;
     const text = t.length > 160 ? `${t.slice(0, 157)}...` : t;
     if (ownProduct) {
@@ -110,11 +115,11 @@ for (const file of files) {
       }
     }
     for (const id of ids) {
-      const viaPath = mods.filter(m => m.id === id).some(m => modPatterns[`${m.product}/${m.id}`].test(line) && (!own || own.key !== `${m.product}/${m.id}`));
+      // a path naming a module of ANOTHER (product, id) pair counts even when both products use the same module name (miracle/registration -> qa/augastam/registration)
+      const viaPath = mods.filter(m => m.id === id).find(m => modPatterns[`${m.product}/${m.id}`].test(line) && (!own || own.key !== `${m.product}/${m.id}`));
       if (own && id === own.id && !viaPath) continue;
       if (!viaPath && !patterns[id].some(re => re.test(line))) continue;
-      if (own && id === own.id && !viaPath) continue;
-      if (own) { findings.push({ level: 'ERROR', where, id, text, why: `owned by module "${own.id}" but refers to module "${id}"` }); continue; }
+      if (own) { findings.push({ level: 'ERROR', where, id, text, why: `module "${own.key ?? own.id}" refers to module "${viaPath ? `${viaPath.product}/${viaPath.id}` : id}"` }); continue; }
       const known = BASELINE.find(b => b.file === rel(file) && b.id === id && line.includes(b.contains));
       findings.push(known ? { level: 'KNOWN', where, id, text, why: known.reason } : { level: 'NEW', where, id, text, why: `shared code refers to module "${id}"` });
     }
