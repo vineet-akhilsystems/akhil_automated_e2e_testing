@@ -25,6 +25,12 @@ Source: qa/modules/registration/rules.md and the confirmed defect reports in qa/
 ## What is NOT defined (write such cases as assumed and put the question to the BA)
 - Email format rules, name character rules, limits on future or very old dates, and what counts as a valid emergency contact are not configured. Say so in openQuestions instead of inventing the rule.
 
+## Versions (how a result is tied to a build)
+- **Confirmed (portal code, README "Versions"):** every portal run records a typed application version (from the login profile or a run override), a detected login-profile hash (which configuration endpoints the app answered) and an automatic automation version (v1, v2, ... by content hash of the test files). `get_run_failures` and `compare_runs` compare these with the previous run and print a hint.
+- **Confirmed:** a partial run touches fewer configuration endpoints, so its profile hash differs from a full run's; automation numbers are per portal database. An unknown value is shown as unknown, never as a difference.
+- **Practice:** when a case flips between runs, look at the automation version first (changed test files), then the typed app version, before suspecting the product. Say which version a lesson was observed on (the lessons above are from demo build 2.0.66).
+- **Ask (BA):** what an application version number promises (a release, a hotfix, a config change), who types it on the profile, and whether a configuration change without a version bump is possible.
+
 ## Risks to weigh first for this module
 1. Wrong or duplicate patient (identity fields, duplicate check, double-click Save).
 2. Bad data saved silently (phone, email, date of birth, age versus type).

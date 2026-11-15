@@ -19,6 +19,7 @@ Open the screenshot and `error-context.md` (page snapshot at failure) for every 
 
 ## Process
 
+0. **Versions first (portal runs).** `get_run_failures` and `compare_runs` return `versionDifferences`: the run's recorded `appVersion` (typed label), login-profile hash and automation version (v1, v2, ...) against the previous run, plus a `HINT` line. A differing **automation version means check the changed files first** (the module Versions tab lists changed files per version; `list_automation_versions` lists the versions) before blaming the app; a differing app version or profile hash means the environment may have changed. Unknown values (older runs) are shown as unknown. These are hints, never verdicts: classify from the evidence below. See `working-with-versions-and-tree`.
 1. **Whole-run check first.** Same ERROR on most rows -> one environment cause; classify once, stop, tell the user. Don't rerun everything.
 2. **Per row:** read `mismatches` + `actual` + `serverResponse`, then the evidence. Classify with the table below.
 3. **Rerun once** each candidate defect or test defect, **with its prerequisites**: `$env:CASES='REG-001,REG-111'; npm run reg:cases` (or `npm run reg:failures` to pause headed on the failing screen). A different result -> **intermittent**: record both outcomes, no bug yet.
@@ -46,7 +47,7 @@ Open the screenshot and `error-context.md` (page snapshot at failure) for every 
 ## Bug drafts
 
 - **First check `qa/modules/registration/bugs/`** for an existing draft with the same root cause (e.g. `REG-040.md` groups 5 date cases). Append the case and evidence there instead of opening a duplicate.
-- New draft: `qa/modules/registration/bugs/<first-case-id>.md` from [bug-template.md](bug-template.md). Required: build (top-right version), environment URL, case id(s), numbered steps a human can follow, expected (with source: rules.md line / config / requirement), actual, server response, created UHIDs, screenshot paths.
+- New draft: `qa/modules/registration/bugs/<first-case-id>.md` from [bug-template.md](bug-template.md). Required: the run's recorded version (`run.appVersion` label and source, profile hash, automation version from `get_run_failures`; for a non-portal run, the version shown top-right in the app, labelled as read by hand), environment URL, case id(s), numbered steps a human can follow, expected (with source: rules.md line / config / requirement), actual, server response, created UHIDs, screenshot paths.
 - Root cause is a **hypothesis** with EMR file:line from `rules.md`. Label it that way. If no code reference is known, say "not investigated".
 - Severity is a proposal for the user, not a fact. Patient-safety / data-integrity issues (wrong patient, lost data, impossible DOB saved) rank above cosmetic ones.
 - Confirm stored data read-only when it matters (check field paths first with `node qa/tools/mongo-read.js schema PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent"}'`; needs `AUGASTAM_MONGO_URL` set by the user): `node qa/tools/mongo-read.js find PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent","properties.last_name":"UserOneHundredFortyFive"}' --limit 1`. PII stays masked; never paste unmasked real patient data into a draft.

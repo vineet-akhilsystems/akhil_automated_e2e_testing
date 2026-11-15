@@ -19,6 +19,8 @@ Module data: `qa/modules/registration/` (cases, rules, discovery, results, bugs)
 | Add a new EMR module (Billing, Appointments, Setup) and connect its Playwright adapter | `onboarding-portal-modules` |
 | Check module code isn't mixed (one module referring to another, shared code referring to a module) | `checking-module-isolation` |
 | Exploring the live page interactively | `playwright-cli` |
+| Finished editing files that are coupled to others ("did I miss a file") | `checking-change-impact` |
+| Which application / automation version a run used, the version matrix, the test tree (`tree.json`) | `working-with-versions-and-tree` |
 
 ## Commands
 
@@ -37,6 +39,8 @@ Module data: `qa/modules/registration/` (cases, rules, discovery, results, bugs)
 | Validate case file(s) against portal rules | `node .claude/skills/designing-registration-cases/validate-cases.mjs` |
 | Read-only DB lookup (PII masked) | `node qa/tools/mongo-read.js find PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent"}' --limit 5` |
 | Start Test Studio portal / verify portal | `npm run portal` / `npm run portal:check` / `npm run portal:test` |
+
+Version of a portal run: see `working-with-versions-and-tree` (the run records it; do not read it off the screen).
 
 Outputs: `qa/modules/registration/results/latest-summary.md`, HTML report (`npm run report`), and `.portal/runs/<run-id>/` for portal runs. Discovery writes `qa/modules/registration/discovery/discovery.md`.
 

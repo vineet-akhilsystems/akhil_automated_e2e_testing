@@ -5,7 +5,7 @@
 - **Module:** Patient Registration — <area> (`<FE/BE file if known>`)
 - **Severity (proposed):** Critical | High | Medium | Low — <one-line reason: patient safety / data integrity / workflow blocked / cosmetic>
 - **Priority (proposed):** P0–P3
-- **Environment:** `https://demo.augastam.com/registration` (Build `<version shown top-right>`, Tenant `Miracle HIS Demo`, Facility `Akhil Demo2 Delhi`, role Admin)
+- **Environment:** `https://demo.augastam.com/registration` (App version `<run.appVersion label, or top-right version if no portal run>`, automation `<vN>`, Tenant `Miracle HIS Demo`, Facility `Akhil Demo2 Delhi`, role Admin)
 - **Reproduced:** <n>/<n> runs (<run ids or dates>)
 - **Status:** Draft — needs review
 
