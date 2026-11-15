@@ -193,6 +193,10 @@ Every product (Augastam, Miracle, ...) keeps its modules in three parallel trees
 
 **Compatibility mapping (one value).** A portal database created before the move may still store a case input `id_proof_file` of `qa/modules/registration/data/agent-test-id-proof.pdf`. Registration validation (`resolveIdProofFixture` in `portal/modules/augastam/registration/validate.mjs`) treats exactly that string as the current fixture `qa/augastam/registration/data/agent-test-id-proof.pdf`; any other old-layout path is rejected. `portal-data/snapshot.json` and the cases JSON already hold the new path. Historical run outputs under `qa/augastam/registration/results/` keep their original text.
 
+**After pulling the move.** Git does not delete ignored or untracked files, so a checkout that already had run results keeps a leftover `qa/modules/` (and possibly `tests/modules/`) folder next to the new ones. Delete or move it (move anything you still want into `qa/augastam/registration/results/`). The portal never reads it (`modules` is reserved and not a product), and `portal/test/layout-guard.test.mjs` fails with this instruction until it is gone.
+
+**First automated run after the move.** The automation version fingerprint hashes the repo-relative paths of the automation files, so the move changes the hash. The first automated run after pulling registers exactly one new automation version for Registration; that is expected and does not mean the automation changed.
+
 ## Multiple modules
 
 The hierarchy is **workspace → business area → module → suite → test case**, with executions stored separately. Business areas and suites are labels in this version; they are not nested folders. Module cards show whether automation is connected. Creating a module never claims that its browser automation already exists.
@@ -215,7 +219,7 @@ There are two ways to add a module, depending on whether it needs custom logic.
 
 **(a) No custom code.** Add `qa/<product>/<id>/adapter.json` and a data-driven spec at `tests/<product>/<id>/*.spec.ts`, exactly as before. The registry picks the adapter up automatically. See the `onboarding-portal-modules` skill ([.claude/skills/onboarding-portal-modules/SKILL.md](.claude/skills/onboarding-portal-modules/SKILL.md)) for the full procedure.
 
-**(b) Module with custom logic.** Create a plugin under `portal/modules/<product>/<id>/`: `adapter.mjs` (required), plus optional `validate.mjs`, `seed.mjs`, `ai.mjs` and `agent.mjs`. An `index.mjs` builds the plugin object, checks it with `assertPlugin` and calls `registerPlugin` (see [portal/modules/augastam/registration/index.mjs](portal/modules/augastam/registration/index.mjs)). Add ONE import line for that `index.mjs` in `portal/registry.mjs`, the way `modules/registration/index.mjs` is imported; the store and `portal/ai-generator.mjs` reach it through their imports. Plugins are repo code and are never loaded from user-supplied paths. Hooks are documented in [portal/modules/contract.mjs](portal/modules/contract.mjs):
+**(b) Module with custom logic.** Create a plugin under `portal/modules/<product>/<id>/`: `adapter.mjs` (required), plus optional `validate.mjs`, `seed.mjs`, `ai.mjs` and `agent.mjs`. An `index.mjs` builds the plugin object, checks it with `assertPlugin` and calls `registerPlugin` (see [portal/modules/augastam/registration/index.mjs](portal/modules/augastam/registration/index.mjs)). Add ONE import line for that `index.mjs` in `portal/registry.mjs`, the way `./modules/augastam/registration/index.mjs` is imported; the store and `portal/ai-generator.mjs` reach it through their imports. Plugins are repo code and are never loaded from user-supplied paths. Hooks are documented in [portal/modules/contract.mjs](portal/modules/contract.mjs):
 
 - `id` (required) - unique module id.
 - `adapter` (required) - fields, actions, outcomes, variants and spec path, same shape as an `adapter.json`.

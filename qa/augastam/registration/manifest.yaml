@@ -1,4 +1,5 @@
 module: registration
+product: augastam
 route: /registration
 existing_record_route: /registration/1101f999-7c91-4ba5-a52b-a80d728c588e/<uhr_id>
 base_url_env: BASE_URL

@@ -29,9 +29,9 @@ After some cases are approved, the Review queue's **Generate automation proposal
 A developer reads the proposal and `NOTES.md`, then runs:
 
 ```
-npm run module:adapter:install -- --module <id> --job <jobId> --dry-run     # preview only
-npm run module:adapter:install -- --module <id> --job <jobId> --yes         # install
-npm run module:adapter:install -- --module <id> --from <folder> --yes       # from a folder instead of a job
+npm run module:adapter:install -- --module <id> --product <product> --job <jobId> --dry-run     # preview only
+npm run module:adapter:install -- --module <id> --product <product> --job <jobId> --yes         # install
+npm run module:adapter:install -- --module <id> --product <product> --from <folder> --yes       # from a folder instead of a job
 ```
 
 `--data-dir` (default `.portal`) says where the job folders live; `--force` allows overwriting existing files. The installer accepts only the six expected file names, rejects symlinks and path traversal, validates adapter.json with the portal registry's own validator before writing anything, refuses the built-in `registration` module (even with `--force`) and any id that already has an adapter or `tests/<product>/<id>` folder, scans every file (the proposal is treated as hostile: import allow-list, no fs writes, dynamic import, `Function`, string-built `require`/`goto`/`fetch`, references to the auth, claude, portal and environment-secret folders/files, non-allow-listed `process.env`, hard-coded URLs or credentials; NOTES.md is scanned for secrets), prints every file's SHA-256 and a preview (`--show` for the full text; always printed, even with `--yes`), never overwrites existing files without `--force`, copies to `tests/<product>/<id>/` and `qa/<product>/<id>/adapter.json`, then confirms the registry actually loads the adapter and runs `npx tsc --noEmit` and `npm run portal:check`. It does not edit `.portal/portal.sqlite`, `.env` or `.auth`; connecting the module to the adapter is a separate step in the portal/registry, and a smoke case should be run before the full suite.
