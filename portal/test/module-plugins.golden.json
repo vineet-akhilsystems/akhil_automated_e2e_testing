@@ -1,11 +1,11 @@
 {
   "a.adapterRegistration": {
-    "sha256": "b1452fba1009b6364968e2d6157b639194c0628cdffbfa7f6ad87995222d9fef",
-    "length": 5160,
+    "sha256": "42f7fbb5af4021ef92c5fceb5c40acbf3f5c4f50f4a874521640a1c3621b6f1b",
+    "length": 5161,
     "json": {
       "id": "registration",
       "name": "Registration · Playwright",
-      "spec": "tests/modules/registration/cases.spec.ts",
+      "spec": "tests/augastam/registration/cases.spec.ts",
       "fields": {
         "title": {
           "card": "Basic Information",
@@ -1308,7 +1308,7 @@
     "caseModes": [
       "automated"
     ],
-    "casesSha256": "c1d2c95f25de7ce1a9d5c1ec2ba1cbceb5c984e434c1163d1e0ef210b93b70b5"
+    "casesSha256": "1697fbc512bc47a76b7c31a645383f97f4022f1fe22276ecd874fbc8025d801c"
   },
   "e.agentAndReadiness": {
     "registrationAutomationJob": {
@@ -1357,7 +1357,7 @@
     ],
     "registrationBriefSha256": "c78682a91801e4d7cae7c10bb299084583619d97ad52004ee59da75f52e66862",
     "billingBriefSha256": "b918d6ba2c540a3b336299c1c1af1c372e471e7a1f0a48aabd76b73f447f11d0",
-    "registrationAutomationBriefSha256": "ec8a1307f375c80648fb2d15db7184fa22af3497bac93c9658e9a36276ab3c67",
+    "registrationAutomationBriefSha256": "a2ad603a796353e6b89fcbce528f776c80f849d8d5e9bb0114d6aba39ce5aae5",
     "readinessRegistrationEmpty": {
       "stages": [
         {

@@ -4,11 +4,19 @@
 import { isDeepStrictEqual } from 'node:util';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveModuleFolder } from '../../module-layout.mjs';
+import { resolveModuleFolder } from '../../../module-layout.mjs';
 import { registrationWorkflows, workbookAutomation } from './adapter.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const ID_PROOF_FIXTURE = `${resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration')}/data/agent-test-id-proof.pdf`;
+
+// COMPATIBILITY (product-scoped layout, 2026-11-15): portal databases created before the move may still hold the old path in a case's
+// id_proof_file input. That one legacy value is accepted as the same fixture. Nothing else under the old qa/modules/ layout is mapped.
+export const LEGACY_ID_PROOF_FIXTURE = 'qa/modules/registration/data/agent-test-id-proof.pdf';
+/** The current repo-relative fixture path for `value` (the current or the legacy string), else null. */
+export function resolveIdProofFixture(value) {
+  return value === ID_PROOF_FIXTURE || value === LEGACY_ID_PROOF_FIXTURE ? ID_PROOF_FIXTURE : null;
+}
 
 export const registrationValidate = {
   afterOutcome(c, { check }) {
@@ -25,7 +33,7 @@ export const registrationValidate = {
     return workbookAutomation.cases.find(source => source.id === c.id);
   },
   checkInput(key, value, { check }) {
-    if (key === 'id_proof_file') check(value === ID_PROOF_FIXTURE, 'Use the provided synthetic ID-proof fixture.');
+    if (key === 'id_proof_file') check(resolveIdProofFixture(value) !== null, 'Use the provided synthetic ID-proof fixture.');
   },
   workflow(c, { check, textValue }) {
     if (c.action !== 'workflow') return false;

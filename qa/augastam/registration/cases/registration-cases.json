@@ -2397,7 +2397,7 @@
       "base": "valid",
       "enabled": false,
       "input": {
-        "id_proof_file": "qa/modules/registration/data/agent-test-id-proof.pdf"
+        "id_proof_file": "qa/augastam/registration/data/agent-test-id-proof.pdf"
       },
       "expected": {
         "outcome": "created"
