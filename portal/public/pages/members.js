@@ -26,7 +26,7 @@ const FALLBACK_ACCESS_META = {
   permissions: [
     { id: 'module.view', label: 'Open the module', group: 'Basics' }, { id: 'report.view', label: 'See reports and coverage', group: 'Basics' }, { id: 'product.view', label: 'See the product', group: 'Basics' },
     { id: 'intake.upload', label: 'Upload requirement files', group: 'Intake and agent' }, { id: 'intake.delete', label: 'Delete intake files (own uploads)', group: 'Intake and agent' }, { id: 'agent.run', label: 'Run the analysis agent', group: 'Intake and agent' },
-    { id: 'case.create', label: 'Create cases', group: 'Cases' }, { id: 'case.edit', label: 'Edit cases', group: 'Cases' }, { id: 'case.review', label: 'Approve or reject cases', group: 'Cases' }, { id: 'case.delete', label: 'Delete cases', group: 'Cases' },
+    { id: 'case.create', label: 'Create cases', group: 'Cases' }, { id: 'case.edit', label: 'Edit cases', group: 'Cases' }, { id: 'case.review', label: 'Approve or reject cases', group: 'Cases' }, { id: 'case.approve.own', label: 'Approve cases you wrote yourself', group: 'Cases' }, { id: 'case.delete', label: 'Delete cases', group: 'Cases' },
     { id: 'run.start', label: 'Start test runs', group: 'Runs' }, { id: 'run.cancel', label: 'Cancel test runs', group: 'Runs' }, { id: 'triage.write', label: 'Triage findings', group: 'Runs' },
     { id: 'module.settings', label: 'Change module settings', group: 'Administration' }, { id: 'members.manage', label: 'Manage who has access', group: 'Administration' }, { id: 'module.create', label: 'Create modules', group: 'Administration' },
   ],

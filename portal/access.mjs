@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   { id: 'case.edit', label: 'Edit cases', group: 'Cases' },
   { id: 'case.delete', label: 'Delete cases', group: 'Cases' },
   { id: 'case.review', label: 'Approve or reject cases', group: 'Cases' },
+  { id: 'case.approve.own', label: 'Approve cases you wrote yourself', group: 'Cases' },
   { id: 'run.start', label: 'Start test runs', group: 'Runs' },
   { id: 'run.cancel', label: 'Cancel test runs', group: 'Runs' },
   { id: 'triage.write', label: 'Record triage', group: 'Runs' },

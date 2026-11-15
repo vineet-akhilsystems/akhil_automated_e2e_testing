@@ -32,7 +32,7 @@ export default async function handle(ctx, rc) {
   const { dataDir, store } = ctx;
   const { authorize } = ctx.access;
   const { record, inModule } = ctx.membership;
-  const { now, audit, getModule, productName, envsFor, readinessFor, gateError, stampCase, fourEyes, fourEyesActive, caseContent } = ctx.helpers;
+  const { now, audit, getModule, productName, envsFor, readinessFor, gateError, stampCase, fourEyes, fourEyesActive, strictFor, caseContent } = ctx.helpers;
   if (route.startsWith('/api/')) {
 
         if (route === '/api/modules' && req.method === 'POST') {
@@ -154,7 +154,7 @@ export default async function handle(ctx, rc) {
               if (changed) {
                 // (the editor is the content author of every case on this template, so they can never approve any of them)
                 for (const c of store.cases(id).filter(x => x.base === name)) {
-                  const { reviewedBy, ...rest } = c, strict = fourEyesActive(module), downgrade = strict && (c.reviewStatus ?? 'approved') !== 'draft';
+                  const { reviewedBy, ...rest } = c, strict = strictFor(module, acc), downgrade = strict && (c.reviewStatus ?? 'approved') !== 'draft';
                   store.saveCase(id, { ...(downgrade ? rest : c), ...(downgrade ? { reviewStatus: 'draft' } : {}), contentBy: audit(user) }, c.version);
                   if (downgrade) reset.push(c.id);
                 }

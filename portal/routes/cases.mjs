@@ -6,7 +6,7 @@ export default async function handle(ctx, rc) {
   const { req, res, route } = rc;
   const { store } = ctx;
   const { inModule } = ctx.membership;
-  const { audit, stampCase, fourEyesActive, caseContent } = ctx.helpers;
+  const { audit, stampCase, fourEyesActive, strictFor, caseContent } = ctx.helpers;
   if (route.startsWith('/api/')) {
         const { user, acc } = rc;
         const moduleMatch = rc.moduleScope; // resolved by routes/modules.mjs (moduleScope)
@@ -19,16 +19,20 @@ export default async function handle(ctx, rc) {
             check(Array.isArray(body.ids) && body.ids.length > 0 && body.ids.length <= 5000, 'Select between 1 and 5,000 cases.');
             check(['approved', 'rejected'].includes(body.decision), 'Decision must be approved or rejected.');
             const ids = [...new Set(body.ids.map(x => textValue(x, 'Case ID', 80, true)))], note = textValue(body.note ?? '', 'Review note', 2000);
+            const strict = strictFor(module, acc), selfIds = [];
             store.transaction(() => {
               for (const cid of ids) {
                 const existing = store.case(id, cid);
                 check(existing, `Case ${cid} not found.`, 404);
-                // Whoever created the case, last changed its content, or last saved it may not approve or reject it.
-                check(!fourEyesActive(module) || ![existing.createdBy, existing.contentBy, existing.updatedBy].some(who => who?.user === user.username), 'Another person must approve this case.', 403);
-                store.saveCase(id, { ...existing, reviewStatus: body.decision, reviewedBy: { ...audit(user), decision: body.decision, ...(note ? { note } : {}) } }, existing.version);
+                // Whoever created the case, last changed its content, or last saved it may not approve or reject it, unless they hold 'case.approve.own'.
+                const own = [existing.createdBy, existing.contentBy, existing.updatedBy].some(who => who?.user === user.username);
+                check(!(strict && own), 'Another person must approve this case.', 403);
+                const self = own && fourEyesActive(module);
+                if (self) selfIds.push(cid);
+                store.saveCase(id, { ...existing, reviewStatus: body.decision, reviewedBy: { ...audit(user), decision: body.decision, ...(self ? { self: true } : {}), ...(note ? { note } : {}) } }, existing.version);
               }
             });
-            inModule(user, 'case.review', id, { decision: body.decision, count: ids.length, ids: ids.slice(0, 50), noteGiven: Boolean(note) });
+            inModule(user, 'case.review', id, { decision: body.decision, count: ids.length, ids: ids.slice(0, 50), noteGiven: Boolean(note), ...(selfIds.length ? { selfApproved: true, selfApprovedIds: selfIds.slice(0, 50) } : {}) });
             return json(res, 200, { updated: ids.length, decision: body.decision });
           }
           if (resource === 'cases' && caseId === 'bulk' && req.method === 'POST') {
@@ -74,7 +78,7 @@ export default async function handle(ctx, rc) {
             else check(caseId && body.id === caseId && store.case(id, caseId), 'Case not found or its ID was changed.', 404);
             const before = req.method === 'PUT' ? store.case(id, caseId) : undefined;
             const savedCase = store.saveCase(id, stampCase(validated, before, user, module, acc), body.version);
-            inModule(user, before ? 'case.update' : 'case.create', id, { id: savedCase.id, contentChanged: before ? caseContent(before) !== caseContent(savedCase) : true, reviewStatus: savedCase.reviewStatus ?? null });
+            inModule(user, before ? 'case.update' : 'case.create', id, { id: savedCase.id, contentChanged: before ? caseContent(before) !== caseContent(savedCase) : true, reviewStatus: savedCase.reviewStatus ?? null, ...(savedCase.reviewedBy?.self ? { selfApproved: true } : {}) });
             return json(res, req.method === 'POST' ? 201 : 200, savedCase);
           }
         }

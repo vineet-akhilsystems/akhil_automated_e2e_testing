@@ -72,6 +72,10 @@ export function createContext(options = {}) {
   const fourEyes = module => module.settings?.requireSecondApprover !== false;
   // With no accounts (open or access-key mode) there is only one local user, so a second approver cannot exist: the rule applies once accounts exist.
   const fourEyesActive = module => fourEyes(module) && users.exists();
+  // Per person: the rule is strict for you unless you hold 'case.approve.own' (Admins by default; anyone else when granted it).
+  // Holding it does not make you a reviewer: approving still needs 'case.review'.
+  const mayApproveOwn = (module, acc) => acc.module(module).has('case.approve.own');
+  const strictFor = (module, acc) => fourEyesActive(module) && !mayApproveOwn(module, acc);
   // Fields that change what a case does or means. Metadata (priority, category, enabled, notes) can change without a new approval.
   const CONTENT_FIELDS = ['title', 'steps', 'input', 'action', 'base', 'expected', 'target', 'requirement', 'preconditions', 'registrationType', 'mode'];
   const emptyToNull = v => (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length) ? null : v);
@@ -81,14 +85,15 @@ export function createContext(options = {}) {
   // Cases a non-reviewer touches always return to review; reviewers keep the stored decision.
   // With the second-approver rule a case is never auto-approved for its own author.
   function stampCase(validated, existing, user, module, acc) {
-    const reviewer = acc.module(module).has('case.review'), stamp = audit(user), strict = fourEyesActive(module);
+    const reviewer = acc.module(module).has('case.review'), stamp = audit(user), strict = strictFor(module, acc), selfRule = fourEyesActive(module) && !strict;
     const c = { ...validated };
     delete c.reviewStatus; delete c.reviewedBy; delete c.createdBy; delete c.contentBy;
     // contentBy: who last changed what the case does. They can never approve it, even if someone else edits metadata afterwards.
     if (!existing) {
       const want = ['draft', 'rejected'].includes(validated.reviewStatus) ? validated.reviewStatus : 'approved';
       c.reviewStatus = reviewer && !strict ? want : 'draft'; c.createdBy = stamp; c.contentBy = stamp;
-      if (reviewer && !strict && want === 'approved') c.reviewedBy = { ...stamp, decision: 'approved' };
+      // self: true marks an approval the rule would otherwise have refused: the author approved their own work under 'case.approve.own'.
+      if (reviewer && !strict && want === 'approved') c.reviewedBy = { ...stamp, decision: 'approved', ...(selfRule ? { self: true } : {}) };
     } else {
       if (existing.createdBy) c.createdBy = existing.createdBy;
       if (existing.contentBy) c.contentBy = existing.contentBy;
@@ -283,7 +288,7 @@ export function createContext(options = {}) {
   };
   const tickets = createTickets(store, { fetchImpl: options.fetch, logger, baseUrl: () => process.env.PORTAL_PUBLIC_URL ?? `http://127.0.0.1:${process.env.PORTAL_PORT ?? 4173}` });
   const schedules = createSchedules(store, { start: startScheduled, logger, users: () => store.users(), now: options.now });
-  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
+  const helpers = { now, audit, credentialsFor, publicEnvironment, getModule, getProduct, productName, productList, envsFor, readinessFor, gateError, record, inModule, stampCase, fourEyes, fourEyesActive, strictFor, mayApproveOwn, CONTENT_FIELDS, emptyToNull, sorted, caseContent, runScope, runEvent, getRun, visibleRun, summaryRun, createRun, startAll, sendPack };
   return { config, options, dataDir, host, token, isLocalHost, lock, store, users, intake, agent, queue, notifications, schedules, tickets, reportJobs, knowledgeRoot, jobs, fixedAccounts, sessions: sessionsService, access: accessService, membership,
     environments, settings, logger, layoutRoot, specRoot, helpers };
 }

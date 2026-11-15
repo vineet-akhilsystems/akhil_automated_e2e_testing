@@ -178,7 +178,7 @@ export const SECTIONS = [
 
   { id: 'trouble', title: 'When something looks wrong', lead: 'The messages people ask about most.', body: () => table(['You see', 'What it means and what to do'], [
     ['Nothing new to analyse', 'Every upload was already read. Add or change a file, or press <strong>Run anyway</strong> to read everything again.'],
-    ['Another person must approve this case', 'You created or edited it, so someone else has to approve it. For a one-person team a lead can turn the rule off in Module settings.'],
+    ['Another person must approve this case', 'You created or edited it, so someone else with the review right has to approve it. Admins, and anyone granted <strong>Approve cases you wrote yourself</strong> (Members &rarr; the person&rsquo;s permissions), can approve their own work. For a one-person team a lead can turn the rule off in Module settings.'],
     ['AI generation locked', 'The module is not ready yet. Open the Readiness box to see which step is missing.'],
     ['Login required / Login expired', 'Open Settings or Environments and press Refresh application login for that profile.'],
     ['A case prefix is already used', 'Two modules in one product cannot share a prefix. Choose a different one.'],
