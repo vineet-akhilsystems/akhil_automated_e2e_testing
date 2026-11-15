@@ -119,6 +119,8 @@ export function validateAdapter(id, raw, { root = ROOT, product = 'augastam' } =
   if (a.id !== id) fail(`adapter.json id must be "${id}".`);
   if (typeof a.name !== 'string' || !a.name.trim() || a.name.length > 120) fail('adapter.json needs a name.');
   if (a.product !== undefined && a.product !== product) fail(`adapter.json product must be "${product}".`);
+  // The registry defaults a missing product to augastam, so any other product must be declared or the adapter would be skipped at load.
+  if (product !== 'augastam' && a.product === undefined) fail(`adapter.json must declare "product": "${product}".`);
   const specPath = `${resolveModuleFolder(root, 'tests', product, id)}/cases.spec.ts`;
   if (a.spec !== specPath) fail(`adapter.json spec must be exactly "${specPath}".`);
   if (a.prefix !== undefined && !(typeof a.prefix === 'string' && /^[A-Za-z][A-Za-z0-9]{0,11}$/.test(a.prefix))) fail('adapter.json prefix must be 1-12 letters/digits.');
@@ -205,7 +207,7 @@ export async function install(argv, { root = ROOT, run = defaultRun, log = conso
   if (!!o.job === !!o.from) fail('Provide exactly one of --job <jobId> or --from <dir>.');
   const id = o.module, product = o.product ?? 'augastam';
   if (!ID_RE.test(product)) fail('--product must be a product id such as augastam.');
-  const testsRel = resolveModuleFolder(root, 'tests', product, id);
+  let testsRel; try { testsRel = resolveModuleFolder(root, 'tests', product, id); } catch (e) { fail(`--product "${product}" cannot be used: ${e.message}`); }
   if (id === 'registration') fail('The Registration module is built in and cannot be installed or overwritten by this tool (not even with --force).');
   if (!o.force && (Object.hasOwn(adapters, id) || fs.existsSync(path.join(root, ...testsRel.split('/'))))) fail(`Module "${id}" already has an automation adapter or a ${testsRel} folder. Refusing to overwrite it (use --force only after reviewing, never for registration).`);
   let source;

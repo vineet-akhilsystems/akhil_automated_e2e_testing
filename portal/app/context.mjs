@@ -126,7 +126,8 @@ export function createContext(options = {}) {
   // The readiness checklist, computed from live state on every call (nothing cached).
   function readinessFor(module) {
     const id = module.id, productId = module.productId ?? 'augastam', setup = module.setup ?? null;
-    const discoveryDir = path.join(layoutRoot, ...resolveModuleFolder(layoutRoot, 'qa', productId, id).split('/'), 'discovery'), fieldsFile = path.join(discoveryDir, 'fields-default.json');
+    let moduleDirRel; try { moduleDirRel = resolveModuleFolder(layoutRoot, 'qa', productId, id); } catch (e) { throw new HttpError(409, `The folder for module "${module.name ?? id}" cannot be located: ${e.message}`); }
+    const discoveryDir = path.join(layoutRoot, ...moduleDirRel.split('/'), 'discovery'), fieldsFile = path.join(discoveryDir, 'fields-default.json');
     let discoveryExists = false, discoveryStale = false, discoveryEmpty = false;
     if (pluginFor(id)?.discovery) { try { discoveryExists = fs.readdirSync(discoveryDir).length > 0; } catch { /* none */ } }
     else {

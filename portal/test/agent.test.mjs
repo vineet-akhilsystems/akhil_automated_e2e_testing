@@ -271,3 +271,14 @@ test('agent output written with a UTF-8 byte-order mark (PowerShell on Windows) 
   });
   assert.equal(job.status, 'done', job.message);
 });
+
+test('automation workspace of a non-Augastam module copies discovery from the product-scoped folder and names it in the brief', async t => {
+  const { ws } = await directRun(t, {
+    module: { id: 'miracle-billing', productId: 'miracle', name: 'Billing', area: 'Fin', config: {} }, kind: 'automation',
+    cases: [{ id: 'MIR-001', title: 'T', category: 'c', priority: 'P1', steps: [{ action: 'a', expected: 'b' }], reviewStatus: 'approved' }],
+    discovery: { 'fields-main.json': '{"a":1}' },
+  });
+  assert.deepEqual(fs.readdirSync(path.join(ws, 'input', 'discovery')), ['fields-main.json']);
+  const brief = fs.readFileSync(path.join(ws, 'INSTRUCTIONS.md'), 'utf8');
+  assert.ok(brief.includes('tests/miracle/billing/cases.spec.ts') && brief.includes('qa/miracle/billing/adapter.json'));
+});

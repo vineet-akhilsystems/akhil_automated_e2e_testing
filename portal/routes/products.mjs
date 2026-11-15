@@ -1,4 +1,5 @@
 import { check, textValue, adapters } from '../registry.mjs';
+import { isReservedProductName } from '../module-layout.mjs';
 import { readJson } from '../http/body.mjs';
 import { json } from '../http/respond.mjs';
 import { ROLES } from '../users.mjs';
@@ -17,6 +18,7 @@ export default async function handle(ctx, rc) {
           const name = textValue(body.name, 'Product name', 80, true);
           const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           check(/^[a-z][a-z0-9-]*$/.test(id), 'The product name must start with an English letter and use English letters/numbers.');
+          check(!isReservedProductName(id), `"${name}" cannot be used as a product name because it is reserved for shared folders. Choose a different name.`);
           check(!store.product(id), 'A product with that name already exists.', 409);
           const saved = store.saveProduct({ id, name, description: textValue(body.description ?? '', 'Description', 1000) });
           record(user, { action: 'product.create', scopeType: 'product', scopeId: id, subject: null, detail: { name } });

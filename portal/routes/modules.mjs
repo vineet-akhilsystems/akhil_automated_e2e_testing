@@ -1,3 +1,4 @@
+import { moduleFolder } from '../module-layout.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -41,6 +42,10 @@ export default async function handle(ctx, rc) {
           const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           const id = slug && (product.id === 'augastam' ? slug : `${product.id}-${slug}`);
           check(id && !store.module(id), 'A module with that name already exists, or its name needs English letters/numbers.', 409);
+          // One folder per module: ids that differ only by the product prefix (augastam-bar and bar) would share qa/tests/discovery folders.
+          let folder; try { folder = moduleFolder('qa', product.id, id); } catch (e) { check(false, e.message); }
+          const sameFolder = store.modules().find(m => m.id !== id && (m.productId ?? 'augastam') === product.id && (() => { try { return moduleFolder('qa', product.id, m.id) === folder; } catch { return false; } })());
+          check(!sameFolder, `The folder "${folder.split('/').pop()}" is already used by module "${sameFolder?.name}" in ${product.name}. Choose a different module name.`, 409);
           const prefix = textValue(body.prefix, 'Case prefix', 12, true).toUpperCase();
           check(/^[A-Z][A-Z0-9]{1,11}$/.test(prefix), 'Use 2–12 letters/numbers for the case prefix.');
           const sharing = store.modules().find(m => (m.productId ?? 'augastam') === product.id && String(m.prefix).toUpperCase() === prefix);

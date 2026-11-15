@@ -29,8 +29,8 @@ function collect(root, productId, moduleId) {
   const out = { files: [], truncated: false };
   const id = String(moduleId);
   if (!id || /[\\/]|^\.+$/.test(id)) return out;
-  let testsDir, qaDir, portalDir;
-  try { testsDir = resolveModuleFolder(root, 'tests', productId, id); qaDir = resolveModuleFolder(root, 'qa', productId, id); portalDir = resolveModuleFolder(root, 'portal', productId, id); } catch { return out; } // not a valid module id: nothing to hash
+  // A product or module id the layout cannot place throws a plain error here, instead of silently hashing nothing.
+  const testsDir = resolveModuleFolder(root, 'tests', productId, id), qaDir = resolveModuleFolder(root, 'qa', productId, id), portalDir = resolveModuleFolder(root, 'portal', productId, id);
   walk(root, testsDir, false, out);
   for (const f of QA_FILES) { const rel = `${qaDir}/${f}`; try { if (fs.lstatSync(path.join(root, rel)).isFile()) out.files.push(rel); } catch { /* missing is fine */ } }
   walk(root, `${qaDir}/versions`, false, out);

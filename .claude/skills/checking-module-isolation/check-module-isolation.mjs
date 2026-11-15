@@ -31,12 +31,12 @@ const BASELINE = [
   { file: 'portal/store.mjs', id: 'registration', contains: "import './modules/registration/index.mjs'", reason: 'by design: registers the plugin seed hook before openStore runs (comment on the line)' },
   { file: 'portal/ai-generator.mjs', id: 'registration', contains: "import './modules/registration/index.mjs'", reason: 'by design: plugin import so AI generation sees the plugin when loaded on its own' },
   { file: 'portal/registry.mjs', id: 'registration', contains: "from './modules/registration/adapter.mjs'", reason: 'issue (low): shared registry re-exports Registration data (registrationData, registrationWorkflows, workbookAutomation); new modules must not add exports like this' },
-  { file: 'portal/app/context.mjs', id: 'registration', contains: "'tests/modules/registration'", reason: 'by design: coding-agent reference folder fallback when no plugin sets agent.referenceDir (portal/agent.mjs:59)' },
+  { file: 'portal/app/context.mjs', id: 'registration', contains: "resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration')", reason: 'by design: coding-agent reference folder fallback when no plugin sets agent.referenceDir (portal/agent.mjs:59); the folder comes from the layout resolver' },
   { file: 'portal/public/pages/pipeline.js', id: 'registration', contains: 'placeholder="/registration"', reason: 'by design: example text in the Module URL input' },
   { file: 'playwright.config.ts', id: 'registration', contains: "PORTAL_MODULE_ID === 'registration'", reason: 'by design: Registration-only reporter, skipped when the portal runs another module (comment on line 23)' },
   { file: 'qa/tools/install-module-adapter.mjs', id: 'registration', contains: "id === 'registration'", reason: 'by design: guard that refuses to overwrite the built-in module' },
   { file: 'tests/seed.spec.ts', id: 'registration', contains: "'/registration'", reason: 'issue (low): Registration-specific seed test for the Playwright agents sits in shared tests/' },
-  { file: 'qa/tools/make-test-pdf.js', id: 'registration', contains: 'qa/modules/registration/data', reason: 'issue (low): generically named tool defaults its output into Registration data' },
+  { file: 'qa/tools/make-test-pdf.js', id: 'registration', contains: "'augastam', 'registration')}/data", reason: 'issue (low): generically named tool defaults its output into Registration data' },
 ];
 
 function walk(dir, out = []) {
