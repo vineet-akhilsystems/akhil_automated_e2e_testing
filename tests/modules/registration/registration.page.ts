@@ -1,5 +1,6 @@
 import { Locator, Page, Response, expect } from '@playwright/test';
 import { FIELDS, FieldDef } from './fields';
+import { moduleDir } from '../../shared/module-paths';
 
 export const REGISTRATION_WORKFLOW_ID = '1101f999-7c91-4ba5-a52b-a80d728c588e';
 
@@ -91,7 +92,7 @@ export class RegistrationPage {
 
   def(key: string): FieldDef {
     const f = FIELDS[key];
-    if (!f) throw new Error(`Unknown field key "${key}". Add it to tests/modules/registration/fields.ts`);
+    if (!f) throw new Error(`Unknown field key "${key}". Add it to ${moduleDir('tests', 'augastam', 'registration')}/fields.ts`);
     return f;
   }
 
