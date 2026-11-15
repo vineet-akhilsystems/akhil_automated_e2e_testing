@@ -101,3 +101,11 @@ test('hidden means no module.view: a team grant without view gives nothing', () 
   const m = [mem({ subjectType: 'team', subjectId: 't1', role: 'tester', overrides: { 'module.view': false } })];
   assert.equal(eff(user, M, m, ['t1'], NOW).size, 0);
 });
+
+test('case.approve.own: held by admins, in no preset role, grantable by override, needs module.view like any permission', () => {
+  assert.ok(PERMISSION_IDS.includes('case.approve.own'));
+  assert.ok(Object.values(ROLES).every(r => !r.permissions.includes('case.approve.own')));
+  assert.ok(eff({ id: 'a', role: 'admin' }, M, [], [], NOW).has('case.approve.own'));
+  assert.ok(!eff(user, M, [mem({ role: 'lead' })], [], NOW).has('case.approve.own'));
+  assert.ok(eff(user, M, [mem({ role: 'tester', overrides: { 'case.approve.own': true } })], [], NOW).has('case.approve.own'));
+});

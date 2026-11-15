@@ -120,7 +120,8 @@ test('finding 4: changing a data template sends cases built on it back to review
   const ben = await login('ben');
   f.store.saveCase('registration', { id: 'TB-1', title: 'Uses template', mode: 'automated', category: 'T', priority: 'P1', base: 'temp_base', steps: [], reviewStatus: 'approved', reviewedBy: { user: 'someone', decision: 'approved' } });
   f.store.saveCase('registration', { id: 'TB-2', title: 'Other', mode: 'automated', category: 'T', priority: 'P1', base: 'valid', steps: [], reviewStatus: 'approved' });
-  const put = input => admin.request('/api/modules/registration/templates', 'PUT', { name: 'temp_base', input, version: f.store.module('registration').version });
+  // (ben is a tester without case.approve.own; an administrator's template edit does not reset cases, see the self-approval tests)
+  const put = input => ben.request('/api/modules/registration/templates', 'PUT', { name: 'temp_base', input, version: f.store.module('registration').version });
   ok(await put({ first_name: 'A' }));                      // creating the template changes nothing for it yet... but it did not exist before: counts as a change
   assert.equal(f.store.case('registration', 'TB-1').reviewStatus, 'draft');
   f.store.saveCase('registration', { ...f.store.case('registration', 'TB-1'), reviewStatus: 'approved' }, f.store.case('registration', 'TB-1').version);
