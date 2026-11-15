@@ -803,6 +803,25 @@ test('matrix with 132 cases x 8 combinations over many runs stays fast', () => {
   assert.equal(m.columns.length, 8); assert.equal(m.rows.length, 132);
 });
 
+test('POST automation-versions answers 409 with a plain sentence (no path) when the files cannot be read', async t => {
+  const { admin } = await world5(t, { automationFingerprint: () => { throw new Error('EACCES: permission denied, open C:/secret/place/a.ts'); } });
+  const r = await admin.request(V, 'POST', {});
+  assert.equal(r.status, 409);
+  assert.match(r.value.error, /could not be read/);
+  assert.doesNotMatch(r.value.error, /secret|EACCES|[A-Za-z]:[\\/]/);
+});
+
+test('the fingerprint is taken under the module adapter folder (adapter ?? id), the record under the module id', async t => {
+  const seen = [];
+  const { admin } = await world5(t, { automationFingerprint: (root, dir) => { seen.push(dir); return fp('d'); } });
+  assert.equal((await admin.request(V, 'POST', {})).status, 201);
+  assert.ok(seen.length > 0 && seen.every(d => d === 'registration'));
+  const store = { automationVersionByHash: () => null, latestAutomationVersion: () => null, transaction: fn => fn(), insertAutomationVersion: () => {} };
+  const dirs = [];
+  const rec = registerAutomationVersion({ store, root: '/r', moduleId: 'm-id', dir: 'adapter-dir', fingerprint: (root, dir) => { dirs.push(dir); return fp('e'); } });
+  assert.deepEqual(dirs, ['adapter-dir']); assert.equal(rec.moduleId, 'm-id');
+});
+
 test('matrix: a partial re-run replaces only the cases it ran; older results stay for the rest', () => {
   const full = mrun({ ...ver('1.58', null, 2), results: [{ id: 'REG-2', status: 'PASS' }, { id: 'REG-10', status: 'FAIL' }] });
   const partial = mrun({ ...ver('1.58', null, 2), cases: [{ id: 'REG-10', title: 'Ten' }], results: [{ id: 'REG-10', status: 'PASS' }] });

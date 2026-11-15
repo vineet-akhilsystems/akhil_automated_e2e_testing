@@ -45,6 +45,7 @@ export default async function handle(ctx, rc) {
   const module = store.module(m[1]);
   check(module, 'Module not found.', 404);
   const root = ctx.options.automationRoot ?? ROOT, fingerprint = ctx.options.automationFingerprint ?? fingerprintAutomation;
+  const dir = module.adapter ?? module.id; // the folder name the module's automation files live under
   const moduleRuns = () => store.runs().filter(r => r.module?.id === module.id);
   const url = new URL(req.url, 'http://x');
 
@@ -74,9 +75,9 @@ export default async function handle(ctx, rc) {
   if (m[2].startsWith('automation-versions')) {
     if (!m[3] && req.method === 'GET') {
       let current = null;
-      try { current = fingerprint(root, module.id).hash; } catch (e) { ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr'); }
+      try { current = fingerprint(root, dir).hash; } catch (e) { ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr'); }
       const list = store.automationVersions(module.id).slice().sort((a, b) => b.number - a.number);
-      const stats = statsFor(moduleRuns().filter(finishedAutomated));
+      const stats = statsFor(moduleRuns().filter(r => finishedAutomated(r) && ctx.helpers.visibleRun(rc.acc, r)));
       const versions = list.map((v, i) => {
         const s = stats.get(v.number);
         return { ...publicVersion(v), current: current !== null && v.hash === current, changedFilesSince: list[i + 1]?.number ?? null,
@@ -88,9 +89,15 @@ export default async function handle(ctx, rc) {
     if (!m[3] && req.method === 'POST') {
       const body = await readJson(req);
       const note = cleanNote(body?.note);
-      const before = store.automationVersionByHash(module.id, fingerprint(root, module.id).hash);
+      let before, record;
+      try {
+        before = store.automationVersionByHash(module.id, fingerprint(root, dir).hash);
+        if (!before) record = registerAutomationVersion({ store, root, moduleId: module.id, dir, by: rc.user.username, trigger: 'manual', note, fingerprint });
+      } catch (e) {
+        ctx.logger?.(`Could not fingerprint automation: ${e.message}`, 'stderr');
+        check(false, 'The automation files could not be read, so the current version cannot be registered. Check the server log.', 409);
+      }
       if (before) return json(res, 200, { ...publicVersion(before), existing: true });
-      const record = registerAutomationVersion({ store, root, moduleId: module.id, by: rc.user.username, trigger: 'manual', note, fingerprint });
       if (record.pendingGit) annotateAutomationVersion({ store, root, moduleId: module.id, number: record.number, git: ctx.options.automationGit }).catch(e => ctx.logger?.(`Automation version git details failed: ${e.message}`, 'stderr'));
       inModule(rc.user, 'automation.version.register', module.id, { number: record.number });
       return json(res, 201, publicVersion(record));
