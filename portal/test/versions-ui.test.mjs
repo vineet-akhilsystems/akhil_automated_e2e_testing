@@ -172,6 +172,7 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
   await call('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/#/modules/facility-setup/versions`);
+  await page.reload(); // the module list is loaded at page start
   await expect(page.getByRole('heading', { name: /^Versions/ })).toBeVisible();
   await expect(page.locator('.module-tabs a', { hasText: 'Tree' })).toHaveCount(0);
   assert.equal(await page.evaluate(() => window.__xss), undefined, 'no script from data ran');
