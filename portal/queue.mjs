@@ -147,6 +147,8 @@ export function createQueue(store, dataDir, environments, launch = spawn, logger
     const environment = environments.find(e => e.id === run.environmentId);
     const dir = dirFor(run.id);
     fs.mkdirSync(dir, { recursive: true });
+    // Last chance to restamp the automation version: the files may have changed while the run waited. Never blocks the run.
+    try { options.beforeStart?.(run); } catch { /* keep the queue-time stamp */ }
     run.status = 'running'; run.startedAt = new Date().toISOString(); store.saveRun(run);
     const auth = run.kind === 'authentication';
     const planned = auth ? [] : Array.isArray(run.onlyCaseIds) && run.onlyCaseIds.length ? casesWithDependencies(run.cases, run.onlyCaseIds) : run.cases;

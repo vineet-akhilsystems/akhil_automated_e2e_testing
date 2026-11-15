@@ -62,7 +62,7 @@ export function createContext(options = {}) {
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
-  const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor, { retries: options.retries, workers: options.workers, onFinish: run => notifications.runFinished(run) });
+  const queue = createQueue(store, dataDir, environments, options.launch, logger, credentialsFor, { retries: options.retries, workers: options.workers, onFinish: run => notifications.runFinished(run), beforeStart: run => restampAutomationVersion(run) });
   const reportJobs = createReportJobs({ store, dirFor: queue.dirFor, logger, ...options.reportJobOptions }); // reportJobOptions: test seam (build, maxRunning)
   const { principal, startSession, dropSessions, sessions, sessionId, sessionUser, LOCAL_USER, attempts: loginAttempts } = createSessions({ store, users, token });
   const audit = user => ({ user: user.username, at: now() });
@@ -170,6 +170,23 @@ export function createContext(options = {}) {
     if (profile) { const { keys, ...brief } = profile; rest.profile = { ...brief, keyCount: Object.keys(keys ?? {}).length }; }
     return { ...rest, module: { id: module.id, name: module.name, area: module.area }, total: cases.length };
   };
+  // Test-only seams (never set in production): options.automationRoot (repo root to fingerprint), options.automationFingerprint (replaces the fingerprint function), options.automationGit (replaces the git helper).
+  // Registers (or finds) the automation version for the files as they are now. Failing to do so must never block a run: returns undefined.
+  function stampAutomationVersion(module, by) {
+    try {
+      const root = options.automationRoot ?? ROOT;
+      const version = registerAutomationVersion({ store, root, moduleId: module.id, dir: module.adapter ?? module.id, by, trigger: 'run', fingerprint: options.automationFingerprint });
+      if (version.pendingGit) annotateAutomationVersion({ store, root, moduleId: module.id, number: version.number, git: options.automationGit }).catch(e => logger?.(`Automation version git details failed: ${e.message}`, 'stderr'));
+      return { number: version.number, hash: version.hash };
+    } catch (e) { logger?.(`Automation version not recorded: ${e.message}`, 'stderr'); return undefined; }
+  }
+  // Runs wait in the queue; the files may change before one starts. The queue calls this just before it starts Playwright: if the
+  // files no longer match the queue-time stamp, the run is restamped. If fingerprinting fails, the queue-time stamp stays.
+  function restampAutomationVersion(run) {
+    if (run.kind !== 'tests' || run.mode !== 'automated') return;
+    const fresh = stampAutomationVersion(run.module, run.createdBy?.user ?? null);
+    if (fresh && fresh.hash !== run.automationVersion?.hash) run.automationVersion = fresh;
+  }
   function createRun(body, user = LOCAL_USER, { inheritVersion, ...extra } = {}) {
     check(typeof body?.moduleId === 'string' && body.moduleId, 'Choose a module.');
     const { acc: runAcc } = authorize(user, 'run.start', { module: body.moduleId });
@@ -194,18 +211,10 @@ export function createContext(options = {}) {
     }
     // A re-run (inheritVersion is set by the server only, never read from the request) keeps the original run's version, even when that was none.
     const typed = normalizeAppVersion(body.appVersion), appVersion = inheritVersion !== undefined ? inheritVersion : typed ? { label: typed, source: 'run' } : environment.appVersion ? { label: environment.appVersion, source: 'profile' } : null;
-    // Test-only seams (never set in production): options.automationRoot (repo root to fingerprint), options.automationFingerprint (replaces the fingerprint function), options.automationGit (replaces the git helper).
-    // Automated runs are stamped with the automation version (content hash). Failing to do so must never block a run.
-    let automationVersion;
-    if (body.mode === 'automated') {
-      try {
-        const root = options.automationRoot ?? ROOT;
-        const version = registerAutomationVersion({ store, root, moduleId: module.id, by: user?.username ?? null, trigger: 'run', fingerprint: options.automationFingerprint });
-        automationVersion = { number: version.number, hash: version.hash };
-        if (version.pendingGit) annotateAutomationVersion({ store, root, moduleId: module.id, number: version.number, git: options.automationGit }).catch(e => logger?.(`Automation version git details failed: ${e.message}`, 'stderr'));
-      } catch (e) { logger?.(`Automation version not recorded: ${e.message}`, 'stderr'); }
-    }
-    const run = { id: randomUUID(), name: textValue(body.name, 'Run name', 200, true), environmentId: environment.id,
+    // Validate the name before anything is registered, so a rejected request never creates an automation version.
+    const runName = textValue(body.name, 'Run name', 200, true);
+    const automationVersion = body.mode === 'automated' ? stampAutomationVersion(module, user?.username ?? null) : undefined;
+    const run = { id: randomUUID(), name: runName, environmentId: environment.id,
       environmentName: environment.name, environmentUrl: environment.url, mode: body.mode, kind: 'tests', productId, productName: productName(productId),
       module: structuredClone(module), ...(appVersion ? { appVersion } : {}), ...(automationVersion ? { automationVersion } : {}), cases, results: [], ...(body.accessibility === true && body.mode === 'automated' ? { accessibility: true } : {}), status: body.mode === 'manual' ? 'manual' : 'queued', createdAt: now(), createdBy: audit(user), ...extra,
       scope: { repositoryCases: store.cases(module.id).length, enabledCases: store.cases(module.id).filter(c => c.enabled !== false).length,

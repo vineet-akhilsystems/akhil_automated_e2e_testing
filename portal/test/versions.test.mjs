@@ -581,6 +581,49 @@ test('an automated run is stamped with automationVersion and a manual run is not
   assert.equal(manual.status, 201); assert.equal(manual.value.automationVersion, undefined);
 });
 
+// A queued run is stamped again just before Playwright starts (the files may change while it waits).
+async function queuedBehind(t, fingerprint) {
+  const f = await boot(t, { automationRoot: os.tmpdir(), automationFingerprint: fingerprint, automationGit: async () => ({}) });
+  assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
+  const start = name => f.request('/api/runs', 'POST', { name, moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
+  const first = await start('first');
+  await until(() => f.launches.length > 0);
+  const second = await start('second');
+  assert.equal(f.store.run(second.value.id).status, 'queued');
+  return { f, first: first.value, second: second.value };
+}
+const fp = hash => ({ hash: hash.repeat(64), files: [{ path: 'tests/modules/registration/x.ts', sha256: hash.repeat(64) }], truncated: false });
+
+test('a queued run is restamped when the automation changed while it waited', async t => {
+  let current = 'a';
+  const { f, first, second } = await queuedBehind(t, () => fp(current));
+  assert.deepEqual(f.store.run(second.id).automationVersion, { number: 1, hash: 'a'.repeat(64) });
+  current = 'b';
+  f.launches[0].child.emit('exit', 0);
+  await until(() => f.launches.length > 1);
+  assert.deepEqual(f.store.run(second.id).automationVersion, { number: 2, hash: 'b'.repeat(64) });
+  assert.equal(f.store.run(first.id).automationVersion.number, 1, 'the run that already started keeps its stamp');
+  assert.equal(f.store.automationVersionByNumber('registration', 2).trigger, 'run');
+});
+
+test('a queued run keeps its queue-time stamp when the files are unchanged or fingerprinting fails at start', async t => {
+  let mode = 'ok';
+  const { f, second } = await queuedBehind(t, () => { if (mode === 'fail') throw new Error('disk gone'); return fp('a'); });
+  mode = 'fail';
+  f.launches[0].child.emit('exit', 0);
+  await until(() => f.launches.length > 1);
+  assert.deepEqual(f.store.run(second.id).automationVersion, { number: 1, hash: 'a'.repeat(64) });
+  assert.equal(f.store.automationVersions('registration').length, 1);
+});
+
+test('a rejected run name registers no automation version', async t => {
+  const f = await boot(t, { automationRoot: os.tmpdir(), automationFingerprint: () => fp('c'), automationGit: async () => ({}) });
+  assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
+  const bad = await f.request('/api/runs', 'POST', { name: '   ', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(f.store.automationVersions('registration'), []);
+});
+
 import { validateTree, loadTree, assignCases, rollupTree } from '../tree.mjs';
 
 const N = (id, parent, extra = {}) => ({ id, name: id, ...(parent ? { parent } : {}), kind: parent ? 'step' : 'root', ...extra });

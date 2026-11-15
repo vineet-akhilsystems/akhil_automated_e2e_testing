@@ -130,8 +130,9 @@ export function defaultGit(root, run = runGit) {
 const isUnique = e => /UNIQUE|constraint/i.test(String(e?.message ?? ''));
 
 // Synchronous: hash, number and record. Git details are added afterwards by annotateAutomationVersion.
-export function registerAutomationVersion({ store, root, moduleId, by = null, trigger = 'run', note = '', fingerprint = fingerprintAutomation }) {
-  const fp = fingerprint(root, moduleId);
+// `dir` is the name the module's files live under (module.adapter ?? module.id); records are always keyed by moduleId.
+export function registerAutomationVersion({ store, root, moduleId, dir = moduleId, by = null, trigger = 'run', note = '', fingerprint = fingerprintAutomation }) {
+  const fp = fingerprint(root, dir);
   const existing = () => store.automationVersionByHash(moduleId, fp.hash);
   const found = existing();
   if (found) return found;
