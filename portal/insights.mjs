@@ -154,7 +154,7 @@ export function buildDraftCases({ module, existingCases, specs, user, insightId,
   const at = new Date().toISOString();
   fresh.forEach((s, i) => {
     const common = { id: ids[i], title: s.title, category: s.category, priority: s.priority, preconditions: s.preconditions ?? '', requirement: s.requirement ?? '',
-      ...(s.risk ? { risk: s.risk } : {}), ...(s.basis ? { basis: s.basis } : {}), ...(s.reviewNote ? { reviewNote: s.reviewNote } : {}),
+      ...(s.risk ? { risk: s.risk } : {}), ...(s.node ? { suggestedNode: s.node } : {}), ...(s.basis ? { basis: s.basis } : {}), ...(s.reviewNote ? { reviewNote: s.reviewNote } : {}),
       reviewStatus: 'draft', origin: { type: 'intake', insightId, mode, source: s.source ?? '' }, createdBy: { user: user.username, at } };
     const note = kind => `Draft from module intake (${mode}). Source: ${s.source || 'intake files'}. ${s.basis === 'experience' ? 'Based on tester experience, not a source document: confirm the rule with the BA before approving. ' : ''}${kind}`;
     // An AI-written update may only target a record another case creates ({{name@CASE-ID}}), never a literal (real) patient id.
@@ -247,7 +247,8 @@ export function foldSteps(steps, caseExpected, title) {
   return out;
 }
 
-export function saveExternalInsights({ store, module, body, user, mode = 'assistant', model, coveredFileIds }) {
+export function saveExternalInsights({ store, module, body, user, mode = 'assistant', model, coveredFileIds, treeNodeIds }) {
+  const knownNodes = new Set(Array.isArray(treeNodeIds) ? treeNodeIds : []);
   const mid = module.id;
   check(body && typeof body === 'object', 'Insights must be a JSON object.');
   // Agents and assistants phrase things in natural variants (a rule as {"rule": "..."}, a flow as one sentence, a step as a string).
@@ -269,7 +270,7 @@ export function saveExternalInsights({ store, module, body, user, mode = 'assist
     if (!title) { badCases++; return null; }
     return { title, category: clip(c.category, 120) || 'General', priority: ['P0', 'P1', 'P2', 'P3'].includes(c.priority) ? c.priority : 'P2',
       preconditions: clip(c.preconditions, 1000), requirement: clip(c.requirement, 200), source: clip(c.source, 300),
-      risk: clip(c.risk, 300), basis: ['source', 'experience'].includes(c.basis) ? c.basis : '', reviewNote: clip(c.reviewNote, 400),
+      node: typeof c.node === 'string' && knownNodes.has(c.node.trim()) ? c.node.trim() : '', risk: clip(c.risk, 300), basis: ['source', 'experience'].includes(c.basis) ? c.basis : '', reviewNote: clip(c.reviewNote, 400),
       steps: foldSteps(arr(c.steps, 'steps').map(st => typeof st === 'string' ? { action: clip(st, 500), expected: '' } : { action: clip(st?.action ?? st?.step, 500), expected: clip(st?.expected ?? st?.result, 500) }).filter(st => st.action), typeof c.expected === 'string' ? clip(c.expected, 500) : '', title),
       ...automationSpec(c) };
   }).filter(Boolean);

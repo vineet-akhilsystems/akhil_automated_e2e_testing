@@ -273,3 +273,48 @@ test('an analysis with nothing usable in it is still an error and saves nothing'
   assert.equal(job.status, 'error'); assert.match(job.message, /no usable content/);
   assert.equal((await b.request('/api/modules/billing/cases')).value.length, 0);
 });
+
+// ---- test tree in the brief; a suggested node on a case ------------------------------------------------------------------
+const TREE = { module: 'billing', nodes: [{ id: 'root', name: 'Billing', kind: 'root' }, { id: 'invoice', name: 'Invoice totals', kind: 'step', parent: 'root' }] };
+const putTree = (root, tree) => { const f = path.join(root, 'qa', 'modules', 'billing', 'tree.json'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, typeof tree === 'string' ? tree : JSON.stringify(tree)); };
+
+test('the brief lists tree node ids and names when the module has a valid tree, and nothing when it has none', () => {
+  const m = { id: 'billing', name: 'Billing', area: 'Fin' };
+  const withTree = instructions({ kind: 'analyze', module: m, tree: TREE });
+  assert.match(withTree, /## Test tree of this module/); assert.match(withTree, /- invoice: Invoice totals \(under root\)/); assert.match(withTree, /optional "node"/);
+  const none = instructions({ kind: 'analyze', module: m });
+  assert.ok(!/Test tree of this module/.test(none) && !/- invoice:/.test(none));
+  assert.ok(!/Test tree of this module/.test(instructions({ kind: 'automation', module: m, tree: TREE })), 'only the analyze brief carries the tree');
+});
+
+test('end to end: the written brief carries the tree when tree.json exists, and omits it when it is missing or invalid', async t => {
+  const root = tempRoot(t); putTree(root, TREE);
+  const a = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', FIRST); }, root);
+  assert.equal((await run(a.b, { critic: false })).status, 'done');
+  assert.match(a.fake.calls[0].brief, /- invoice: Invoice totals/);
+  const bad = tempRoot(t); putTree(bad, '{ not json');
+  const c = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', FIRST); }, bad);
+  const job = await run(c.b, { critic: false });
+  assert.equal(job.status, 'done', job.message); assert.ok(!/Test tree of this module/.test(c.fake.calls[0].brief), 'an invalid tree never fails the job');
+});
+
+test('a valid node on a proposed case is kept as a suggestion only; an unknown node is ignored and never fails the job', async t => {
+  const root = tempRoot(t); putTree(root, TREE);
+  const body = { ...FIRST, cases: [{ ...FIRST.cases[0], node: 'invoice' }, { ...FIRST.cases[2], node: 'does-not-exist' }, { title: 'Odd node type', category: 'x', priority: 'P2', node: 42, steps: [{ action: 'a', expected: 'b' }] }] };
+  const { b } = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', body); }, root);
+  const job = await run(b, { critic: false });
+  assert.equal(job.status, 'done', job.message);
+  const cases = (await b.request('/api/modules/billing/cases')).value;
+  assert.equal(cases.length, 3);
+  assert.equal(cases.find(c => c.title === 'Total of 0 is rejected').suggestedNode, 'invoice');
+  for (const title of ['Large totals keep two decimals', 'Odd node type']) assert.equal(cases.find(c => c.title === title).suggestedNode, undefined, title);
+  assert.ok(cases.every(c => c.reviewStatus === 'draft' && c.node === undefined), 'a suggestion never places the case');
+});
+
+test('without a tree, a node on a case is ignored and the draft is still saved', async t => {
+  const root = tempRoot(t);
+  const { b } = await world(t, (call, n) => { if (n === 1) writeJson(call.cwd, 'insights.json', { ...FIRST, cases: [{ ...FIRST.cases[0], node: 'invoice' }] }); }, root);
+  assert.equal((await run(b, { critic: false })).status, 'done');
+  const cases = (await b.request('/api/modules/billing/cases')).value;
+  assert.equal(cases.length, 1); assert.equal(cases[0].suggestedNode, undefined);
+});

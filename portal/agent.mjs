@@ -8,6 +8,7 @@ import { classifySource } from './readiness.mjs';
 import { createAiPolicy, friendlyModel, tokensOf } from './ai-policy.mjs';
 import { loadKnowledge, knowledgeSection } from './knowledge.mjs';
 import { critiqueInstructions, applyCritique } from './critique.mjs';
+import { loadTree } from './tree.mjs';
 
 // Runs the user's own coding agent CLI (Claude Code or Codex) inside a locked-down workspace folder.
 // The agent never gets portal credentials or network access to the portal. It reads files we place in
@@ -93,6 +94,23 @@ input/MANIFEST.json lists images ("images") and keyframes taken from BA walkthro
 - The narration (audio) of the videos was NOT transcribed. Business rules that are only spoken, and anything not visible on screen, go to openQuestions, not into rules. Do not guess values you cannot read.
 `;
 
+// The module's test tree (qa/modules/<id>/tree.json), if it has a valid one. A missing or invalid file is simply "no tree": it never fails a job.
+export function treeForModule(root, moduleId) {
+  try { return loadTree(root, moduleId); } catch { return null; }
+}
+const MAX_TREE_NODES = 80;
+export function treeSection(tree) {
+  const nodes = Array.isArray(tree?.nodes) ? tree.nodes.slice(0, MAX_TREE_NODES) : [];
+  if (!nodes.length) return '';
+  const lines = nodes.map(n => `- ${n.id}: ${n.name}${n.parent ? ` (under ${n.parent})` : ''}`);
+  if (tree.nodes.length > nodes.length) lines.push(`- (${tree.nodes.length - nodes.length} more nodes not listed)`);
+  return `
+## Test tree of this module
+The team groups cases under these tree nodes (id: name). A case may carry an optional "node" with the id of the node it most likely belongs under. This is only a suggestion: a person places the case. Use an id from this list exactly, or leave "node" out when unsure; never invent an id.
+${lines.join('\n')}
+`;
+}
+
 const mergeSection = version => `Incremental analysis: MERGE with the previous version
 input/previous-insights.json holds the insights saved as version ${version}. Every entry of input/MANIFEST.json has a "state": "new" (not seen before), "changed" (same file name, different content) or "unchanged" (already covered by the previous version).
 - Start from the previous insights and MERGE. Do not re-derive everything from scratch: keep what is still true, correct what the new or changed material contradicts, and add what is new.
@@ -102,7 +120,7 @@ input/previous-insights.json holds the insights saved as version ${version}. Eve
 - Sources marked "unchanged" need re-reading only to check a contradiction.
 `;
 
-export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion, skippedUnchanged = false, knowledge = null }) {
+export function instructions({ kind, module, hasAdapterSchema = false, hasDiscovery = false, hasVisuals = false, hasPrevious = false, previousVersion, skippedUnchanged = false, knowledge = null, tree = null }) {
   const common = `# Test Studio agent brief
 
 You are helping a QA team build automated tests for the **${module.name}** module (${module.area}) of Augastam EMR.
@@ -114,7 +132,7 @@ You are running inside a sandbox folder. Work ONLY inside it. You have no intern
 - Do not write passwords, tokens or personal data into your output. Use synthetic data only (names like Agent / Testing / User{{seqWord}}, phones like {{phone}}).
 - Keep wording short and plain. The readers are business analysts.
 - Videos and images have no real extracted text (see input/MANIFEST.json). Entries with "extract": "partial" are video keyframe indexes only: there is no transcript, so never derive rules or expected results from the text index.${hasVisuals ? ' Use only what is visible in their listed images (see the section on screenshots below).' : ' The visuals were NOT interpreted.'} Say what is missing in openQuestions and ask for a transcript.
-${kind === 'analyze' && hasVisuals ? VISUALS : ''}${kind === 'analyze' ? knowledgeSection(knowledge) : ''}`;
+${kind === 'analyze' && hasVisuals ? VISUALS : ''}${kind === 'analyze' ? knowledgeSection(knowledge) : ''}${kind === 'analyze' ? treeSection(tree) : ''}`;
   if (kind === 'automation') return `${common}
 ## Your task: build the module automation adapter (a proposal; nothing is installed or run)
 You are an expert Playwright TypeScript engineer writing the automation package for the **${module.name}** (\`${module.id}\`) module.
@@ -357,7 +375,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     }
     const pack = kind === 'analyze' ? loadKnowledge({ root: knowledgeRootDir, module }) : null;
     if (pack) { packs.set(job.id, { ...pack, hasAdapterSchema }); job.knowledge = pack.files; if (job.stats) job.stats.knowledgeChars = pack.chars; }
-    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged), knowledge: pack });
+    const brief = instructions({ kind, module, hasAdapterSchema, hasDiscovery, hasVisuals: Boolean(job.hasVisuals), hasPrevious: Boolean(previous), previousVersion: previous?.version, skippedUnchanged: Boolean(job.skipUnchanged), knowledge: pack, tree: kind === 'analyze' ? treeForModule(knowledgeRootDir, module.id) : null });
     for (const f of ['INSTRUCTIONS.md', 'CLAUDE.md', 'AGENTS.md']) fs.writeFileSync(path.join(ws, f), brief);
     fs.writeFileSync(path.join(ws, 'input', 'MANIFEST.json'), JSON.stringify(manifest, null, 1));
     fs.writeFileSync(path.join(ws, 'mcp-none.json'), '{"mcpServers":{}}');
@@ -432,7 +450,7 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
         // Agents on Windows (PowerShell's Set-Content -Encoding UTF8) can prefix the file with a byte-order mark, which JSON.parse rejects.
         let body = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
         if (job.critic !== false) { body = await reviewDraft(job, ws, body); if (job.status === 'cancelled') return; }
-        const saved = ingest({ store, module: store.module(job.moduleId), body, user, mode: `agent:${job.agent}`, coveredFileIds: job.coveredFileIds });
+        const saved = ingest({ store, module: store.module(job.moduleId), body, user, mode: `agent:${job.agent}`, coveredFileIds: job.coveredFileIds, treeNodeIds: (treeForModule(knowledgeRootDir, job.moduleId)?.nodes ?? []).map(n => n.id) });
         job.result = { insightId: saved.id, version: saved.version, draftCases: saved.draftCases, automatedDrafts: saved.automatedDrafts ?? 0, skipped: saved.skipped, duplicates: saved.duplicates };
         job.status = 'done'; job.message = `Done. ${saved.draftCases} draft case(s) are waiting in the Review queue.${job.reviewer?.ran ? ` A reviewer pass improved ${job.reviewer.stats.improved}, dropped ${job.reviewer.stats.dropped} and added ${job.reviewer.stats.added}.` : job.reviewer?.note ? ` ${job.reviewer.note}` : ''}`;
       } else {
