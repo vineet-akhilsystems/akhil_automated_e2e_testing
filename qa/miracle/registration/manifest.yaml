@@ -1,4 +1,4 @@
-module: miracle-registration
+module: registration                                   # folder qa/miracle/registration; portal module id stays distinct from Augastam registration
 product: miracle
 route: /PRegistration/Demographics.aspx?mode=N      # path seen in the walkthrough; the full address also carries session parameters, confirm on discovery
 base_url_env: MIRACLE_BASE_URL                       # default https://uatbilling.miracleoncloud.com (tests/auth.miracle.setup.ts)
