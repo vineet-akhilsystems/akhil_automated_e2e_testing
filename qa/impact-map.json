@@ -237,23 +237,23 @@
     },
     {
       "id": "module-trees",
-      "title": "A module lives in three folders (portal, qa, tests) that must stay separate but consistent",
+      "title": "A module lives in three folders per product (portal, qa, tests) that must stay separate but consistent",
       "when": [
-        "portal/modules/{module}/**",
-        "qa/modules/{module}/**",
-        "tests/modules/{module}/**"
+        "portal/modules/*/{module}/**",
+        "qa/*/{module}/**",
+        "tests/*/{module}/**"
       ],
       "alsoCheck": [
         {
-          "path": "portal/modules/{module}/**",
+          "path": "portal/modules/*/{module}/**",
           "why": "the module plugin tree for the same module"
         },
         {
-          "path": "qa/modules/{module}/**",
+          "path": "qa/*/{module}/**",
           "why": "module data and cases tree for the same module"
         },
         {
-          "path": "tests/modules/{module}/**",
+          "path": "tests/*/{module}/**",
           "why": "module Playwright tree for the same module"
         },
         {
@@ -347,7 +347,7 @@
         "portal/tree.mjs",
         "portal/agent.mjs",
         "portal/insights.mjs",
-        "qa/modules/*/tree.json"
+        "qa/*/*/tree.json"
       ],
       "alsoCheck": [
         {
@@ -369,6 +369,48 @@
       ],
       "verify": [
         "node --test portal/test/senior-tester.test.mjs portal/test/versions.test.mjs"
+      ]
+    },
+    {
+      "id": "module-layout",
+      "title": "The product-scoped folder layout (qa/<product>/<module>, tests/<product>/<module>, portal/modules/<product>/<module>) has one resolver; adapters, the registry and the docs that describe it must agree",
+      "when": [
+        "tests/shared/module-layout.mjs",
+        "tests/shared/module-layout.d.mts",
+        "tests/shared/module-paths.ts",
+        "portal/module-layout.mjs",
+        "portal/registry.mjs",
+        "portal/modules/*/*/adapter.mjs"
+      ],
+      "alsoCheck": [
+        {
+          "path": "docs/superpowers/plans/2026-11-15-product-scoped-layout.md",
+          "why": "the plan that defines the layout, the id rules and the compatibility mapping"
+        },
+        {
+          "path": ".claude/skills/onboarding-portal-modules/SKILL.md",
+          "why": "tells people where a new module goes and how to register it"
+        },
+        {
+          "path": ".claude/skills/checking-module-isolation/SKILL.md",
+          "why": "describes the module and product isolation rules"
+        },
+        {
+          "path": ".claude/skills/checking-module-isolation/check-module-isolation.mjs",
+          "why": "product folders must not reference another product (run it)"
+        },
+        {
+          "path": "portal/test/layout-guard.test.mjs",
+          "why": "fails when the old flat qa/modules or tests/modules paths come back"
+        },
+        {
+          "path": "README.md",
+          "why": "Adding a module and the layout section"
+        }
+      ],
+      "verify": [
+        "node --test portal/test/layout-guard.test.mjs portal/test/product-layout.test.mjs",
+        "node .claude/skills/checking-module-isolation/check-module-isolation.mjs"
       ]
     }
   ]

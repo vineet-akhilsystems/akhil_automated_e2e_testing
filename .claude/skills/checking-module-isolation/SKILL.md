@@ -1,11 +1,13 @@
 ---
 name: checking-module-isolation
-description: Use when checking that Test Studio module code is not mixed together - "is Billing code mixed with Registration", "did this change touch shared code", reviewing or finishing a new module (tests/modules/<id>, qa/modules/<id>, portal/modules/<id>), adding a qa/tools script, editing shared files (portal/*.mjs, tests/fixtures, tests/shared, tests/smoke, playwright.config.ts), or before sharing module work.
+description: Use when checking that Test Studio module code is not mixed together - "is Billing code mixed with Registration", "did this change touch shared code", reviewing or finishing a new module (tests/<product>/<id>, qa/<product>/<id>, portal/modules/<product>/<id>), adding a qa/tools script, editing shared files (portal/*.mjs, tests/fixtures, tests/shared, tests/smoke, playwright.config.ts), or before sharing module work.
 ---
 
 # Checking module isolation
 
 **Core principle:** a module's code lives only in its own three folders and never refers to another module. Shared code stays module-neutral. A module refers to shared code; shared code never refers to a module. The only exceptions are the reviewed ones in the script's `BASELINE`, each with its reason.
+
+**Product rule:** a product's folders (`qa/<product>/**`, `tests/<product>/**`, `portal/modules/<product>/**`) must not refer to another product's folders; the script reports this as an ERROR. Product and module folder names come from the layout resolver (`tests/shared/module-layout.mjs`).
 
 ## Quick reference
 
@@ -13,10 +15,10 @@ description: Use when checking that Test Studio module code is not mixed togethe
 |---|---|
 | Run the check (exit 1 on a problem) | `node .claude/skills/checking-module-isolation/check-module-isolation.mjs` |
 | List the accepted exceptions and known issues too | add `--all` |
-| Module-owned folders | `tests/modules/<id>/`, `qa/modules/<id>/`, `portal/modules/<id>/`, and `qa/tools/` scripts whose name contains `<id>` |
-| Shared, must stay neutral | `portal/` (except `portal/modules/<id>/`), `tests/fixtures/`, `tests/shared/`, `tests/smoke/`, `tests/discovery/`, `tests/*.ts`, `playwright.config.ts`, other `qa/tools/` scripts |
+| Module-owned folders | `tests/<product>/<id>/`, `qa/<product>/<id>/`, `portal/modules/<product>/<id>/`, and `qa/tools/` scripts whose name contains `<id>` |
+| Shared, must stay neutral | `portal/` (except `portal/modules/<product>/<id>/`), `tests/fixtures/`, `tests/shared/`, `tests/smoke/`, `tests/discovery/`, `tests/*.ts`, `playwright.config.ts`, other `qa/tools/` scripts |
 | Test-side module paths | `moduleDir('tests' \| 'qa', '<id>')` in `tests/shared/module-paths.ts` |
-| How the portal picks a module's spec | `adapters[run.module.adapter].spec` (`portal/queue.mjs:147`); spec must be `tests/modules/<id>/*.spec.ts` (`portal/registry.mjs:35`) |
+| How the portal picks a module's spec | `adapters[run.module.adapter].spec` (`portal/queue.mjs:147`); spec must be `tests/<product>/<id>/*.spec.ts` (`portal/registry.mjs:35`) |
 
 ## Reading the output
 
@@ -36,9 +38,9 @@ description: Use when checking that Test Studio module code is not mixed togethe
 
 - `registrationType` is the generic variant key on every module's cases, kept for compatibility (`README.md:104`). Use it for any module's variants. Don't rename it, and don't add a `billingType`.
 - `moduleDir(kind, id)` requires the module's own id (`tests/shared/module-paths.ts:3`). Never add back a default, because a default lets one module write into another module's folders.
-- `tests/smoke/session.spec.ts` is the module-neutral session check (it opens `/` and expects the signed-in workspace). A module's own preflight, which opens its page, goes in `tests/modules/<id>/session.spec.ts`, like Registration's.
+- `tests/smoke/session.spec.ts` is the module-neutral session check (it opens `/` and expects the signed-in workspace). A module's own preflight, which opens its page, goes in `tests/<product>/<id>/session.spec.ts`, like Registration's.
 - No module needs a `run-<id>-e2e.mjs` for portal runs. The portal launches the adapter's spec itself (`portal/queue.mjs:147`). `qa/tools/run-registration-e2e.mjs` is a Registration-only command-line tool.
-- A new built-in plugin adds one import line for `portal/modules/<id>/index.mjs` in `portal/registry.mjs` (`README.md`, "Adding a module" (b)). That line is the only shared-code change it may make, plus a matching `portal/store.mjs` import if the plugin has a `seed` hook (see the comment at `portal/store.mjs:6`).
+- A new built-in plugin adds one import line for `portal/modules/<product>/<id>/index.mjs` in `portal/registry.mjs` (`README.md`, "Adding a module" (b)). That line is the only shared-code change it may make, plus a matching `portal/store.mjs` import if the plugin has a `seed` hook (see the comment at `portal/store.mjs:6`).
 
 ## Common mistakes
 
@@ -46,5 +48,5 @@ description: Use when checking that Test Studio module code is not mixed togethe
 |---|---|
 | Importing `RegistrationPage` or `case-runner.ts` helpers into another module | Copy the pattern into the new module, or move the helper to `tests/fixtures/` and make it generic |
 | Adding `if (module === '<id>')` branches to `portal/*.mjs` | Put module behavior in plugin hooks (`portal/modules/contract.mjs`) or the adapter |
-| Hard-coding `qa/modules/<id>/...` in a shared tool | Take the module id as an argument and use `moduleDir()` |
+| Hard-coding `qa/<product>/<id>/...` in a shared tool | Take the module id as an argument and use `moduleDir()` |
 | Treating "0 ERROR" as proof of separation | The script checks references only. Also check the rules above by reading the diff |
