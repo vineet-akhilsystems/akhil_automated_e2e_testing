@@ -252,3 +252,26 @@ test('the shipped map has a module-tree rule covering the tree sources', () => {
   for (const f of ['portal/agent.mjs', 'portal/insights.mjs', 'qa/augastam/registration/tree.json']) assert.ok(checkImpact({ changed: [f], map: shipped }).rules.some(x => x.id === 'module-tree'), f);
   assert.deepEqual(r.targets.map(t => t.target).sort(), ['.claude/skills/working-with-versions-and-tree/SKILL.md', 'README.md', 'portal/test/senior-tester.test.mjs', 'portal/test/versions.test.mjs']);
 });
+
+test('{product} placeholder: a change in one product never points at another product\'s folders', () => {
+  const m = { rules: [{ id: 'p', title: 'p', when: ['qa/{product}/{module}/**', 'tests/{product}/{module}/**'], alsoCheck: [{ path: 'qa/{product}/{module}/**', why: 'qa' }, { path: 'tests/{product}/{module}/**', why: 'tests' }], verify: [] }] };
+  const r = checkImpact({ changed: ['qa/miracle/registration/rules.md'], map: m });
+  assert.equal(r.rules.length, 1);
+  assert.deepEqual([r.rules[0].product, r.rules[0].module], ['miracle', 'registration']);
+  assert.deepEqual(r.rules[0].targets.map(t => t.target), ['tests/miracle/registration/**']);
+  // the same module name in the other product is a separate group, and one product's change does not satisfy the other's
+  const both = checkImpact({ changed: ['qa/miracle/registration/rules.md', 'tests/augastam/registration/a.ts'], map: m });
+  const mir = both.rules.find(x => x.product === 'miracle'), aug = both.rules.find(x => x.product === 'augastam');
+  assert.deepEqual(mir.targets.map(t => [t.target, t.changedToo]), [['tests/miracle/registration/**', false]]);
+  assert.deepEqual(aug.targets.map(t => [t.target, t.changedToo]), [['qa/augastam/registration/**', false]]);
+  assert.equal(checkImpact({ changed: ['qa/miracle/registration/rules.md', 'tests/miracle/registration/a.ts'], map: m }).missing, 0);
+});
+
+test('the shipped module-trees and module-layout rules are product-aware', () => {
+  const shipped = JSON.parse(fs.readFileSync(new URL('../../qa/impact-map.json', import.meta.url), 'utf8'));
+  const targets = (file, id) => checkImpact({ changed: [file], map: shipped }).rules.filter(x => x.id === id).flatMap(x => x.targets.map(t => t.target));
+  const miracle = targets('qa/miracle/registration/rules.md', 'module-trees'), augastam = targets('tests/augastam/registration/a.ts', 'module-trees');
+  assert.ok(miracle.includes('tests/miracle/registration/**') && miracle.includes('portal/modules/miracle/registration/**'));
+  assert.ok(!miracle.some(t => t.includes('augastam')), miracle.join(', '));
+  assert.ok(augastam.includes('qa/augastam/registration/**') && !augastam.some(t => t.includes('miracle')), augastam.join(', '));
+});

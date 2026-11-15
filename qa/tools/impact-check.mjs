@@ -65,6 +65,7 @@ function globToSource(glob) {
     } else if (c === '?') out += '[^/]';
     else if (c === '{') {
       if (glob.startsWith('{module}', i)) { out += '(?<module>[^/]+)'; i += 7; continue; }
+      if (glob.startsWith('{product}', i)) { out += '(?<product>[^/]+)'; i += 8; continue; }
       const end = closingBrace(glob, i);
       if (end === -1) out += '\\{';
       else { out += '(?:' + splitTopLevel(glob.slice(i + 1, end)).map(globToSource).join('|') + ')'; i = end; }
@@ -76,8 +77,8 @@ function globToSource(glob) {
 const cache = new Map();
 /**
  * Self-contained glob matcher: `*` stays inside a folder, `**` crosses folders, `?`, `{x,y}` (nesting allowed),
- * a trailing `/` means the folder. `{module}` matches one folder name and is captured, so a rule can name the
- * same module in another tree.
+ * a trailing `/` means the folder. `{module}` and `{product}` each match one folder name and are captured, so a rule can name the
+  * same module of the same product in another tree.
  */
 export function globToRegExp(glob) {
   let re = cache.get(glob);
@@ -92,7 +93,11 @@ export function globToRegExp(glob) {
 export const matchGlob = (glob, file) => globToRegExp(glob).test(norm(file));
 export const hasMagic = p => /[*?{]/.test(p);
 const targetOf = t => t.path ?? t.glob;
-const withModule = (pattern, module) => module == null ? pattern : pattern.replaceAll('{module}', module);
+const withModule = (pattern, module, product) => {
+  let out = module == null ? pattern : pattern.replaceAll('{module}', module);
+  if (product != null) out = out.replaceAll('{product}', product);
+  return out;
+};
 
 /**
  * changed: file paths. map: parsed impact-map. exists(pathOrGlob): optional, true when the target exists in the repo.
@@ -105,24 +110,25 @@ export function checkImpact({ changed = [], map, exists = () => true }) {
   const results = [];
   for (const rule of map?.rules ?? []) {
     const whens = (rule.when ?? []).filter(g => !isIgnoredPath(g));
-    const groups = new Map(); // module name (or '') -> matched files
+    const groups = new Map(); // `${product}\u0000${module}` (empty parts when the glob has no placeholder) -> matched files
     for (const f of files) {
       for (const g of whens) {
         const m = globToRegExp(g).exec(f);
         if (!m) continue;
-        const key = m.groups?.module ?? '';
+        const key = `${m.groups?.product ?? ''}\u0000${m.groups?.module ?? ''}`;
         if (!groups.has(key)) groups.set(key, new Set());
         groups.get(key).add(f);
         break;
       }
     }
     for (const [key, set] of groups) {
-      const module = key === '' ? null : key;
+      const [productPart, modulePart] = key.split('\u0000');
+      const module = modulePart === '' ? null : modulePart, product = productPart === '' ? null : productPart;
       const targets = [];
       for (const t of rule.alsoCheck ?? []) {
         const raw = norm(targetOf(t));
         if (isIgnoredPath(raw)) continue;
-        const target = withModule(raw, module);
+        const target = withModule(raw, module, product);
         const changedToo = files.some(f => matchGlob(target, f));
         const isOwn = (rule.when ?? []).map(norm).includes(raw);
         if (isOwn && changedToo) continue;
@@ -130,7 +136,7 @@ export function checkImpact({ changed = [], map, exists = () => true }) {
       }
       const advisory = rule.severity === 'advisory';
       const missing = targets.filter(t => !t.changedToo).length;
-      results.push({ id: rule.id, title: rule.title ?? rule.id, ...(module ? { module } : {}), advisory, changed: [...set], targets, verify: rule.verify ?? [], missing });
+      results.push({ id: rule.id, title: rule.title ?? rule.id, ...(product ? { product } : {}), ...(module ? { module } : {}), advisory, changed: [...set], targets, verify: rule.verify ?? [], missing });
     }
   }
   return { changed: files, rules: results, missing: results.filter(r => !r.advisory).reduce((n, r) => n + r.missing, 0), advisoryMissing: results.filter(r => r.advisory).reduce((n, r) => n + r.missing, 0) };
@@ -181,7 +187,7 @@ export function formatReport(result) {
   if (!result.rules.length) return 'No mapped coupling touched by this change.';
   const lines = [];
   for (const r of result.rules) {
-    lines.push(`[${r.id}] ${r.title}${r.module ? ` (module ${r.module})` : ''}${r.advisory ? ' (advisory: not counted by --strict)' : ''}`);
+    lines.push(`[${r.id}] ${r.title}${r.module ? ` (${r.product ? r.product + "/" : ""}module ${r.module})` : ''}${r.advisory ? ' (advisory: not counted by --strict)' : ''}`);
     for (const f of r.changed) lines.push(`  You changed ${f}`);
     for (const t of r.targets) lines.push(`    -> also check ${t.target} (${t.why}) - ${t.changedToo ? 'changed too' : 'NOT in this change'}`);
     for (const v of r.verify) lines.push(`    verify: ${v}`);

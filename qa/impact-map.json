@@ -239,21 +239,21 @@
       "id": "module-trees",
       "title": "A module lives in three folders per product (portal, qa, tests) that must stay separate but consistent",
       "when": [
-        "portal/modules/*/{module}/**",
-        "qa/*/{module}/**",
-        "tests/*/{module}/**"
+        "portal/modules/{product}/{module}/**",
+        "qa/{product}/{module}/**",
+        "tests/{product}/{module}/**"
       ],
       "alsoCheck": [
         {
-          "path": "portal/modules/*/{module}/**",
+          "path": "portal/modules/{product}/{module}/**",
           "why": "the module plugin tree for the same module"
         },
         {
-          "path": "qa/*/{module}/**",
+          "path": "qa/{product}/{module}/**",
           "why": "module data and cases tree for the same module"
         },
         {
-          "path": "tests/*/{module}/**",
+          "path": "tests/{product}/{module}/**",
           "why": "module Playwright tree for the same module"
         },
         {
