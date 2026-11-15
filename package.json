@@ -8,6 +8,7 @@
     "portal:test": "node --test portal/test/*.test.mjs && playwright test --config portal/test/runner.config.ts",
     "ci:run": "node qa/tools/ci-run.mjs",
     "portal:check": "node qa/tools/check-syntax.mjs",
+    "impact": "node qa/tools/impact-check.mjs",
     "auth": "playwright test --project=setup --headed",
     "auth:miracle": "playwright test --project=setup-miracle --headed",
     "test": "playwright test --project=chromium",
