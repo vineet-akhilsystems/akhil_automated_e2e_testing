@@ -176,8 +176,8 @@ const autoRun = (id, at, extra = {}) => ({ id, name: id, kind: 'tests', mode: 'a
 test('MCP version tools, tree, change impact and version hints on failures and compare', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-versions-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'tree.json'), JSON.stringify({ module: 'billing', nodes: [{ id: 'root', name: 'Billing', kind: 'root' }, { id: 'val', name: 'Validation', kind: 'group', parent: 'root', match: { category: ['Validation'] } }] }));
+  fs.mkdirSync(path.join(root, 'qa', 'augastam', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'qa', 'augastam', 'billing', 'tree.json'), JSON.stringify({ module: 'billing', nodes: [{ id: 'root', name: 'Billing', kind: 'root' }, { id: 'val', name: 'Validation', kind: 'group', parent: 'root', match: { category: ['Validation'] } }] }));
   const f = await boot(t, { bootstrap: ADMIN, automationRoot: root, automationFingerprint: () => ({ hash: 'h-current', files: [] }) });
   const admin = await signedIn(f, ADMIN.username, ADMIN.password);
   const ba = await makeUser(admin, 'rita', 'ba');

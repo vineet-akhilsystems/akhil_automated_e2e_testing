@@ -26,8 +26,8 @@ Dispatch `explorer` (Haiku) in parallel, one question each. Ask for `path:line` 
 | Question | Typical sources here |
 |---|---|
 | Which commands run this work, and what do they write? | `package.json` scripts, `playwright.config.ts`, `portal/` |
-| Where do inputs/outputs live, in what shape? | `qa/modules/<module>/` (cases, rules, results, bugs) - read one real example of each format |
-| Which code must be reused, not rewritten? | `tests/modules/<module>/` helpers, page objects, runners |
+| Where do inputs/outputs live, in what shape? | `qa/<product>/<module>/` (cases, rules, results, bugs) - read one real example of each format |
+| Which code must be reused, not rewritten? | `tests/<product>/<module>/` helpers, page objects, runners |
 | What is the source of truth for expected behaviour? | `rules.md`, `docs/`, `README.md` |
 | What goes wrong in practice? | `bugs/`, results summaries, `TODO`/`FIXME`/`HACK` comments |
 | What is forbidden? | `.claude/settings.json` deny list and hooks - the skill must never instruct a denied action |

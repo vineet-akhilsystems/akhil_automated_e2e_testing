@@ -4,10 +4,10 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
-import { resolveModuleFolder } from '../../module-layout.mjs';
+import { resolveModuleFolder } from '../../../module-layout.mjs';
 
 const require = createRequire(import.meta.url);
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 // Folders come from the single layout resolver (Augastam owns the module id `registration`).
 const QA_DIR = resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration'), TESTS_DIR = resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration');
 const { FIELDS } = require(path.join(ROOT, TESTS_DIR, 'fields.ts'));

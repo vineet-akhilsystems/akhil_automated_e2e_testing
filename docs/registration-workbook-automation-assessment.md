@@ -10,11 +10,11 @@ All 80 imported TC_REG cases are currently manual. The executor does not interpr
 
 ## Implementation evidence
 
-- tests/modules/registration/fields.ts maps supported controls; permanent-address fields, employee ID, policy details, photo, promotional consent and audit controls are absent.
-- tests/modules/registration/case-runner.ts supports fill/save/saveTwice/saveDoubleClick/search/update; it compares values, field errors, hints, toasts and persisted values. It does not execute ordered manual procedures.
-- tests/modules/registration/registration.page.ts implements registration navigation, one-pass field filling, save, update with generated nonempty remarks, duplicate-dialog detection and search. Search checks found/not-found rather than patient identity or suggestion correctness.
+- tests/augastam/registration/fields.ts maps supported controls; permanent-address fields, employee ID, policy details, photo, promotional consent and audit controls are absent.
+- tests/augastam/registration/case-runner.ts supports fill/save/saveTwice/saveDoubleClick/search/update; it compares values, field errors, hints, toasts and persisted values. It does not execute ordered manual procedures.
+- tests/augastam/registration/registration.page.ts implements registration navigation, one-pass field filling, save, update with generated nonempty remarks, duplicate-dialog detection and search. Search checks found/not-found rather than patient identity or suggestion correctness.
 - portal/registry.mjs validates supported actions, registration variants and checks. Staff Dependent is not a supported variant. Upload automation is explicitly pending.
-- qa/modules/registration/cases/registration-cases.json contains the reusable REG definitions referenced below.
+- qa/augastam/registration/cases/registration-cases.json contains the reusable REG definitions referenced below.
 
 ## Case matrix
 

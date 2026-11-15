@@ -2,9 +2,9 @@ import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { RegistrationPage } from '../../tests/modules/registration/registration.page';
+import { RegistrationPage } from '../../tests/augastam/registration/registration.page';
 
-let runner: typeof import('../../tests/modules/registration/case-runner');
+let runner: typeof import('../../tests/augastam/registration/case-runner');
 let scratch: string;
 let values: Record<string, string>;
 let errors: Record<string, string>;
@@ -12,7 +12,7 @@ let saved: any;
 const originalPageMethods = Object.getOwnPropertyDescriptors(RegistrationPage.prototype);
 
 test('registered automation gaps return BLOCKED before accessing any page or application data', async ({}, info) => {
-  const doc = JSON.parse(fs.readFileSync('qa/modules/registration/cases/registration-workbook-automation.json', 'utf8'));
+  const doc = JSON.parse(fs.readFileSync('qa/augastam/registration/cases/registration-workbook-automation.json', 'utf8'));
   const c = doc.cases.find((c: any) => c.id === 'TC_REG_066');
   const result = await runner.runCase({} as Page, c, {}, info);
   expect(result.status).toBe('BLOCKED');
@@ -25,7 +25,7 @@ test.beforeAll(async () => {
   scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'augastam-runner-check-'));
   process.env.PORTAL_RUN_DIR = scratch;
   process.env.REG_RUN_ID = 'assertion-checks';
-  runner = await import('../../tests/modules/registration/case-runner');
+  runner = await import('../../tests/augastam/registration/case-runner');
   Object.assign(RegistrationPage.prototype, {
     open: async () => {}, openExisting: async () => {}, selectRegistrationType: async () => {},
     set: async (key: string, value: string) => { values[key] = value; },

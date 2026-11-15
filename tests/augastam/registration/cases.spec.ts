@@ -6,7 +6,7 @@ import { captureEvidence } from '../../fixtures/evidence';
 import { scanAccessibility } from '../../fixtures/accessibility';
 import { moduleDir } from '../../shared/module-paths';
 
-// The expected-vs-actual report is written by tests/modules/registration/results-reporter.ts
+// The expected-vs-actual report is written by tests/augastam/registration/results-reporter.ts
 // from each case's `<id>-result.json` attachment.
 
 // CASES_FILE=path/to/cases.xlsx npm test -- registration   (defaults to the JSON dataset)

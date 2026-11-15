@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 # AI leverage for versions + change-impact audit (plan)
 
 Branch: version-aware-spike. Owner decision ("do it"): all of A-C. The user wants an audit skill that acts as a **trigger**: "if you change X you must also change Y".

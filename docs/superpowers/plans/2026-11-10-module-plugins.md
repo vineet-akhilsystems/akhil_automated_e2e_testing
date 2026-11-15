@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 > **Deviations as built:** plugin ids are resolved via `pluginFor(id string)` where the old code compared ids; hooks are `validate.{afterOutcome,blockedSource,checkInput,workflow,afterWorkflow}` phases (not a single `validateCase`); added `agent.referenceLabel` and the `discovery` flag; seed runs under the original global empty-DB guard.
 
 # Module Plugins (Plan 2 of 3) Implementation Plan

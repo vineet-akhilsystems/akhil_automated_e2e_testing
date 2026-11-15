@@ -9,7 +9,7 @@ import { validateCase, workbookAutomation, registrationData, registrationWorkflo
 const module = { adapter: 'registration', config: { bases: registrationData.bases } };
 const { toXlsx, fromXlsx } = createRequire(import.meta.url)('../../qa/tools/cases-io.js');
 test('all 80 source procedures are preserved and executable mappings are distinct from missing automation', () => {
-  const original = JSON.parse(fs.readFileSync('qa/modules/registration/cases/registration-business-cases.json', 'utf8'));
+  const original = JSON.parse(fs.readFileSync('qa/augastam/registration/cases/registration-business-cases.json', 'utf8'));
   assert.equal(workbookAutomation.cases.length, 80);
   assert.equal(new Set(workbookAutomation.cases.map(c => c.id)).size, 80);
   assert.equal(workbookAutomation.cases.filter(c => c.action !== 'unavailable').length, 21);

@@ -1,6 +1,6 @@
 // Registration module plugin. Must not import portal/registry.mjs (avoids import cycles).
-import { registerPlugin } from '../index.mjs';
-import { assertPlugin } from '../contract.mjs';
+import { registerPlugin } from '../../index.mjs';
+import { assertPlugin } from '../../contract.mjs';
 import { registrationAdapter } from './adapter.mjs';
 import { registrationValidate } from './validate.mjs';
 import { seed } from './seed.mjs';

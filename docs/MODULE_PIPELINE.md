@@ -10,7 +10,7 @@ For BAs and module leads. Every module page shows a Readiness checklist; this ex
 | Insights | An analysis exists that covers every current source | Coding agent (Claude Code / Codex) or the assistant |
 | Reviewed cases | At least one approved case | A tester approves drafts (a different person than the author) |
 | Target setup | Module URL path, variants and login profile are saved and confirmed | A lead (needs module settings permission) |
-| Discovery | `qa/modules/<module>/discovery/fields-default.json` exists and is newer than the target setup | Read-only scan of the live page (run by a developer for now) |
+| Discovery | `qa/<product>/<module>/discovery/fields-default.json` exists and is newer than the target setup | Read-only scan of the live page (run by a developer for now) |
 | Automation package | The agent's proposal was reviewed and installed by a developer, and the adapter is connected | Agent proposes, developer installs |
 | Smoke run | One automated case of the module has passed on a login profile of its product | Run queue |
 

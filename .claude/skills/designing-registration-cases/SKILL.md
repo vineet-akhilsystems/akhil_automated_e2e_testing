@@ -1,6 +1,6 @@
 ---
 name: designing-registration-cases
-description: Use when writing, adding, reviewing or converting Augastam Registration test cases - a requirement, ticket, BA workbook row (TC_REG_*), field or bug needs automated cases in qa/modules/registration/cases/registration-cases.json, or someone asks for edge cases, negative tests or coverage for a registration field or flow.
+description: Use when writing, adding, reviewing or converting Augastam Registration test cases - a requirement, ticket, BA workbook row (TC_REG_*), field or bug needs automated cases in qa/augastam/registration/cases/registration-cases.json, or someone asks for edge cases, negative tests or coverage for a registration field or flow.
 ---
 
 # Designing registration cases
@@ -10,10 +10,10 @@ description: Use when writing, adding, reviewing or converting Augastam Registra
 ## Process
 
 1. **Ground the rule.** Look it up in this order and note the source:
-   `qa/modules/registration/rules.md` (code-cited) -> `discovery/fields-<type>.json` and `discovery/config/webpart_*.json` (live config: `required`, `regExpression`, `maxLength`, `futureDates`) -> the requirement / BA text.
+   `qa/augastam/registration/rules.md` (code-cited) -> `discovery/fields-<type>.json` and `discovery/config/webpart_*.json` (live config: `required`, `regExpression`, `maxLength`, `futureDates`) -> the requirement / BA text.
    Only rules.md or config is *confirmed*. Requirement text with no code or config behind it -> `expected.assumed: true` + a `note` naming the source. Never present an invented rule as confirmed.
 2. **Check what exists.** Before adding, search by `requirement` and `category`:
-   `node -e "const c=require('./qa/modules/registration/cases/registration-cases.json');c.cases.filter(x=>x.requirement==='REG-REQ-004').forEach(x=>console.log(x.id,x.action,x.expected.outcome,'|',x.title))"`
+   `node -e "const c=require('./qa/augastam/registration/cases/registration-cases.json');c.cases.filter(x=>x.requirement==='REG-REQ-004').forEach(x=>console.log(x.id,x.action,x.expected.outcome,'|',x.title))"`
    Extend gaps; do not duplicate.
 3. **Derive cases** with [edge-case-catalog.md](edge-case-catalog.md): valid classes, invalid classes, boundaries (min-1, min, max, max+1), format and script variants, state transitions, cross-field rules, persistence after reopen. One case per behavior; a happy-path partner for each negative.
 4. **Choose action and outcome** from the table below.

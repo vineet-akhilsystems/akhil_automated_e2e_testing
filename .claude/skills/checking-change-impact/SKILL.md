@@ -22,7 +22,7 @@ description: Use before committing, and after editing any file that is coupled t
 
 Each matched rule prints `You changed X`, then `-> also check Y (why)` per target, marked **changed too** (done) or **NOT in this change** (open). For every NOT line, open the file and decide: update it, or confirm it needs nothing. Then run the `verify:` commands. A target can be a glob; "changed too" means any file under it changed.
 
-Credential and saved-session files are skipped entirely: never read, never listed. Generated outputs (`qa/modules/*/results/**`) are ignored too.
+Credential and saved-session files are skipped entirely: never read, never listed. Generated outputs (`qa/*/*/results/**`) are ignored too.
 
 ## Add a rule
 

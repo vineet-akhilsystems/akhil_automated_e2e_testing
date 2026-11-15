@@ -16,7 +16,7 @@ The session runs on `opusplan` (`.claude/settings.local.json`): plan mode = Opus
 | Design, architecture, ambiguous requirements, writing the plan | Main session in **plan mode** (Shift+Tab) | Opus |
 | Find a file/symbol/selector/case id, read results or config | `explorer` agent | Haiku |
 | Analyze BA intake files, workbooks, transcripts into rules and draft cases | `intake-analyst` agent | Sonnet |
-| Scaffold a new module adapter (`tests/modules/<module>/fields.ts`, page object, runner, `portal/registry.mjs`) | `module-automator` agent | Sonnet |
+| Scaffold a new module adapter (`tests/<product>/<module>/fields.ts`, page object, runner, `portal/registry.mjs`) | `module-automator` agent | Sonnet |
 | Implement a planned step (code, spec, case JSON) | Main session after plan, or `implementer` agent | Sonnet |
 | Playwright plan / generate / heal | `playwright-test-planner`, `playwright-test-generator`, `playwright-test-healer` agents | Sonnet |
 | Final review of changes, cross-file root cause | `reviewer` agent | Opus, high effort |

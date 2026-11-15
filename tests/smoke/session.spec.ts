@@ -1,8 +1,8 @@
 import { test, expect } from '../fixtures/auth';
 
 // Module-neutral session check: the saved session from `npm run auth` still opens the signed-in application.
-// It must not depend on any module's page; each module checks its own page in tests/modules/<id>/
-// (Registration: tests/modules/registration/session.spec.ts).
+// It must not depend on any module's page; each module checks its own page in tests/<product>/<id>/
+// (Registration: tests/augastam/registration/session.spec.ts).
 test('saved session opens the application without logging in again', async ({ page }) => {
   await page.goto('/');
   const workspace = page.getByText(/^Version:/); // header text of the signed-in workspace

@@ -71,7 +71,7 @@ test('rejects unexpected files, missing files, symlinks and bad adapter.json', a
   try { fs.symlinkSync(path.join(link.dir, 'repo'), path.join(link.from, 'NOTES.md')); await rejects(install(['--module', 'billing', '--from', link.from, '--dry-run'], link.opts), /symlinks/); } catch (e) { if (e.code !== 'EPERM') throw e; }
   const base = sandbox(t).opts;
   await rejects(install(['--module', 'billing', '--from', sandbox(t, { adapter: { id: 'other' } }).from, '--dry-run'], base), /id must be "billing"/);
-  await rejects(install(['--module', 'billing', '--from', sandbox(t, { adapter: { spec: 'tests/modules/x/cases.spec.ts' } }).from, '--dry-run'], base), /spec must be exactly/);
+  await rejects(install(['--module', 'billing', '--from', sandbox(t, { adapter: { spec: 'tests/augastam/x/cases.spec.ts' } }).from, '--dry-run'], base), /spec must be exactly/);
   await rejects(install(['--module', 'billing', '--from', sandbox(t, { adapter: { command: 'rm -rf /' } }).from, '--dry-run'], base), /unsupported key "command"/);
   await rejects(install(['--module', 'billing', '--from', sandbox(t, { adapter: { bases: { valid: { ghost: '1' } } } }).from, '--dry-run'], base), /unknown field "ghost"/);
 });
@@ -135,9 +135,9 @@ test('never installs registration or an id that already has an adapter/tests fol
   const s = sandbox(t);
   await rejects(install(['--module', 'registration', '--from', s.from, '--dry-run'], s.opts), /built in/);
   await rejects(install(['--module', 'registration', '--from', s.from, '--yes', '--force'], s.opts), /built in/);
-  // while the old flat folder still exists for the id, the resolver (and so the adapter spec) uses it
-  const s2 = sandbox(t, { adapter: { spec: 'tests/modules/billing/cases.spec.ts' } });
-  fs.mkdirSync(path.join(s2.root, 'tests', 'modules', 'billing'), { recursive: true });
+  // an existing product-scoped tests folder blocks the install unless --force
+  const s2 = sandbox(t, { adapter: { spec: 'tests/augastam/billing/cases.spec.ts' } });
+  fs.mkdirSync(path.join(s2.root, 'tests', 'augastam', 'billing'), { recursive: true });
   await rejects(install(['--module', 'billing', '--from', s2.from, '--dry-run'], s2.opts), /already has/);
   assert.equal((await install(['--module', 'billing', '--from', s2.from, '--dry-run', '--force'], s2.opts)).installed, false);
 });

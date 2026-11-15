@@ -11,7 +11,7 @@ description: Use when an Augastam Registration run has FAIL, ERROR or "FAIL (ass
 
 | Run type | Results | Evidence |
 |---|---|---|
-| `npm run reg:cases` | `qa/modules/registration/results/latest-results.json` (`results[]`: `status`, `expected`, `actual`, `mismatches`, `registrationId`, `serverResponse`, `toasts`, `fieldErrors`, `values`, `resolvedInput`), `latest-summary.md` | `test-results/<case-dir>/` (`error-context.md`, `REG-xxx-*.png`, `trace.zip`), `npm run report` |
+| `npm run reg:cases` | `qa/augastam/registration/results/latest-results.json` (`results[]`: `status`, `expected`, `actual`, `mismatches`, `registrationId`, `serverResponse`, `toasts`, `fieldErrors`, `values`, `resolvedInput`), `latest-summary.md` | `test-results/<case-dir>/` (`error-context.md`, `REG-xxx-*.png`, `trace.zip`), `npm run report` |
 | Interrupted run | `results/runs/<run-id>/results.jsonl` (`npm run reg:report` rebuilds latest) | same |
 | Portal run | `.portal/runs/<run-id>/report/results.json`, `runner.log` | `.portal/runs/<run-id>/artifacts/` |
 
@@ -34,7 +34,7 @@ Open the screenshot and `error-context.md` (page snapshot at failure) for every 
 | `Application session expired`, redirected to login, 401 | **Environment (session)** | Ask the user to run `npm run auth`. Never log in yourself. |
 | `npm run auth` fails with `Missing AUGASTAM_<X> in .env` (`tests/auth.setup.ts:16`) | **Environment (config)** | The user fills that key in `.env` (key names are in `.env.example`). Never read or edit `.env` yourself (denied in `.claude/settings.json`). |
 | `npm run auth` times out at a step (`loginStage` in `tests/auth.setup.ts`) | **Environment or test defect** | Open the setup's `error-context.md` and `test-failed-1.png` under `test-results/`. They exist only after a failed `npm run auth`. If the screenshot shows the logged-in workspace, the login worked and the step's locator is stale, so fix the step, not the credentials. A wrong password stops at `verify-password`/`Tenant dropdown`. |
-| `BLOCKED` with `NOT AUTOMATED - <reason>` (`tests/modules/registration/case-runner.ts:239`) | **Not automated** | Not a failure, and no app check ran. The case has action `unavailable` (set by `qa/tools/connect-registration-workbook.mjs:69`). Automating it is new work (`automating-registration-workflows`), never a triage fix. |
+| `BLOCKED` with `NOT AUTOMATED - <reason>` (`tests/augastam/registration/case-runner.ts:239`) | **Not automated** | Not a failure, and no app check ran. The case has action `unavailable` (set by `qa/tools/connect-registration-workbook.mjs:69`). Automating it is new work (`automating-registration-workflows`), never a triage fix. |
 | `needs {{regId@REG-001}} but REG-001 did not produce it` / `needs the registration id from` | **Dependency** | Triage the prerequisite case; this row inherits its class. |
 | `expect(locator).toBeVisible() failed`, strict-mode violation, element not found, timeout on a click, but the screenshot shows the control in place | **Test defect** | Fix locator/wait in `registration.page.ts` / `workflow-runner.ts` (rules in `automating-registration-workflows`). Max **two** repair attempts, then report. Never weaken the assertion. |
 | Control genuinely missing/renamed in the screenshot, or `discovery.md` differs from `fields.ts` | **App change** | `npm run reg:discover`, compare, update `fields.ts`; report the UI change to the user (may also be a bug). |
@@ -46,8 +46,8 @@ Open the screenshot and `error-context.md` (page snapshot at failure) for every 
 
 ## Bug drafts
 
-- **First check `qa/modules/registration/bugs/`** for an existing draft with the same root cause (e.g. `REG-040.md` groups 5 date cases). Append the case and evidence there instead of opening a duplicate.
-- New draft: `qa/modules/registration/bugs/<first-case-id>.md` from [bug-template.md](bug-template.md). Required: the run's recorded version (`run.appVersion` label and source, profile hash, automation version from `get_run_failures`; for a non-portal run, the version shown top-right in the app, labelled as read by hand), environment URL, case id(s), numbered steps a human can follow, expected (with source: rules.md line / config / requirement), actual, server response, created UHIDs, screenshot paths.
+- **First check `qa/augastam/registration/bugs/`** for an existing draft with the same root cause (e.g. `REG-040.md` groups 5 date cases). Append the case and evidence there instead of opening a duplicate.
+- New draft: `qa/augastam/registration/bugs/<first-case-id>.md` from [bug-template.md](bug-template.md). Required: the run's recorded version (`run.appVersion` label and source, profile hash, automation version from `get_run_failures`; for a non-portal run, the version shown top-right in the app, labelled as read by hand), environment URL, case id(s), numbered steps a human can follow, expected (with source: rules.md line / config / requirement), actual, server response, created UHIDs, screenshot paths.
 - Root cause is a **hypothesis** with EMR file:line from `rules.md`. Label it that way. If no code reference is known, say "not investigated".
 - Severity is a proposal for the user, not a fact. Patient-safety / data-integrity issues (wrong patient, lost data, impossible DOB saved) rank above cosmetic ones.
 - Confirm stored data read-only when it matters (check field paths first with `node qa/tools/mongo-read.js schema PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent"}'`; needs `AUGASTAM_MONGO_URL` set by the user): `node qa/tools/mongo-read.js find PATIENT_REGISTRATION_DB '{"properties.first_name":"Agent","properties.last_name":"UserOneHundredFortyFive"}' --limit 1`. PII stays masked; never paste unmasked real patient data into a draft.

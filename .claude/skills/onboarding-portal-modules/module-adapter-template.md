@@ -1,8 +1,8 @@
 # Module Adapter & Scaffolding Templates
 
-Use these templates when scaffolding a new automated module `<module>` (e.g., `billing`, `appointments`, `facility-setup`) in `tests/modules/<module>/` and registering its adapter (as `qa/modules/<module>/adapter.json`, or as a plugin under `portal/modules/<module>/`).
+Use these templates when scaffolding a new automated module `<module>` (e.g., `billing`, `appointments`, `facility-setup`) in `tests/<product>/<module>/` and registering its adapter (as `qa/<product>/<module>/adapter.json`, or as a plugin under `portal/modules/<product>/<module>/`).
 
-## 1. Field Map Template (`tests/modules/<module>/fields.ts`)
+## 1. Field Map Template (`tests/<product>/<module>/fields.ts`)
 
 ```ts
 export type FieldKind = 'text' | 'select' | 'date' | 'checkbox' | 'textarea' | 'radio';
@@ -15,7 +15,7 @@ export interface FieldDef {
 }
 
 export const FIELDS: Record<string, FieldDef> = {
-  // Populated from qa/modules/<module>/discovery/fields-*.json
+  // Populated from qa/<product>/<module>/discovery/fields-*.json
   // Example:
   // service_name: { card: 'Service Details', label: 'Service Name', kind: 'text', column: 'service_name' },
 };
@@ -25,7 +25,7 @@ export const FILL_ORDER: string[] = [
 ];
 ```
 
-## 2. Adapter Registration Template (the adapter object; place it in `qa/modules/<module>/adapter.json` as JSON, or in `portal/modules/<module>/adapter.mjs` for a plugin)
+## 2. Adapter Registration Template (the adapter object; place it in `qa/<product>/<module>/adapter.json` as JSON, or in `portal/modules/<product>/<module>/adapter.mjs` for a plugin)
 
 ```js
 export const adapters = {
@@ -33,7 +33,7 @@ export const adapters = {
   '<module>': {
     id: '<module>',
     name: '<Module Name> · Playwright',
-    spec: 'tests/modules/<module>/cases.spec.ts',
+    spec: 'tests/<product>/<module>/cases.spec.ts',
     fields: {
       ...MODULE_FIELDS,
       workflow: { label: 'Workflow key', kind: 'text' },
@@ -62,7 +62,7 @@ export const adapters = {
 
 ## 3. Result Attachment Contract (`<case-id>-result.json`)
 
-Every case in `tests/modules/<module>/cases.spec.ts` must attach `<case-id>-result.json` via `info.attach(...)` with this structure so `portal/reporter.cjs` and `portal/pdf-report.mjs` can render expected-vs-actual diffs and stage screenshots:
+Every case in `tests/<product>/<module>/cases.spec.ts` must attach `<case-id>-result.json` via `info.attach(...)` with this structure so `portal/reporter.cjs` and `portal/pdf-report.mjs` can render expected-vs-actual diffs and stage screenshots:
 
 ```json
 {

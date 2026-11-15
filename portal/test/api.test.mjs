@@ -357,7 +357,7 @@ test('unsupported assertions and pending upload automation cannot silently run',
     { ...base, expected: { outcome: 'field-state', persisted: { mobile: '123' } } },
     { ...base, expected: { outcome: 'field-state', saveDisabled: true } },
     { ...base, action: 'search', input: { search: '123' }, expected: { outcome: 'found', values: { mobile: '123' } } },
-    { ...base, input: { id_proof_file: 'qa/modules/registration/data/agent-test-id-proof.pdf' } },
+    { ...base, input: { id_proof_file: 'qa/augastam/registration/data/agent-test-id-proof.pdf' } },
     { ...base, expected: { outcome: 'observe', values: { mobile: '123' } } },
   ]) assert.equal((await f.request('/api/modules/registration/cases', 'POST', c)).status, 400);
 });

@@ -276,7 +276,7 @@ test('an analysis with nothing usable in it is still an error and saves nothing'
 
 // ---- test tree in the brief; a suggested node on a case ------------------------------------------------------------------
 const TREE = { module: 'billing', nodes: [{ id: 'root', name: 'Billing', kind: 'root' }, { id: 'invoice', name: 'Invoice totals', kind: 'step', parent: 'root' }] };
-const putTree = (root, tree) => { const f = path.join(root, 'qa', 'modules', 'billing', 'tree.json'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, typeof tree === 'string' ? tree : JSON.stringify(tree)); };
+const putTree = (root, tree) => { const f = path.join(root, 'qa', 'augastam', 'billing', 'tree.json'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, typeof tree === 'string' ? tree : JSON.stringify(tree)); };
 
 test('the brief lists tree node ids and names when the module has a valid tree, and nothing when it has none', () => {
   const m = { id: 'billing', name: 'Billing', area: 'Fin' };
@@ -341,7 +341,7 @@ test('more than 80 nodes: the section says how many were left out', () => {
 
 test('an automated draft on an adapter module keeps a suggested node, and still falls back safely without one', () => {
   const root = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
-  const master = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
+  const master = JSON.parse(fs.readFileSync(path.join(root, 'qa/augastam/registration/cases/registration-cases.json'), 'utf8'));
   const c = master.cases.find(x => x.action === 'fill' && x.expected?.outcome === 'created') ?? master.cases[0];
   const spec = { title: 'Suggested node on an automated draft', category: 'x', priority: 'P2', action: c.action, base: c.base, input: c.input, expected: c.expected, registrationType: c.registrationType, steps: [], node: 'walkin' };
   const module = { id: 'registration', name: 'Registration', prefix: 'REG', adapter: 'registration', config: master.bases ? { bases: master.bases } : { bases: {} } };

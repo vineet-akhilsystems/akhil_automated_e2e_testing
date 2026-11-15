@@ -1,6 +1,6 @@
 ---
 name: working-with-versions-and-tree
-description: Use when a Test Studio run result needs its version context (which application version, login profile or automation version a run used), when two runs disagree to decide whether the app or the automation changed, when reading the version matrix or the Versions tab, registering an automation version, or editing, validating or using a module's qa/modules/<module>/tree.json test tree (including list_automation_versions, get_version_matrix, get_tree).
+description: Use when a Test Studio run result needs its version context (which application version, login profile or automation version a run used), when two runs disagree to decide whether the app or the automation changed, when reading the version matrix or the Versions tab, registering an automation version, or editing, validating or using a module's qa/<product>/<module>/tree.json test tree (including list_automation_versions, get_version_matrix, get_tree).
 ---
 
 # Working with versions and the test tree
@@ -29,7 +29,7 @@ Older runs have none of these and show "unknown". Re-run buttons keep the origin
 
 A run registers the current files automatically. To record them without running: module **Versions** tab, **Register current automation now**, or `POST /api/modules/<id>/automation-versions` with `{ "note": "..." }` (needs module settings access; returns `existing: true` if nothing changed). Notes are edited with `PUT .../automation-versions/<number>`. Versions are never deleted, and old versions cannot be re-run (fingerprints are stored, not code). There is no MCP tool for registering; ask the user.
 
-## The test tree: `qa/modules/<module>/tree.json`
+## The test tree: `qa/<product>/<module>/tree.json`
 
 Read-only grouping of existing cases under nodes, with run results rolled up. Developers edit the file; the portal never writes it.
 

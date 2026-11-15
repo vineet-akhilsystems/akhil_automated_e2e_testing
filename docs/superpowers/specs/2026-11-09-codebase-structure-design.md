@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 # Codebase structure redesign (portal + module plugins)
 
 Date: 2026-11-09. Status: direction approved in chat by the user ("yeah let's fix our code then"). Written design for planning.

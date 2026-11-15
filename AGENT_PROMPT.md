@@ -12,11 +12,11 @@ Registration module.
 
 ## Read first (in this order)
 1. `.claude/skills/registration-testing/SKILL.md` - commands, case format, locator/wait rules, triage, guardrails.
-2. `qa/modules/registration/rules.md` - what each field should do, with the EMR source file:line it comes from, plus behaviour observed on demo build 2.0.66 that differs from the code.
-3. `qa/modules/registration/manifest.yaml` - tenant, facility, registration types, endpoints, collections.
-4. `qa/modules/registration/discovery/discovery.md` - every field, required flag, column name and dropdown option per registration type.
-5. `qa/modules/registration/cases/registration-cases.json` - the 87-case dataset (source of truth; Excel copy beside it).
-6. Code: `tests/modules/registration/` (page object, runner, reporter), `tests/fixtures/auth.ts`, `playwright.config.ts`.
+2. `qa/augastam/registration/rules.md` - what each field should do, with the EMR source file:line it comes from, plus behaviour observed on demo build 2.0.66 that differs from the code.
+3. `qa/augastam/registration/manifest.yaml` - tenant, facility, registration types, endpoints, collections.
+4. `qa/augastam/registration/discovery/discovery.md` - every field, required flag, column name and dropdown option per registration type.
+5. `qa/augastam/registration/cases/registration-cases.json` - the 87-case dataset (source of truth; Excel copy beside it).
+6. Code: `tests/augastam/registration/` (page object, runner, reporter), `tests/fixtures/auth.ts`, `playwright.config.ts`.
 EMR source code (read-only reference): `C:\Users\HP\Desktop\akhil_system\Augastam EMR\` - frontend `custom-form-builder/src/pages/registration/` and `src/components/registration/`, backend `akhil_systems_backend/src/patient-registration/`.
 
 ## Setup facts you must respect
@@ -43,15 +43,15 @@ EMR source code (read-only reference): `C:\Users\HP\Desktop\akhil_system\Augasta
 - `npm run reg:cases` (headless) / `$env:CASES='REG-001,REG-064'; npm run reg:cases` (subset).
 - `npm run reg:failures` - headed, slow, pauses on each failure.
 - `npm run reg:report` - rebuild the report from the newest run (after an interruption).
-- Results: `qa/modules/registration/results/latest-results.xlsx` + `latest-summary.md` (Expected | Actual | Mismatches | UHID).
+- Results: `qa/augastam/registration/results/latest-results.xlsx` + `latest-summary.md` (Expected | Actual | Mismatches | UHID).
 Always run REG-001 in any subset that uses `{{regId@REG-001}}` / `{{phone@REG-001}}`.
 
 ## Your tasks
 1. Run the smoke test, then the full dataset headless. Report PASS / FAIL / FAIL (assumed requirement) / OBSERVED / ERROR counts.
 2. For every FAIL or ERROR: re-run that case alone once. Classify as product defect | test defect | environment | data/setup | unclear requirement. Fix test defects in the page object/runner (max two attempts each) **without weakening any expectation**.
 3. Confirm or refute the current findings: leap day 29/02/2000 becomes 28/02 (REG-140); search with "(" errors (REG-104); Update enabled before any change (REG-110); reverse PIN lookup never fills the PIN (REG-064); "Vineet" not found (REG-101 - check the DB read-only before calling it a bug).
-4. Add at least 20 **new** cases in `registration-cases.json` for gaps not yet covered, for example: other registration types' specific fields (New Born delivery date/weight/height, Staff dependants, International), Permanent Address tab filled separately, Other Info flags (VIP + name masking, IS DOB Required), Upload ID Proof with `qa/modules/registration/data/agent-test-id-proof.pdf`, Pre Registration No. lookup, Print menu after save, Active/Inactive toggle behaviour (observe only - do not deactivate other people's patients), consent signature, update of address/payer, boundary lengths. Mark anything not defined in code/config with `"assumed": true`. Run them, then `npm run reg:excel`.
-5. Write a bug draft per confirmed product defect in `qa/modules/registration/bugs/<CASE-ID>.md`: title, build 2.0.66, case id, steps, expected, actual, UHID(s), server response, screenshot path, suspected cause **marked as a hypothesis** with EMR file:line.
+4. Add at least 20 **new** cases in `registration-cases.json` for gaps not yet covered, for example: other registration types' specific fields (New Born delivery date/weight/height, Staff dependants, International), Permanent Address tab filled separately, Other Info flags (VIP + name masking, IS DOB Required), Upload ID Proof with `qa/augastam/registration/data/agent-test-id-proof.pdf`, Pre Registration No. lookup, Print menu after save, Active/Inactive toggle behaviour (observe only - do not deactivate other people's patients), consent signature, update of address/payer, boundary lengths. Mark anything not defined in code/config with `"assumed": true`. Run them, then `npm run reg:excel`.
+5. Write a bug draft per confirmed product defect in `qa/augastam/registration/bugs/<CASE-ID>.md`: title, build 2.0.66, case id, steps, expected, actual, UHID(s), server response, screenshot path, suspected cause **marked as a hypothesis** with EMR file:line.
 6. Final answer: a short table of confirmed bugs, requirement gaps for the BA team, what passed, and what you could not test and why.
 
 ## Hard rules

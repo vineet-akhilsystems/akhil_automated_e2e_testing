@@ -395,7 +395,7 @@ test('Registration is the reference module: every stage is ready and AI generati
   const r = (await admin.request('/api/modules/registration/readiness')).value;
   assert.deepEqual(r.stages.map(s => s.status), ['ready', 'ready', 'ready', 'ready', 'ready', 'ready', 'ready']);
   assert.equal(r.canGenerateAi, true); assert.equal(r.canProposeAutomation, true); assert.deepEqual(r.blockers, []);
-  assert.match(stageOf(r, 'discovery').detail, /present/); // qa/modules/registration/discovery has files in this repository
+  assert.match(stageOf(r, 'discovery').detail, /present/); // qa/augastam/registration/discovery has files in this repository
   const ai = await admin.request('/api/modules/registration/ai-generate', 'POST', { count: 2, mode: 'automated' });
   assert.equal(ai.status, 200, JSON.stringify(ai.value)); assert.equal(ai.value.drafts.length, 2); assert.deepEqual(ai.value.warnings, []);
   void f;

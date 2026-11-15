@@ -2498,7 +2498,7 @@
           },
           "action": {
             "type": "string",
-            "description": "Must be an action advertised by the connected adapter. Registration also supports workflow: input.workflow must be a key from qa/modules/registration/workflows.json and expected.outcome must be verified. Workflows manage their own variant/data, reject base and registrationType, and accept workflow and approved optional email/peer inputs. Saved-record workflows require target; blank-form workflows reject target. Separate field/toast checks are rejected for workflow actions. Registration unavailable is restricted to reviewed workbook blockers, executes no application assertions and returns BLOCKED with verificationPerformed=false."
+            "description": "Must be an action advertised by the connected adapter. Registration also supports workflow: input.workflow must be a key from qa/augastam/registration/workflows.json and expected.outcome must be verified. Workflows manage their own variant/data, reject base and registrationType, and accept workflow and approved optional email/peer inputs. Saved-record workflows require target; blank-form workflows reject target. Separate field/toast checks are rejected for workflow actions. Registration unavailable is restricted to reviewed workbook blockers, executes no application assertions and returns BLOCKED with verificationPerformed=false."
           },
           "input": {
             "type": "object",

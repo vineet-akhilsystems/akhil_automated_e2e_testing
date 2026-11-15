@@ -1,6 +1,6 @@
 # Registration: lessons from real defects and confirmed behaviour
 
-Source: qa/modules/registration/rules.md and the confirmed defect reports in qa/modules/registration/bugs/ (demo build 2.0.66). Everything in the first two sections was observed on the live demo and is safe to cite as confirmed.
+Source: qa/augastam/registration/rules.md and the confirmed defect reports in qa/augastam/registration/bugs/ (demo build 2.0.66). Everything in the first two sections was observed on the live demo and is safe to cite as confirmed.
 
 ## Defect patterns already found here (look for the same pattern in new cases and other modules)
 - **Server errors hidden in a successful response.** The backend can return `{statusCode: 409 | 500}` inside HTTP 200, and the front end treated it as success ("[object Object]" toast). Always verify a save from the response and by reopening the record, not from the toast. (REG-090)

@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 # Module knowledge pipeline: from BA video to generated test code (design)
 
 Extends Test Studio. Goal: whatever a BA uploads for a module (videos, documents, sheets, screenshots) is processed once, remembered, reused for later analysis, and ONLY then used to generate tests, and AI test generation only works once the module's automation pipeline is set up. Status: Phase A is built from this document; Phase B (discovery run from the portal) is described but not built.

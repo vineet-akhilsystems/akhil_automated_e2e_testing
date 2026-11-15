@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 # Version-aware, tree-based automation
 
 Status: Spike implemented (see plan); later phases not started.

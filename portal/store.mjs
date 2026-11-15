@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { plugins } from './modules/index.mjs';
-import './modules/registration/index.mjs'; // registers the built-in registration plugin (seed hook) before openStore runs
+import './modules/augastam/registration/index.mjs'; // registers the built-in registration plugin (seed hook) before openStore runs
 import { modulesSchema, createModulesRepo } from './data/modules.mjs';
 import { casesSchema, createCasesRepo } from './data/cases.mjs';
 import { runsSchema, createRunsRepo } from './data/runs.mjs';

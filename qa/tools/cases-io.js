@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Convert registration test cases between JSON (source of truth in git) and Excel (for the BA team).
 //
-//   node qa/tools/cases-io.js to-xlsx   qa/modules/registration/cases/registration-cases.json  out.xlsx
-//   node qa/tools/cases-io.js from-xlsx in.xlsx  qa/modules/registration/cases/from-excel.json
+//   node qa/tools/cases-io.js to-xlsx   qa/augastam/registration/cases/registration-cases.json  out.xlsx
+//   node qa/tools/cases-io.js from-xlsx in.xlsx  qa/augastam/registration/cases/from-excel.json
 //
 // Excel layout (sheet "cases"): one row per case.
 //   id | title | category | priority | variant |   (legacy header registrationType is also accepted on import) action | enabled | notes |

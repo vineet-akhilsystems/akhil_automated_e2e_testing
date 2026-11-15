@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const MASTER = path.join(ROOT, 'qa/modules/registration/cases/registration-cases.json');
+const MASTER = path.join(ROOT, 'qa/augastam/registration/cases/registration-cases.json');
 const { validateCase, adapters } = await import(pathToFileURL(path.join(ROOT, 'portal/registry.mjs')).href);
 
 const args = process.argv.slice(2);

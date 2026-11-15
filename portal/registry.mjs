@@ -4,9 +4,9 @@ import { resolveModuleFolder, listProductFolders } from './module-layout.mjs';
 import { existsSync, readdirSync, readFileSync, lstatSync, statSync, realpathSync } from 'node:fs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-import './modules/registration/index.mjs';
+import './modules/augastam/registration/index.mjs';
 import { plugins, pluginFor, reservedIds } from './modules/index.mjs';
-import { registrationData, registrationWorkflows, workbookAutomation } from './modules/registration/adapter.mjs';
+import { registrationData, registrationWorkflows, workbookAutomation } from './modules/augastam/registration/adapter.mjs';
 export { registrationData, registrationWorkflows, workbookAutomation };
 // Live object (importers keep their reference); filled by reloadAdapters(): plugin adapters + valid adapter.json files.
 export const adapters = {};
@@ -32,7 +32,7 @@ export function validateAdapterDefinition(raw, { root = ROOT, folder } = {}) {
   for (const key of Object.keys(raw)) if (!ADAPTER_TOP_KEYS.has(key)) throw new Error(`Unknown top-level key: ${key}.`);
   if (typeof raw.id !== 'string' || !ADAPTER_ID.test(raw.id) || raw.id.length > 60) throw new Error('id must match /^[a-z][a-z0-9-]*$/.');
   if (reservedIds().has(raw.id)) throw new Error(`The built-in ${raw.id} adapter cannot be overridden.`);
-  // The product defaults to 'augastam' while the old flat layout exists; both the qa folder and the spec folder come from the resolver.
+  // The product defaults to 'augastam' when adapter.json does not declare one; both the qa folder and the spec folder come from the resolver.
   const product = raw.product === undefined ? 'augastam' : raw.product;
   let qaDir, specDirRel;
   try {
@@ -94,8 +94,8 @@ export function validateAdapterDefinition(raw, { root = ROOT, folder } = {}) {
   return a;
 }
 
-// Reads every qa/<product>/<module>/adapter.json under `root` (every folder under qa/ except the shared ones; "modules" is the old flat
-// layout, kept until the move). Invalid files are skipped with a warning; never throws.
+// Reads every qa/<product>/<module>/adapter.json under `root` (every folder under qa/ except the shared ones; a leftover old flat folder is skipped with a
+// warning because its adapters do not sit in the folder the resolver gives). Invalid files are skipped with a warning; never throws.
 export function loadModuleAdapters({ root = ROOT, warn = msg => console.warn(msg) } = {}) {
   const loaded = {};
   for (const productDir of listProductFolders(root, 'qa')) {

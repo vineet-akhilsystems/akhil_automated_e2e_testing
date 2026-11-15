@@ -12,7 +12,7 @@ description: Use when extracting requirements, fields, rules, flows, open questi
 | Task | Tool / Command | Key file |
 |---|---|---|
 | MCP intake workflow | `list_modules`, `list_intake_files`, `read_intake_file`, `list_cases`, `save_insights` | `portal/mcp-server.mjs` |
-| Portal sandbox agent | Gets the module's tree node ids in its brief when `qa/modules/<module>/tree.json` is valid (see `working-with-versions-and-tree`); writes `<job>/output/insights.json` or `<job>/output/automation/` from `<job>/input/MANIFEST.json` | `portal/agent.mjs` |
+| Portal sandbox agent | Gets the module's tree node ids in its brief when `qa/<product>/<module>/tree.json` is valid (see `working-with-versions-and-tree`); writes `<job>/output/insights.json` or `<job>/output/automation/` from `<job>/input/MANIFEST.json` | `portal/agent.mjs` |
 | File extraction | Extracts `.xlsx`, `.csv`, `.docx`, `.pdf`, `.txt`, `.json`, `.yaml` into `<file>.extract.json` | `portal/intake.mjs` |
 | Insights & draft builder | Validates insights JSON and saves draft cases (`reviewStatus: 'draft'`) | `portal/insights.mjs` |
 | AI edge-case synthesis | Generates coverage-gap and domain edge cases per module | `portal/ai-generator.mjs` |

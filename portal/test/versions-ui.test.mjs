@@ -43,8 +43,8 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'augastam-versions-browser-'));
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'augastam-versions-root-'));
   const put = (rel, text) => { const f = path.join(root, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
-  put('tests/modules/registration/a.spec.ts', 'export const a = 1;\n');
-  put('qa/modules/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 1;\n');
+  put('qa/augastam/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [
     { id: 'login', name: 'Login and facility', kind: 'root', note: 'Shared start <b>of</b> every test' },
     { id: 'create', name: 'Create <i>patient</i>', parent: 'login', kind: 'step', match: { category: ['Create'] } },
     { id: 'update', name: 'Update patient', parent: 'login', kind: 'step', match: { category: ['Update'] } },
@@ -77,7 +77,7 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
     const r = await call('/api/modules/registration/cases', 'POST', c); assert.equal(r.status, 201, JSON.stringify(r.value));
   }
   assert.equal((await call('/api/modules/registration/automation-versions', 'POST', { note: 'first <script>window.__xss=1</script>' })).status, 201);
-  put('tests/modules/registration/a.spec.ts', 'export const a = 2;\n');
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 2;\n');
   assert.equal((await call('/api/modules/registration/automation-versions', 'POST', { note: '' })).status, 201);
   const h = ch => ch.repeat(64);
   const base_ = { kind: 'tests', mode: 'automated', status: 'failed', module: { id: 'registration' }, productId: 'augastam', cases: ['T-1', 'T-2', 'T-3'].map(id => ({ id, title: id })) };
@@ -117,7 +117,7 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
   // register button: nothing changed -> existing; then change a file -> v3
   await page.getByRole('button', { name: 'Register current automation now' }).click();
   await expect(page.locator('.toast').last()).toContainText('already the current version');
-  put('tests/modules/registration/a.spec.ts', 'export const a = 3;\n');
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 3;\n');
   await page.reload();
   await expect(page.locator('.versions-panel + .warning')).toContainText('have changed');
   await page.getByRole('button', { name: 'Register current automation now' }).click();
@@ -128,7 +128,7 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
   // Tree tab
   await page.locator('.module-tabs a', { hasText: 'Tree' }).click();
   await expect(page.getByRole('heading', { name: /^Tree/ })).toBeVisible();
-  await expect(page.locator('.tree-info')).toContainText('qa/modules/registration/tree.json');
+  await expect(page.locator('.tree-info')).toContainText('qa/augastam/registration/tree.json');
   await expect(page.locator('.tree-info')).toContainText('Run r2');
   const createRow = page.locator('.tree-row', { hasText: 'Create <i>patient</i>' });
   await expect(createRow.locator('.tc.total')).toHaveText('2');

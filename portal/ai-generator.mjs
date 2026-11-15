@@ -1,4 +1,4 @@
-import './modules/registration/index.mjs';
+import './modules/augastam/registration/index.mjs';
 import { adapters, validateCase, check, textValue } from './registry.mjs';
 import { moduleCoverage } from './quality.mjs';
 import { nextCaseIds } from './insights.mjs';

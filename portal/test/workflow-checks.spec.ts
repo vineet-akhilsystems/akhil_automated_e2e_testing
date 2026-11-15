@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { RegistrationPage } from '../../tests/modules/registration/registration.page';
-import { runWorkflow } from '../../tests/modules/registration/workflow-runner';
+import { RegistrationPage } from '../../tests/augastam/registration/registration.page';
+import { runWorkflow } from '../../tests/augastam/registration/workflow-runner';
 
 const form = `<div class="registration-card"><div class="registration-card-title">Basic Information</div>
 ${[['First Name', 'first_name', 'Agent'], ['Middle Name', 'middle_name', 'Testing'], ['Last Name', 'last_name', 'UserFixture'], ['Email ID', 'email', 'before@example.com']].map(([label, name, value]) => `<div class="form-group"><label>${label}</label><input name="${name}" value="${value}"></div>`).join('')}</div>`;

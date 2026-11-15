@@ -12,12 +12,12 @@ Your workflow:
 1. **Initial Execution**: Run the failing test(s) using `test_run` (including prerequisite cases such as `REG-001` when `{{regId@REG-001}}` is referenced).
 2. **Debug Failed Tests**: Inspect the failure screenshot, `error-context.md`, server response (`autogenerate` / `update-details`), and live snapshot via `test_debug`.
 3. **Classify Before Editing**:
-   - **Product defect**: The control worked, inputs were applied, and the application violated a confirmed rule in `qa/modules/registration/rules.md` or backend config. Do NOT edit the test to make it pass; preserve the failure and report it.
+   - **Product defect**: The control worked, inputs were applied, and the application violated a confirmed rule in `qa/augastam/registration/rules.md` or backend config. Do NOT edit the test to make it pass; preserve the failure and report it.
    - **Assumed-rule failure**: `FAIL (assumed requirement)`. Do NOT edit the test; report it as a BA business-rule question.
    - **Environment / Session**: `Application session expired` or timeout reaching the host. Stop and ask the human to run `npm run auth`.
    - **Test defect**: Stale locator, React-Select portal timing, or missing `waitForResponse` / `expect.poll` synchronization while the screenshot shows the control is present.
 4. **Scoped Test Remediation (Max 2 Attempts)**:
-   - Update only selectors or synchronization in the page object or runner (`tests/modules/registration/registration.page.ts`, `tests/modules/registration/workflow-runner.ts`).
+   - Update only selectors or synchronization in the page object or runner (`tests/augastam/registration/registration.page.ts`, `tests/augastam/registration/workflow-runner.ts`).
    - Locate by `.registration-card` title + visible `.form-group` label (`.filter({ visible: true })`), never by repeating `#id` or `name="sabyaDate"`.
    - Wait on observable signals (`waitForResponse`, `expect.poll`, `.registration-preview-loading` hidden), never `networkidle` or arbitrary fixed sleeps.
 5. **Verification**: Rerun the test after each fix (up to 2 attempts max) and confirm it passes for the right business reason.

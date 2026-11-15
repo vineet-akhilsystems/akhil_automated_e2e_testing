@@ -349,12 +349,12 @@ import { automationFiles, fingerprintAutomation, diffFiles, registerAutomationVe
 function autoRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-root-')), data = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-data-'));
   const put = (rel, text) => { const f = path.join(root, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
-  put('tests/modules/m1/a.spec.ts', 'export const a = 1;\n');
-  put('tests/modules/m1/helpers/b.ts', 'export const b = 2;\n');
-  put('tests/modules/m1/results/out.json', '{}'); put('tests/modules/m1/node_modules/x.js', 'x'); put('tests/modules/m1/notes.txt', 'ignored ext');
-  put('qa/modules/m1/adapter.json', '{"x":1}'); put('qa/modules/m1/cases/c.json', '{"id":"C"}'); put('qa/modules/m1/discovery/d.json', '{}');
-  put('qa/modules/m1/versions/v.json', '{}'); put('tests/fixtures/f.png', 'png'); put('playwright.config.ts', 'export default {};\n');
-  put('tests/modules/other/o.ts', 'o');
+  put('tests/augastam/m1/a.spec.ts', 'export const a = 1;\n');
+  put('tests/augastam/m1/helpers/b.ts', 'export const b = 2;\n');
+  put('tests/augastam/m1/results/out.json', '{}'); put('tests/augastam/m1/node_modules/x.js', 'x'); put('tests/augastam/m1/notes.txt', 'ignored ext');
+  put('qa/augastam/m1/adapter.json', '{"x":1}'); put('qa/augastam/m1/cases/c.json', '{"id":"C"}'); put('qa/augastam/m1/discovery/d.json', '{}');
+  put('qa/augastam/m1/versions/v.json', '{}'); put('tests/fixtures/f.png', 'png'); put('playwright.config.ts', 'export default {};\n');
+  put('tests/augastam/other/o.ts', 'o');
   const store = openStore(data);
   t.after(() => { store.close(); fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(data, { recursive: true, force: true }); });
   return { root, store, put, reg: (extra = {}) => registerAutomationVersion({ store, root, productId: 'augastam', moduleId: 'm1', by: 'tester', ...extra }) };
@@ -362,7 +362,7 @@ function autoRoot(t) {
 
 test('automationFiles lists the included files sorted, forward-slash, without result, case, discovery or other-module folders', t => {
   const { root } = autoRoot(t);
-  assert.deepEqual(automationFiles(root, 'augastam', 'm1'), ['playwright.config.ts', 'qa/modules/m1/adapter.json', 'qa/modules/m1/versions/v.json', 'tests/fixtures/f.png', 'tests/modules/m1/a.spec.ts', 'tests/modules/m1/helpers/b.ts']);
+  assert.deepEqual(automationFiles(root, 'augastam', 'm1'), ['playwright.config.ts', 'qa/augastam/m1/adapter.json', 'qa/augastam/m1/versions/v.json', 'tests/augastam/m1/a.spec.ts', 'tests/augastam/m1/helpers/b.ts', 'tests/fixtures/f.png']);
   assert.equal(fingerprintAutomation(root, 'augastam', 'missing-module').files.length, 2, 'a missing module still hashes playwright.config.ts and fixtures');
 });
 
@@ -373,36 +373,36 @@ test('same content gives the same number; CRLF and LF checkouts hash equal', t =
   assert.equal(reg({ note: 'ignored' }).number, 1);
   assert.equal(reg({ note: 'ignored' }).note, '');
   const lfHash = fingerprintAutomation(root, 'augastam', 'm1').hash;
-  put('tests/modules/m1/a.spec.ts', 'export const a = 1;\r\n');
+  put('tests/augastam/m1/a.spec.ts', 'export const a = 1;\r\n');
   assert.equal(fingerprintAutomation(root, 'augastam', 'm1').hash, lfHash);
   assert.equal(reg().number, 1);
 });
 
 test('changing one file creates v2 with that file listed under changed', t => {
   const { put, reg, store } = autoRoot(t);
-  reg(); put('tests/modules/m1/a.spec.ts', 'export const a = 99;\n');
+  reg(); put('tests/augastam/m1/a.spec.ts', 'export const a = 99;\n');
   const second = reg();
-  assert.equal(second.number, 2); assert.deepEqual(second.changedFiles, { added: [], changed: ['tests/modules/m1/a.spec.ts'], removed: [] });
+  assert.equal(second.number, 2); assert.deepEqual(second.changedFiles, { added: [], changed: ['tests/augastam/m1/a.spec.ts'], removed: [] });
   assert.equal(store.automationVersions('m1').length, 2);
   assert.equal(JSON.stringify(store.automationVersions('m1')).includes('export const'), false, 'contents are never stored');
 });
 
 test('reverting to the first content returns v1 again, not v3', t => {
   const { put, reg } = autoRoot(t);
-  reg(); put('tests/modules/m1/a.spec.ts', 'changed\n'); assert.equal(reg().number, 2);
-  put('tests/modules/m1/a.spec.ts', 'export const a = 1;\n');
+  reg(); put('tests/augastam/m1/a.spec.ts', 'changed\n'); assert.equal(reg().number, 2);
+  put('tests/augastam/m1/a.spec.ts', 'export const a = 1;\n');
   assert.equal(reg().number, 1);
-  put('tests/modules/m1/a.spec.ts', 'changed\n'); assert.equal(reg().number, 2);
+  put('tests/augastam/m1/a.spec.ts', 'changed\n'); assert.equal(reg().number, 2);
 });
 
 test('uncommitted is true when git reports dirty; a clean commit is recorded otherwise', async t => {
   const { put, reg, root, store } = autoRoot(t);
   const dirty = reg();
   assert.equal(dirty.gitCommit, undefined);
-  const annotated = await annotateAutomationVersion({ store, root, moduleId: 'm1', number: dirty.number, git: async paths => { assert.ok(paths.includes('tests/modules/m1/a.spec.ts')); return { commit: 'abc123', dirty: true }; } });
+  const annotated = await annotateAutomationVersion({ store, root, moduleId: 'm1', number: dirty.number, git: async paths => { assert.ok(paths.includes('tests/augastam/m1/a.spec.ts')); return { commit: 'abc123', dirty: true }; } });
   assert.equal(annotated.uncommitted, true); assert.equal(annotated.pendingGit, undefined);
   assert.equal(store.automationVersionByNumber('m1', 1).uncommitted, true);
-  put('tests/modules/m1/a.spec.ts', 'clean one\n');
+  put('tests/augastam/m1/a.spec.ts', 'clean one\n');
   const clean = reg();
   const done = await annotateAutomationVersion({ store, root, moduleId: 'm1', number: clean.number, git: async () => ({ commit: 'def456', dirty: false }) });
   assert.equal(done.gitCommit, 'def456'); assert.equal(done.uncommitted, false);
@@ -440,24 +440,24 @@ test('two store handles on the same data directory: same content one number, new
   const reg = (store, by) => registerAutomationVersion({ store, root, productId: 'augastam', moduleId: 'm1', by });
   const first = reg(A, 'alice');
   assert.equal(reg(B, 'bob').number, 1);
-  put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  put('tests/augastam/m1/a.spec.ts', 'content Y\n');
   const viaB = reg(B, 'bob');
   assert.equal(viaB.number, 2);
   const viaA = reg(A, 'alice');
   assert.equal(viaA.number, 2); assert.equal(viaA.createdBy, 'bob', 'the first registration of that content wins');
-  put('tests/modules/m1/a.spec.ts', 'content Z\n');
+  put('tests/augastam/m1/a.spec.ts', 'content Z\n');
   assert.equal(reg(A, 'alice').number, 3);
   assert.deepEqual(B.automationVersions('m1').map(v => v.number), [3, 2, 1]);
   assert.equal(B.automationVersionByNumber('m1', 1).hash, first.hash);
-  assert.deepEqual(B.automationVersionByNumber('m1', 2).changedFiles, { added: [], changed: ['tests/modules/m1/a.spec.ts'], removed: [] });
+  assert.deepEqual(B.automationVersionByNumber('m1', 2).changedFiles, { added: [], changed: ['tests/augastam/m1/a.spec.ts'], removed: [] });
 });
 
 test('a stale writer colliding on the NUMBER with a different hash renumbers and never overwrites the stored version', t => {
   const { put, root, store, reg } = autoRoot(t);
-  const v1 = reg(); put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  const v1 = reg(); put('tests/augastam/m1/a.spec.ts', 'content Y\n');
   const v2 = reg();
   const before = JSON.stringify(store.automationVersionByNumber('m1', 2));
-  put('tests/modules/m1/a.spec.ts', 'content Z\n');
+  put('tests/augastam/m1/a.spec.ts', 'content Z\n');
   let stale = true;
   const staleStore = { ...store, transaction: fn => store.transaction(fn), latestAutomationVersion: m => { if (stale) { stale = false; return { number: 1, files: v1.files }; } return store.latestAutomationVersion(m); } };
   const created = registerAutomationVersion({ store: staleStore, root, productId: 'augastam', moduleId: 'm1', by: 'late' });
@@ -469,7 +469,7 @@ test('a stale writer colliding on the NUMBER with a different hash renumbers and
 
 test('a stale writer colliding on the HASH returns the existing version', t => {
   const { put, root, store, reg } = autoRoot(t);
-  reg(); put('tests/modules/m1/a.spec.ts', 'content Y\n');
+  reg(); put('tests/augastam/m1/a.spec.ts', 'content Y\n');
   const v2 = reg();
   let misses = 2;
   const staleStore = { ...store, transaction: fn => store.transaction(fn), automationVersionByHash: (m, h) => (misses-- > 0 ? undefined : store.automationVersionByHash(m, h)), latestAutomationVersion: () => ({ number: 1, files: [] }) };
@@ -491,13 +491,13 @@ test('insertAutomationVersion throws on a duplicate number or hash; updateAutoma
 const gitRunner = (status, head = 'abc123\n') => async args => (args[0] === 'rev-parse' ? head : args[0] === 'status' ? status : null);
 
 test('default git: a dirty file inside the hashed set is dirty, outside it is clean', async () => {
-  const paths = ['tests/modules/m1/a.spec.ts', 'playwright.config.ts'];
-  assert.deepEqual(await defaultGit('.', gitRunner(' M tests/modules/m1/a.spec.ts\n'))(paths), { commit: 'abc123', dirty: true });
-  assert.deepEqual(await defaultGit('.', gitRunner(' M docs/readme.md\n?? qa/modules/m1/cases/new.json\n'))(paths), { commit: 'abc123', dirty: false });
+  const paths = ['tests/augastam/m1/a.spec.ts', 'playwright.config.ts'];
+  assert.deepEqual(await defaultGit('.', gitRunner(' M tests/augastam/m1/a.spec.ts\n'))(paths), { commit: 'abc123', dirty: true });
+  assert.deepEqual(await defaultGit('.', gitRunner(' M docs/readme.md\n?? qa/augastam/m1/cases/new.json\n'))(paths), { commit: 'abc123', dirty: false });
   assert.deepEqual(await defaultGit('.', gitRunner(''))(paths), { commit: 'abc123', dirty: false });
-  assert.equal((await defaultGit('.', gitRunner('R  old.txt -> tests/modules/m1/a.spec.ts\n'))(paths)).dirty, true, 'rename target');
-  assert.equal((await defaultGit('.', gitRunner('R  tests/modules/m1/a.spec.ts -> moved/a.ts\n'))(paths)).dirty, true, 'rename source');
-  assert.equal((await defaultGit('.', gitRunner('?? tests/modules/m1/\n'))(paths)).dirty, true, 'untracked directory containing hashed files');
+  assert.equal((await defaultGit('.', gitRunner('R  old.txt -> tests/augastam/m1/a.spec.ts\n'))(paths)).dirty, true, 'rename target');
+  assert.equal((await defaultGit('.', gitRunner('R  tests/augastam/m1/a.spec.ts -> moved/a.ts\n'))(paths)).dirty, true, 'rename source');
+  assert.equal((await defaultGit('.', gitRunner('?? tests/augastam/m1/\n'))(paths)).dirty, true, 'untracked directory containing hashed files');
 });
 
 test('default git: 600 paths work with one status call and no pathspec', async () => {
@@ -565,7 +565,7 @@ test('module ids that escape the module folders return no files', t => {
 test('an automated run is stamped with automationVersion and a manual run is not', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'autover-run-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const fingerprint = () => ({ hash: 'a'.repeat(64), files: [{ path: 'tests/modules/registration/x.ts', sha256: 'b'.repeat(64) }], truncated: false });
+  const fingerprint = () => ({ hash: 'a'.repeat(64), files: [{ path: 'tests/augastam/registration/x.ts', sha256: 'b'.repeat(64) }], truncated: false });
   const f = await boot(t, { automationRoot: root, automationFingerprint: fingerprint, automationGit: async () => ({ commit: 'c1', dirty: false }) });
   assert.equal((await f.request('/api/modules/registration/cases', 'POST', autoCase)).status, 201);
   const auto = await f.request('/api/runs', 'POST', { name: 'A', moduleId: 'registration', environmentId: 'local', mode: 'automated', caseIds: ['AV-001'] });
@@ -592,7 +592,7 @@ async function queuedBehind(t, fingerprint) {
   assert.equal(f.store.run(second.value.id).status, 'queued');
   return { f, first: first.value, second: second.value };
 }
-const fp = hash => ({ hash: hash.repeat(64), files: [{ path: 'tests/modules/registration/x.ts', sha256: hash.repeat(64) }], truncated: false });
+const fp = hash => ({ hash: hash.repeat(64), files: [{ path: 'tests/augastam/registration/x.ts', sha256: hash.repeat(64) }], truncated: false });
 
 test('a queued run is restamped when the automation changed while it waited', async t => {
   let current = 'a';
@@ -684,13 +684,13 @@ test('loadTree returns null when no file exists, rejects ../x, and explains an i
     assert.equal(loadTree(root, 'augastam', 'nothing'), null);
     assert.throws(() => loadTree(root, 'augastam', '../x'), /Invalid module id/);
     assert.throws(() => loadTree(root, 'augastam', '..'), /Invalid module id/);
-    fs.mkdirSync(path.join(root, 'qa/modules/bad'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), '{ nope');
+    fs.mkdirSync(path.join(root, 'qa/augastam/bad'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'qa/augastam/bad/tree.json'), '{ nope');
     assert.throws(() => loadTree(root, 'augastam', 'bad'), /bad.*not valid JSON/);
-    fs.writeFileSync(path.join(root, 'qa/modules/bad/tree.json'), JSON.stringify(T([N('r'), N('a', 'zzz')])));
+    fs.writeFileSync(path.join(root, 'qa/augastam/bad/tree.json'), JSON.stringify(T([N('r'), N('a', 'zzz')])));
     assert.throws(() => loadTree(root, 'augastam', 'bad'), /Invalid tree for "bad".*Node "a" has parent "zzz"/);
-    fs.mkdirSync(path.join(root, 'qa/modules/ok'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'qa/modules/ok/tree.json'), JSON.stringify(T([N('r')])));
+    fs.mkdirSync(path.join(root, 'qa/augastam/ok'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'qa/augastam/ok/tree.json'), JSON.stringify(T([N('r')])));
     assert.equal(loadTree(root, 'augastam', 'ok').nodes.length, 1);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
@@ -699,7 +699,7 @@ test('the shipped Registration tree is valid and attaches at least 95% of the 13
   const root = path.resolve(import.meta.dirname, '../..');
   const tree = loadTree(root, 'augastam', 'registration');
   assert.ok(tree, 'tree.json exists');
-  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
+  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/augastam/registration/cases/registration-cases.json'), 'utf8'));
   assert.equal(cases.length, 132);
   const { byNode, unassigned } = assignCases(tree, cases);
   assert.ok((cases.length - unassigned.length) / cases.length >= 0.95, `unassigned: ${unassigned.join(', ')}`);
@@ -738,9 +738,9 @@ test('loadTree allows only simple module ids and truncates long error lists', ()
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-'));
   try {
     for (const bad of ['..' + String.fromCharCode(92) + 'x', 'a' + String.fromCharCode(92) + 'b', 'a/b', '..', '.', path.resolve(root), '', 'a.b']) assert.throws(() => loadTree(root, 'augastam', bad), /Invalid module id\./, JSON.stringify(bad));
-    fs.mkdirSync(path.join(root, 'qa/modules/many'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'qa/augastam/many'), { recursive: true });
     const nodes = [N('r'), ...Array.from({ length: 8 }, (_, i) => N(`n${i}`, 'zzz'))];
-    fs.writeFileSync(path.join(root, 'qa/modules/many/tree.json'), JSON.stringify(T(nodes)));
+    fs.writeFileSync(path.join(root, 'qa/augastam/many/tree.json'), JSON.stringify(T(nodes)));
     assert.throws(() => loadTree(root, 'augastam', 'many'), /\(and 3 more\)/);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
@@ -748,7 +748,7 @@ test('loadTree allows only simple module ids and truncates long error lists', ()
 test('the shipped Registration tree has an empty Registration type group and 132/132 attachment', () => {
   const root = path.resolve(import.meta.dirname, '../..');
   const tree = loadTree(root, 'augastam', 'registration');
-  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-cases.json'), 'utf8'));
+  const { cases } = JSON.parse(fs.readFileSync(path.join(root, 'qa/augastam/registration/cases/registration-cases.json'), 'utf8'));
   const { byNode, unassigned } = assignCases(tree, cases);
   assert.equal(unassigned.length, 0);
   assert.equal(rollupTree(tree, byNode, [])['new-registration-type'].total, 0);
@@ -843,7 +843,7 @@ test('matrix: a run with no results is ignored and does not blank cells or form 
 
 test('tree run=latest skips a newer finished run that has no results', async t => {
   const { f, admin, put } = await world5(t);
-  put('qa/modules/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }] }));
+  put('qa/augastam/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }] }));
   const base = { kind: 'tests', mode: 'automated', module: { id: 'registration' }, productId: 'augastam', cases: [{ id: 'TR-001' }] };
   f.store.saveRun({ ...base, id: 'good', name: 'Good', status: 'failed', createdAt: '2026-01-01T00:00:00Z', results: [{ id: 'TR-001', status: 'PASS' }] });
   f.store.saveRun({ ...base, id: 'hollow', name: 'Hollow', status: 'error', createdAt: '2026-01-02T00:00:00Z', results: [] });
@@ -854,7 +854,7 @@ function fakeRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vroutes-root-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const put = (rel, text) => { const f = path.join(root, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); };
-  put('tests/modules/registration/a.spec.ts', 'export const a = 1;\n');
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 1;\n');
   return { root, put };
 }
 async function world5(t, extra = {}) {
@@ -881,13 +881,13 @@ test('list marks the current version and reports registered:false for new conten
   assert.equal(v.current, true); assert.equal(v.uncommitted, true); assert.equal(v.gitCommit, 'abc'); assert.equal(v.changedFilesSince, null);
   assert.equal('pendingGit' in v, false); assert.equal('files' in v, false); assert.equal(v.fileCount, 1);
   assert.deepEqual([v.runs, v.passRate], [0, null]);
-  put('tests/modules/registration/a.spec.ts', 'export const a = 2;\n');
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 2;\n');
   const changed = (await admin.request(V)).value;
   assert.equal(changed.current.registered, false); assert.equal(changed.versions[0].current, false);
   assert.equal((await admin.request(V, 'POST', {})).value.number, 2);
   const two = (await admin.request(V)).value;
   assert.deepEqual(two.versions.map(x => [x.number, x.current, x.changedFilesSince]), [[2, true, 1], [1, false, null]]);
-  put('tests/modules/registration/a.spec.ts', 'export const a = 1;\n');
+  put('tests/augastam/registration/a.spec.ts', 'export const a = 1;\n');
   const reverted = (await admin.request(V)).value;
   assert.equal(reverted.current.number, 1); assert.deepEqual(reverted.versions.map(x => [x.number, x.current]), [[2, false], [1, true]]);
 });
@@ -935,7 +935,7 @@ test('tree route: 404 without a tree, 200 with rollup for registration, other-mo
   const { f, admin, put } = await world5(t);
   const T = '/api/modules/registration/tree';
   assert.deepEqual([(await admin.request(T)).status, (await admin.request(T)).value.error], [404, 'No tree defined for this module.']);
-  put('qa/modules/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }, { id: 'grp', name: 'Group', parent: 'root', kind: 'group', match: { category: ['Gate'] } }] }));
+  put('qa/augastam/registration/tree.json', JSON.stringify({ module: 'registration', version: 1, nodes: [{ id: 'root', name: 'Root', kind: 'root' }, { id: 'grp', name: 'Group', parent: 'root', kind: 'group', match: { category: ['Gate'] } }] }));
   assert.equal((await admin.request('/api/modules/registration/cases', 'POST', { id: 'TR-001', title: 'T', mode: 'manual', category: 'Gate', priority: 'P1', steps: [{ action: 'a', expected: 'b' }] })).status, 201);
   const none = await admin.request(`${T}?run=latest`);
   assert.equal(none.status, 200); assert.equal(none.value.run, null); assert.deepEqual(none.value.assigned.grp, ['TR-001']); assert.equal(none.value.rollup.grp.total, 1);
@@ -949,7 +949,7 @@ test('tree route: 404 without a tree, 200 with rollup for registration, other-mo
   assert.equal((await admin.request(`${T}?run=old`)).value.run.id, 'old');
   assert.equal((await admin.request(`${T}?run=other`)).status, 404);
   assert.equal((await admin.request(`${T}?run=nope`)).status, 404);
-  put('qa/modules/registration/tree.json', '{ not json');
+  put('qa/augastam/registration/tree.json', '{ not json');
   const bad = await admin.request(T);
   assert.equal(bad.status, 422); assert.match(bad.value.error, /not valid JSON/);
 });

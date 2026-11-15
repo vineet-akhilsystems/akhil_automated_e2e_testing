@@ -142,7 +142,7 @@ Default exit criteria, applied in this order: **Do not release** when any open f
 
 ## Change-impact check
 
-`npm run impact` reads your changed files (working tree by default; `-- --staged` or `-- --range A..B` to choose) and, using `qa/impact-map.json`, prints "You changed X -> also check Y (why)", marks each target "changed too" or "NOT in this change", and lists commands to verify. `--strict` exits 1 when a target is missing, `--json` gives machine output, and `--validate` fails when a map path no longer matches anything. Rules marked `severity: "advisory"` (for example audit-actions, which fires on any route change) are shown but never counted by `--strict`. The map is a safety net for known couplings, not a replacement for tests. Credential and saved-session files are never read and never listed, and generated outputs under `qa/modules/*/results/` never trigger rules. See `.claude/skills/checking-change-impact/SKILL.md`.
+`npm run impact` reads your changed files (working tree by default; `-- --staged` or `-- --range A..B` to choose) and, using `qa/impact-map.json`, prints "You changed X -> also check Y (why)", marks each target "changed too" or "NOT in this change", and lists commands to verify. `--strict` exits 1 when a target is missing, `--json` gives machine output, and `--validate` fails when a map path no longer matches anything. Rules marked `severity: "advisory"` (for example audit-actions, which fires on any route change) are shown but never counted by `--strict`. The map is a safety net for known couplings, not a replacement for tests. Credential and saved-session files are never read and never listed, and generated outputs under `qa/*/*/results/` never trigger rules. See `.claude/skills/checking-change-impact/SKILL.md`.
 
 ## Versions
 
@@ -156,7 +156,7 @@ The portal records which application version and which automation version each r
 
 **Versions tab (module page).** Lists each automation version with its number, date, who or what created it, run count, pass rate, changed files since the previous version and the current marker (the version whose hash matches the files now, which after a revert is not always the highest number). You can edit a version's note and press **Register current automation now** to record the current files as a version without running. Below the list is the **matrix**: rows are cases, columns are version combinations (typed application version, detected profile, automation version; at most 8, newest first), cells are the case's newest result across the finished automated runs of that combination (runs with no results are ignored, so a partial re-run only replaces the cases it ran). Tick **Only differences** to hide rows whose result is the same in every column. A blank cell means no run of that combination has a result for the case.
 
-**Tree tab (read-only).** Shows how a module's cases group under steps, variants and groups, with the latest run's results rolled up per node. Developers edit the tree in the file `qa/modules/<module>/tree.json`; the portal never writes it. Format:
+**Tree tab (read-only).** Shows how a module's cases group under steps, variants and groups, with the latest run's results rolled up per node. Developers edit the tree in the file `qa/<product>/<module>/tree.json`; the portal never writes it. Format:
 
 ```json
 { "module": "registration", "note": "optional text",
@@ -181,15 +181,27 @@ Validation rules: module and node ids match `/^[A-Za-z0-9_-]+$/`; exactly one ro
 - This branch builds on the report-pack branch, which must merge first.
 - Verdicts stay "Suggested" and need a person to confirm them; version data is context for that decision, not an approval.
 
+## Product-scoped layout
+
+Every product (Augastam, Miracle, ...) keeps its modules in three parallel trees, named by one resolver ([tests/shared/module-layout.mjs](tests/shared/module-layout.mjs), re-exported by `portal/module-layout.mjs` and `tests/shared/module-paths.ts`):
+
+- `qa/<product>/<module>/` - cases, discovery, adapter.json, rules, results, bugs, data, tree.json, intake
+- `tests/<product>/<module>/` - Playwright specs, page objects, runners
+- `portal/modules/<product>/<module>/` - plugin code
+
+`<module>` is the module id with a leading `<product>-` removed (`miracle-registration` is `qa/miracle/registration`; Augastam's `registration` stays `registration`). Module ids never change, so database rows, runs and snapshots keep working. Shared, not product-scoped: `qa/knowledge/`, `qa/tools/`, `qa/impact-map.json`, `tests/shared/`, `tests/fixtures/`, `tests/discovery/`, `tests/smoke/`. The old flat `qa/modules/` and `tests/modules/` folders no longer exist and are not resolved; `portal/test/layout-guard.test.mjs` fails if code refers to them again.
+
+**Compatibility mapping (one value).** A portal database created before the move may still store a case input `id_proof_file` of `qa/modules/registration/data/agent-test-id-proof.pdf`. Registration validation (`resolveIdProofFixture` in `portal/modules/augastam/registration/validate.mjs`) treats exactly that string as the current fixture `qa/augastam/registration/data/agent-test-id-proof.pdf`; any other old-layout path is rejected. `portal-data/snapshot.json` and the cases JSON already hold the new path. Historical run outputs under `qa/augastam/registration/results/` keep their original text.
+
 ## Multiple modules
 
 The hierarchy is **workspace → business area → module → suite → test case**, with executions stored separately. Business areas and suites are labels in this version; they are not nested folders. Module cards show whether automation is connected. Creating a module never claims that its browser automation already exists.
 
-The interface is driven by [portal/registry.mjs](portal/registry.mjs), which combines module plugins (`portal/modules/`) with `qa/modules/<id>/adapter.json` files; see [Adding a module](#adding-a-module). A development team adds a module's automation adapter, page objects and case spec, then associates the module with that adapter. Registration's schema illustrates the contract: available actions, fields, outcomes and variants. The execution supervisor obtains the trusted spec path from the registry, never from a user-supplied command.
+The interface is driven by [portal/registry.mjs](portal/registry.mjs), which combines module plugins (`portal/modules/`) with `qa/<product>/<id>/adapter.json` files; see [Adding a module](#adding-a-module). A development team adds a module's automation adapter, page objects and case spec, then associates the module with that adapter. Registration's schema illustrates the contract: available actions, fields, outcomes and variants. The execution supervisor obtains the trusted spec path from the registry, never from a user-supplied command.
 
 For the next automation module:
 
-1. Implement its page objects and a data-driven Playwright spec under `tests/modules/<module>/`.
+1. Implement its page objects and a data-driven Playwright spec under `tests/<product>/<module>/`.
 2. Read the run snapshot from `CASES_FILE`, including shared starting data. Emit a `<case-id>-result.json` attachment using the existing result shape (`id`, `title`, `status`, `expected`, `actual`, `mismatches`, `durationMs`).
 3. Add the adapter definition (a plugin's `adapter.mjs`, or an `adapter.json`) and its field/action validation (a plugin's `validate.mjs` hooks). If the module needs a new assertion type, extend the structured editor and validation together.
 4. Associate the module with the adapter through a reviewed database migration or seed. This is intentionally a developer-managed connection, not an editable shell command in the UI.
@@ -201,9 +213,9 @@ The initial adapter covers Registration's existing actions and checks. A general
 
 There are two ways to add a module, depending on whether it needs custom logic.
 
-**(a) No custom code.** Add `qa/modules/<id>/adapter.json` and a data-driven spec at `tests/modules/<id>/*.spec.ts`, exactly as before. The registry picks the adapter up automatically. See the `onboarding-portal-modules` skill ([.claude/skills/onboarding-portal-modules/SKILL.md](.claude/skills/onboarding-portal-modules/SKILL.md)) for the full procedure.
+**(a) No custom code.** Add `qa/<product>/<id>/adapter.json` and a data-driven spec at `tests/<product>/<id>/*.spec.ts`, exactly as before. The registry picks the adapter up automatically. See the `onboarding-portal-modules` skill ([.claude/skills/onboarding-portal-modules/SKILL.md](.claude/skills/onboarding-portal-modules/SKILL.md)) for the full procedure.
 
-**(b) Module with custom logic.** Create a plugin under `portal/modules/<id>/`: `adapter.mjs` (required), plus optional `validate.mjs`, `seed.mjs`, `ai.mjs` and `agent.mjs`. An `index.mjs` builds the plugin object, checks it with `assertPlugin` and calls `registerPlugin` (see [portal/modules/registration/index.mjs](portal/modules/registration/index.mjs)). Add ONE import line for that `index.mjs` in `portal/registry.mjs`, the way `modules/registration/index.mjs` is imported; the store and `portal/ai-generator.mjs` reach it through their imports. Plugins are repo code and are never loaded from user-supplied paths. Hooks are documented in [portal/modules/contract.mjs](portal/modules/contract.mjs):
+**(b) Module with custom logic.** Create a plugin under `portal/modules/<product>/<id>/`: `adapter.mjs` (required), plus optional `validate.mjs`, `seed.mjs`, `ai.mjs` and `agent.mjs`. An `index.mjs` builds the plugin object, checks it with `assertPlugin` and calls `registerPlugin` (see [portal/modules/augastam/registration/index.mjs](portal/modules/augastam/registration/index.mjs)). Add ONE import line for that `index.mjs` in `portal/registry.mjs`, the way `modules/registration/index.mjs` is imported; the store and `portal/ai-generator.mjs` reach it through their imports. Plugins are repo code and are never loaded from user-supplied paths. Hooks are documented in [portal/modules/contract.mjs](portal/modules/contract.mjs):
 
 - `id` (required) - unique module id.
 - `adapter` (required) - fields, actions, outcomes, variants and spec path, same shape as an `adapter.json`.
@@ -219,11 +231,11 @@ There are two ways to add a module, depending on whether it needs custom logic.
 - `agent` (optional) - reference files directory/label and cross-field example text for the coding agent.
 - `discovery: true` (optional) - live discovery output counts as existing when its folder is non-empty.
 
-`registrationType` is the generic variant key stored on every module's cases; the name is kept for compatibility. `tests/modules/registration` and `qa/modules/registration` stay where they are. Test-side paths go through `tests/shared/module-paths.ts`. Run `npm run portal:check` and `npm run portal:test` after any change.
+`registrationType` is the generic variant key stored on every module's cases; the name is kept for compatibility. `tests/augastam/registration` and `qa/augastam/registration` stay where they are. Test-side paths go through `tests/shared/module-paths.ts`. Run `npm run portal:check` and `npm run portal:test` after any change.
 
 ## Shared data and imports
 
-Run `npm run reg:pipeline` to execute **current enabled automated Registration cases from the portal database**, including portal-only additions and edits. Use `npm run reg:pipeline -- --list` to inspect discovery without application access. This command snapshots current cases and shared templates, includes prerequisites, validates definitions, and checks the application session before executing cases. Manual and disabled cases are excluded. `PORTAL_DATA_DIR` selects a different local portal database; `BASE_URL` and `AUTH_DIR` must match the intended application environment. Each execution writes a `*-pipeline-status.json` beside its input snapshot under `qa/modules/registration/results/automation-inputs`, including manual exclusions and preflight-blocked status. See [current pipeline review and limitations](docs/registration-pipeline-review.md).
+Run `npm run reg:pipeline` to execute **current enabled automated Registration cases from the portal database**, including portal-only additions and edits. Use `npm run reg:pipeline -- --list` to inspect discovery without application access. This command snapshots current cases and shared templates, includes prerequisites, validates definitions, and checks the application session before executing cases. Manual and disabled cases are excluded. `PORTAL_DATA_DIR` selects a different local portal database; `BASE_URL` and `AUTH_DIR` must match the intended application environment. Each execution writes a `*-pipeline-status.json` beside its input snapshot under `qa/augastam/registration/results/automation-inputs`, including manual exclusions and preflight-blocked status. See [current pipeline review and limitations](docs/registration-pipeline-review.md).
 
 The latest additions and live outcomes are listed in [registration workflow extension](docs/registration-workflow-extension.md).
 

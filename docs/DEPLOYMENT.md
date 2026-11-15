@@ -135,17 +135,17 @@ Data volumes are kept across rebuilds; the portal migrates its database on start
 
 ## 10. Adding module adapters in Docker
 
-The image copies `qa/modules` and `tests/modules` at build time, and the portal loads module adapters (`qa/modules/<id>/adapter.json`) only when it starts. Adding a module adapter therefore needs one of:
+The image copies `qa/` and `tests/` (product folders such as `qa/augastam/` and `tests/augastam/`) at build time, and the portal loads module adapters (`qa/<product>/<module>/adapter.json`) only when it starts. Adding a module adapter therefore needs one of:
 
 - **Rebuild and restart** (default): add the files to the project, then `docker compose up -d --build`. After restart, connect the module to its adapter in the portal.
 - **Mount the folders as volumes** (no rebuild): add to the `portal` service in `docker-compose.yml`
 
   ```yaml
       volumes:
-        - ./qa/modules:/app/qa/modules
-        - ./tests/modules:/app/tests/modules
+        - ./qa/augastam:/app/qa/augastam
+        - ./tests/augastam:/app/tests/augastam
   ```
 
   Then new or edited adapter files are visible inside the container, but you must still restart the portal (`docker compose restart portal`) because adapters load at startup. Keep these mounts read-only (`:ro`) on shared servers.
 
-The Registration ID-proof fixture `qa/modules/registration/data/agent-test-id-proof.pdf` is explicitly allowed in `.dockerignore` (other `*.pdf` files are excluded from the build context).
+The Registration ID-proof fixture `qa/augastam/registration/data/agent-test-id-proof.pdf` is explicitly allowed in `.dockerignore` (other `*.pdf` files are excluded from the build context).

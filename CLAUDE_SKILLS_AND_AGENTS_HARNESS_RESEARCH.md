@@ -1,3 +1,5 @@
+> **Path layout changed on 2026-11-15** (qa/modules/<id> is now qa/<product>/<module>, and likewise for tests and portal/modules); see docs/superpowers/plans/2026-11-15-product-scoped-layout.md. The paths below are historical.
+
 # Deep Research & Harness Specification: Claude Skills, Multi-Agent Architecture, Prompts, and Automated Module Onboarding for Augastam Test Studio
 
 **Repository:** `augastam_e2e_testing`  

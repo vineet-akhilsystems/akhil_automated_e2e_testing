@@ -1,6 +1,6 @@
 ---
 name: automating-registration-workflows
-description: Use when an Augastam Registration scenario cannot be expressed with the existing case actions (fill/save/search/update) - ordered multi-step UI flows, print/QR/drawer/modal checks, keyboard navigation, a field missing from fields.ts, or converting a "new"/"partial" BA TC_REG scenario into automation in tests/modules/registration.
+description: Use when an Augastam Registration scenario cannot be expressed with the existing case actions (fill/save/search/update) - ordered multi-step UI flows, print/QR/drawer/modal checks, keyboard navigation, a field missing from fields.ts, or converting a "new"/"partial" BA TC_REG scenario into automation in tests/augastam/registration.
 ---
 
 # Automating registration workflows
@@ -11,18 +11,18 @@ description: Use when an Augastam Registration scenario cannot be expressed with
 
 | The scenario needs | Change | Effort |
 |---|---|---|
-| Existing action, but the field isn't mapped | Add the field to `tests/modules/registration/fields.ts` (+ `FILL_ORDER`) | small |
+| Existing action, but the field isn't mapped | Add the field to `tests/augastam/registration/fields.ts` (+ `FILL_ORDER`) | small |
 | Ordered steps / assertions on a modal, drawer, popup, download, keyboard, or a sequence of values | New **workflow key**: `workflows.json` + a `case` in `workflow-runner.ts` | medium |
-| A new kind of outcome shared by many data-driven cases | New action in `case-runner.ts` + `portal/modules/registration/adapter.mjs` (actions, outcomes) and `portal/modules/registration/validate.mjs` (validation) | large: **ask the user first** |
-| Another page (configuration masters, billing, permissions) | A new module under `tests/modules/<module>/` (see README "Multiple modules") | out of scope here |
+| A new kind of outcome shared by many data-driven cases | New action in `case-runner.ts` + `portal/modules/augastam/registration/adapter.mjs` (actions, outcomes) and `portal/modules/augastam/registration/validate.mjs` (validation) | large: **ask the user first** |
+| Another page (configuration masters, billing, permissions) | A new module under `tests/<product>/<module>/` (see README "Multiple modules") | out of scope here |
 
-Check `qa/modules/registration/workflows.json` first; the assessment doc in `docs/` is a snapshot and may call an already-implemented flow "new".
+Check `qa/augastam/registration/workflows.json` first; the assessment doc in `docs/` is a snapshot and may call an already-implemented flow "new".
 
 ## Add a field
 
-1. Find it in `qa/modules/registration/discovery/fields-<type>.json` (run `npm run reg:discover` if missing or stale). Copy the **card title**, the **visible label without `*`**, the kind and the `column`.
+1. Find it in `qa/augastam/registration/discovery/fields-<type>.json` (run `npm run reg:discover` if missing or stale). Copy the **card title**, the **visible label without `*`**, the kind and the `column`.
 2. Add `key: { card, label, kind, column }` to `FIELDS`. Fields with dependencies (address cascade) go to the right spot in `FILL_ORDER`.
-3. The portal picks it up automatically (`portal/modules/registration/adapter.mjs` spreads `FIELDS`). Prove it with a `fill` case that sets and reads it.
+3. The portal picks it up automatically (`portal/modules/augastam/registration/adapter.mjs` spreads `FIELDS`). Prove it with a `fill` case that sets and reads it.
 
 Duplicate labels across cards are fine (`card` scopes them). The same label twice **in one card** (Permanent tab, repeated emergency rows) needs a dedicated locator helper in `registration.page.ts`, not a FIELDS entry.
 

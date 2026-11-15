@@ -16,7 +16,7 @@ import { assertPlugin } from '../modules/contract.mjs';
 import { createPluginRegistry } from '../modules/index.mjs';
 
 // Characterization snapshot of everything Registration-specific in shared portal code (Plan 2, Task 0).
-// Later tasks move that behavior into portal/modules/registration/; this golden must stay identical.
+// Later tasks move that behavior into portal/modules/augastam/registration/; this golden must stay identical.
 // Regenerate deliberately with UPDATE_GOLDEN=1 (only ever against pre-refactor code).
 //
 // Determinism: generateAiCases takes no clock and no randomness (ids continue from the existing cases, every
@@ -37,7 +37,7 @@ after(() => { if (UPDATE) fs.writeFileSync(GOLDEN, JSON.stringify(collected, nul
 
 // ---- dynamic (adapter.json) module fixture, as in registry-dynamic.test.mjs ----
 const billing = () => ({
-  id: 'billing', name: 'Billing - Playwright', spec: 'tests/modules/billing/cases.spec.ts', prefix: 'BIL',
+  id: 'billing', name: 'Billing - Playwright', spec: 'tests/augastam/billing/cases.spec.ts', prefix: 'BIL',
   actions: { fill: 'Fill and inspect fields', save: 'Save', search: 'Search', update: 'Update', unavailable: 'Blocked' },
   outcomes: ['created', 'blocked', 'no-errors', 'no-error', 'found', 'updated', 'verified'],
   variants: ['Cash Bill', 'Credit Bill'],
@@ -47,10 +47,10 @@ const billing = () => ({
 const billingModule = { id: 'billing', productId: 'augastam', name: 'Billing', area: 'Finance', prefix: 'BIL', adapter: 'billing', config: { bases: { valid: { bill_to: 'Agent Testing', amount: '10' } }, requirements: [] } };
 function withBilling(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'module-plugins-'));
-  fs.mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'adapter.json'), JSON.stringify(billing()));
-  fs.mkdirSync(path.join(root, 'tests', 'modules', 'billing'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'tests', 'modules', 'billing', 'cases.spec.ts'), '// spec\n');
+  fs.mkdirSync(path.join(root, 'qa', 'augastam', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'qa', 'augastam', 'billing', 'adapter.json'), JSON.stringify(billing()));
+  fs.mkdirSync(path.join(root, 'tests', 'augastam', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'tests', 'augastam', 'billing', 'cases.spec.ts'), '// spec\n');
   try {
     reloadAdapters({ root, warn: () => {} });
     return fn();
@@ -58,10 +58,10 @@ function withBilling(fn) {
 }
 async function withBillingAsync(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'module-plugins-'));
-  fs.mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'adapter.json'), JSON.stringify(billing()));
-  fs.mkdirSync(path.join(root, 'tests', 'modules', 'billing'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'tests', 'modules', 'billing', 'cases.spec.ts'), '// spec\n');
+  fs.mkdirSync(path.join(root, 'qa', 'augastam', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'qa', 'augastam', 'billing', 'adapter.json'), JSON.stringify(billing()));
+  fs.mkdirSync(path.join(root, 'tests', 'augastam', 'billing'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'tests', 'augastam', 'billing', 'cases.spec.ts'), '// spec\n');
   try {
     reloadAdapters({ root, warn: () => {} });
     return await fn();
@@ -93,7 +93,7 @@ test('(b) validateCase messages for Registration branches and dynamic adapters',
     const src = id => structuredClone(workbookAutomation.cases.find(c => c.id === id));
     const base = (extra = {}) => ({ id: 'ZZ-1', title: 'T', action: 'fill', base: 'valid', input: { first_name: 'Agent' }, expected: { outcome: 'no-errors' }, registrationType: 'New Registration', ...extra });
     const wf = (input, extra = {}) => ({ id: 'ZZ-WF', title: 'Workflow', action: 'workflow', input, expected: { outcome: 'verified' }, ...extra });
-    const proof = 'qa/modules/registration/data/agent-test-id-proof.pdf';
+    const proof = 'qa/augastam/registration/data/agent-test-id-proof.pdf';
     const reg = {
       'fill valid': base(),
       'save valid': base({ action: 'save', expected: { outcome: 'created', persisted: { first_name: 'Agent' }, toastContains: 'Registration' } }),
@@ -304,7 +304,7 @@ test('(e) agent reference ordering, cross-field examples and readiness', async (
 });
 
 // ---- Plugin contract and loader (Plan 2, Task 1). Uses isolated registries; the shared one is never touched. ----
-const miniAdapter = (id = 'demo') => ({ id, name: 'Demo', spec: `tests/modules/${id}/cases.spec.ts`, fields: {}, actions: { fill: 'Fill' }, outcomes: ['created'], variants: ['Standard'] });
+const miniAdapter = (id = 'demo') => ({ id, name: 'Demo', spec: `tests/augastam/${id}/cases.spec.ts`, fields: {}, actions: { fill: 'Fill' }, outcomes: ['created'], variants: ['Standard'] });
 const miniPlugin = (id = 'demo') => ({ id, adapter: miniAdapter(id), builtIn: true });
 
 test('assertPlugin accepts a minimal valid plugin and optional hooks', () => {

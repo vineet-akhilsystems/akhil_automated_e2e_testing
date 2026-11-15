@@ -193,7 +193,7 @@ test('automation proposal needs an approved case and a tester; files are listed 
   const file = await admin.request(`/api/modules/billing/agent/jobs/${s.value.id}/files?path=billing.spec.ts`);
   assert.match(file.value.text, /proposed spec/);
   assert.equal((await admin.request(`/api/modules/billing/agent/jobs/${s.value.id}/files?path=${encodeURIComponent('../../input/MANIFEST.json')}`)).status, 404);
-  assert.ok(!fs.existsSync(path.join(f.directory, '..', 'tests', 'modules', 'billing')));
+  assert.ok(!fs.existsSync(path.join(f.directory, '..', 'tests', 'augastam', 'billing')));
 });
 
 test('analysis refuses to start when every readable file is a partial (keyframes-only) video, and the brief explains partial entries', async t => {

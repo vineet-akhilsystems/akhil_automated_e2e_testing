@@ -103,7 +103,7 @@ test('a failing shard exit makes the run an error', async () => {
 test('the spec path is passed to Playwright regex-escaped', async () => {
   const f = fixture({ workers: 1 });
   const run = makeRun(cases); f.store.saveRun(run); f.queue.pump(); await wait(10);
-  assert.ok(f.launches[0].args.includes(String.raw`tests/modules/registration/cases\.spec\.ts`));
-  assert.ok(!f.launches[0].args.includes('tests/modules/registration/cases.spec.ts'));
+  assert.ok(f.launches[0].args.includes(String.raw`tests/augastam/registration/cases\.spec\.ts`));
+  assert.ok(!f.launches[0].args.includes('tests/augastam/registration/cases.spec.ts'));
   f.launches[0].child.emit('exit', 0); await wait(10);
 });

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { adapters, loadModuleAdapters, reloadAdapters, validateAdapterDefinition, validateCase } from '../registry.mjs';
 
 const good = (id = 'billing') => ({
-  id, name: 'Billing - Playwright', spec: `tests/modules/${id}/cases.spec.ts`, prefix: 'BIL',
+  id, name: 'Billing - Playwright', spec: `tests/augastam/${id}/cases.spec.ts`, prefix: 'BIL',
   actions: { fill: 'Fill and inspect fields', save: 'Save', search: 'Search' },
   outcomes: ['created', 'blocked', 'no-errors', 'no-error'],
   variants: ['Cash Bill', 'Credit Bill'],
@@ -17,11 +17,11 @@ const good = (id = 'billing') => ({
 function makeRoot(defs, { withSpec = true } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'registry-dynamic-'));
   for (const [dir, def] of Object.entries(defs)) {
-    mkdirSync(path.join(root, 'qa', 'modules', dir), { recursive: true });
-    writeFileSync(path.join(root, 'qa', 'modules', dir, 'adapter.json'), typeof def === 'string' ? def : JSON.stringify(def));
+    mkdirSync(path.join(root, 'qa', 'augastam', dir), { recursive: true });
+    writeFileSync(path.join(root, 'qa', 'augastam', dir, 'adapter.json'), typeof def === 'string' ? def : JSON.stringify(def));
     // the tests folder always exists (the module's folder is known); only the spec file is optional
-    mkdirSync(path.join(root, 'tests', 'modules', dir), { recursive: true });
-    if (withSpec) { writeFileSync(path.join(root, 'tests', 'modules', dir, 'cases.spec.ts'), '// spec\n'); }
+    mkdirSync(path.join(root, 'tests', 'augastam', dir), { recursive: true });
+    if (withSpec) { writeFileSync(path.join(root, 'tests', 'augastam', dir, 'cases.spec.ts'), '// spec\n'); }
   }
   return root;
 }
@@ -33,7 +33,7 @@ test('valid adapter.json loads and registration stays built in', () => {
     const { w, warn } = quiet();
     const loaded = loadModuleAdapters({ root, warn });
     assert.deepEqual(Object.keys(loaded), ['billing']); assert.equal(w.length, 0);
-    assert.equal(loaded.billing.spec, 'tests/modules/billing/cases.spec.ts');
+    assert.equal(loaded.billing.spec, 'tests/augastam/billing/cases.spec.ts');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -57,9 +57,9 @@ test('invalid adapter files are skipped with warnings and never throw', () => {
     unknownkey: { ...good('unknownkey'), command: 'rm -rf /' },
     badid: { ...good('Bad_Id') },
     mismatch: { ...good('other') },
-    traversal: { ...good('traversal'), spec: 'tests/modules/traversal/../registration/cases.spec.ts' },
+    traversal: { ...good('traversal'), spec: 'tests/augastam/traversal/../registration/cases.spec.ts' },
     absolute: { ...good('absolute'), spec: 'C:/Windows/system32/cmd.exe' },
-    otherdir: { ...good('otherdir'), spec: 'tests/modules/registration/cases.spec.ts' },
+    otherdir: { ...good('otherdir'), spec: 'tests/augastam/registration/cases.spec.ts' },
     shellish: { ...good('shellish'), actions: { fill: 'Fill; rm -rf /' } },
     badkind: { ...good('badkind'), fields: { a: { label: 'A', kind: 'exec' } } },
     fieldcmd: { ...good('fieldcmd'), fields: { a: { label: 'A', kind: 'text', command: 'x' } } },
@@ -82,13 +82,13 @@ test('missing spec file and escaping symlink-free paths are rejected', () => {
   const root = makeRoot({ nospec: good('nospec') }, { withSpec: false });
   try {
     assert.throws(() => validateAdapterDefinition(good('nospec'), { root }), /does not exist/);
-    assert.throws(() => validateAdapterDefinition({ ...good('nospec'), spec: 'tests/modules/nospec/sub/cases.spec.ts' }, { root }), /relative tests\/modules/);
-    assert.throws(() => validateAdapterDefinition({ ...good('nospec'), spec: 'tests\\modules\\nospec\\cases.spec.ts' }, { root }), /relative tests\/modules/);
+    assert.throws(() => validateAdapterDefinition({ ...good('nospec'), spec: 'tests/augastam/nospec/sub/cases.spec.ts' }, { root }), /relative tests\/augastam/);
+    assert.throws(() => validateAdapterDefinition({ ...good('nospec'), spec: 'tests\\augastam\\nospec\\cases.spec.ts' }, { root }), /relative tests\/augastam/);
     assert.throws(() => validateAdapterDefinition(good('registration'), { root }), /cannot be overridden/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('missing qa/modules directory yields no extra adapters', () => {
+test('missing qa directory yields no extra adapters', () => {
   assert.deepEqual(loadModuleAdapters({ root: path.join(tmpdir(), 'definitely-missing-root-xyz'), warn: () => {} }), {});
 });
 
@@ -96,9 +96,9 @@ test('spec file names with regex metacharacters or odd characters are rejected',
   const root = makeRoot({ billing: good('billing') });
   try {
     for (const name of ['a+b.spec.ts', 'a(b).spec.ts', 'a b.spec.ts', 'a$.spec.ts', 'a[1].spec.ts', 'a|b.spec.ts', 'a*.spec.ts', 'a^.spec.ts', 'a{1}.spec.ts', 'a?.spec.ts']) {
-      assert.throws(() => validateAdapterDefinition({ ...good('billing'), spec: `tests/modules/billing/${name}` }, { root }), /relative tests\/modules/, name);
+      assert.throws(() => validateAdapterDefinition({ ...good('billing'), spec: `tests/augastam/billing/${name}` }, { root }), /relative tests\/augastam/, name);
     }
-    assert.equal(validateAdapterDefinition({ ...good('billing') }, { root }).spec, 'tests/modules/billing/cases.spec.ts');
+    assert.equal(validateAdapterDefinition({ ...good('billing') }, { root }).spec, 'tests/augastam/billing/cases.spec.ts');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

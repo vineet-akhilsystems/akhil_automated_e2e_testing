@@ -93,11 +93,11 @@ test('report model tracks screenshot evidence for passed, observed and failed ca
 
 test('AI generator: non-registration automated modules get only adapter-driven cases', async () => {
   const root = mkdtempSync(path.join(tmpdir(), 'ai-gen-'));
-  mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
-  mkdirSync(path.join(root, 'tests', 'modules', 'billing'), { recursive: true });
-  writeFileSync(path.join(root, 'tests', 'modules', 'billing', 'cases.spec.ts'), '// spec\n');
-  writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'adapter.json'), JSON.stringify({
-    id: 'billing', name: 'Billing', spec: 'tests/modules/billing/cases.spec.ts',
+  mkdirSync(path.join(root, 'qa', 'augastam', 'billing'), { recursive: true });
+  mkdirSync(path.join(root, 'tests', 'augastam', 'billing'), { recursive: true });
+  writeFileSync(path.join(root, 'tests', 'augastam', 'billing', 'cases.spec.ts'), '// spec\n');
+  writeFileSync(path.join(root, 'qa', 'augastam', 'billing', 'adapter.json'), JSON.stringify({
+    id: 'billing', name: 'Billing', spec: 'tests/augastam/billing/cases.spec.ts',
     actions: { fill: 'Fill', save: 'Save', search: 'Search' }, outcomes: ['created', 'blocked', 'no-errors', 'no-error'],
     variants: ['Cash Bill', 'Credit Bill'],
     fields: { bill_to: { label: 'Bill to', kind: 'text', required: true }, ward: { label: 'Ward', kind: 'select' }, search: { label: 'Search text', kind: 'text' } },
@@ -169,11 +169,11 @@ test('AI generator: module without adapter uses its own prefix from 001, never t
 
 test('AI generator: adapter module numbers from its prefix and Registration continues from its own highest id', async () => {
   const root = mkdtempSync(path.join(tmpdir(), 'ai-gen-'));
-  mkdirSync(path.join(root, 'qa', 'modules', 'billing'), { recursive: true });
-  mkdirSync(path.join(root, 'tests', 'modules', 'billing'), { recursive: true });
-  writeFileSync(path.join(root, 'tests', 'modules', 'billing', 'cases.spec.ts'), '// spec\n');
-  writeFileSync(path.join(root, 'qa', 'modules', 'billing', 'adapter.json'), JSON.stringify({
-    id: 'billing', name: 'Billing', spec: 'tests/modules/billing/cases.spec.ts', prefix: 'BIL',
+  mkdirSync(path.join(root, 'qa', 'augastam', 'billing'), { recursive: true });
+  mkdirSync(path.join(root, 'tests', 'augastam', 'billing'), { recursive: true });
+  writeFileSync(path.join(root, 'tests', 'augastam', 'billing', 'cases.spec.ts'), '// spec\n');
+  writeFileSync(path.join(root, 'qa', 'augastam', 'billing', 'adapter.json'), JSON.stringify({
+    id: 'billing', name: 'Billing', spec: 'tests/augastam/billing/cases.spec.ts', prefix: 'BIL',
     actions: { fill: 'Fill', save: 'Save', search: 'Search' }, outcomes: ['created', 'blocked', 'no-errors', 'no-error'], variants: ['Cash Bill'],
     fields: { bill_to: { label: 'Bill to', kind: 'text', required: true }, search: { label: 'Search text', kind: 'text' } },
   }));

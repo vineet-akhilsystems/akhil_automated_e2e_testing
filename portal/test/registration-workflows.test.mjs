@@ -15,7 +15,7 @@ test('workflow validation rejects unknown keys, incompatible checks and missing 
   assert.throws(() => validateCase(flow('new-reset', { action: 'fill', expected: { outcome: 'field-state' } }), module), /only be used with a workflow/);
 });
 test('all shipped definitions validate and every synthetic prerequisite precedes its workflow', () => {
-  const doc = JSON.parse(fs.readFileSync('qa/modules/registration/cases/registration-automation.json', 'utf8'));
+  const doc = JSON.parse(fs.readFileSync('qa/augastam/registration/cases/registration-automation.json', 'utf8'));
   assert.equal(doc.cases.length, Object.keys(registrationWorkflows).length + 6);
   for (const c of doc.cases) validateCase(c, module);
   for (const c of doc.cases.filter(c => c.target)) {
