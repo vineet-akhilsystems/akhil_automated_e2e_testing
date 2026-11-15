@@ -4,15 +4,14 @@ import { test, expect } from '../../fixtures/auth';
 import { CaseResult, RegCase, recordResult, runCase, blockedCaseResult } from './case-runner';
 import { captureEvidence } from '../../fixtures/evidence';
 import { scanAccessibility } from '../../fixtures/accessibility';
-// TODO(task-2): switch to moduleDir(kind, product, id)
-import { legacyModuleDir } from '../../shared/module-paths';
+import { moduleDir } from '../../shared/module-paths';
 
 // The expected-vs-actual report is written by tests/modules/registration/results-reporter.ts
 // from each case's `<id>-result.json` attachment.
 
 // CASES_FILE=path/to/cases.xlsx npm test -- registration   (defaults to the JSON dataset)
 // CASES=REG-001,REG-060                                    (run a subset)
-const MASTER = `${legacyModuleDir('qa', 'registration')}/cases/registration-cases.json`;
+const MASTER = `${moduleDir('qa', 'augastam', 'registration')}/cases/registration-cases.json`;
 const CASES_FILE = process.env.CASES_FILE ?? MASTER;
 const ONLY = (process.env.CASES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 

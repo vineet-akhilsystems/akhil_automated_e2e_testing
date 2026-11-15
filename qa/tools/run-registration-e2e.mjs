@@ -2,16 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT, resolveCases } from '../../portal/registry.mjs';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 import { loadPortalCases, defaultPortalDirectory } from './registration-pipeline-source.mjs';
 
+const QA_DIR = resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration'), TESTS_DIR = resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration');
 const selected = (process.env.CASES || '').split(',').map(s => s.trim()).filter(Boolean);
 const portal = process.argv.includes('--portal');
 const doc = portal ? loadPortalCases(defaultPortalDirectory(), selected)
-  : JSON.parse(fs.readFileSync(path.join(ROOT, 'qa/modules/registration/cases/registration-automation.json'), 'utf8'));
+  : JSON.parse(fs.readFileSync(path.join(ROOT, QA_DIR, 'cases/registration-automation.json'), 'utf8'));
 const cases = resolveCases(doc.cases, selected.length ? selected : doc.cases.filter(c => c.enabled !== false).map(c => c.id));
 const args = process.argv.slice(2).filter(arg => arg !== '--portal');
 const listing = args.includes('--list');
-const directory = path.join(ROOT, 'qa/modules/registration/results/automation-inputs');
+const directory = path.join(ROOT, QA_DIR, 'results/automation-inputs');
 fs.mkdirSync(directory, { recursive: true });
 const snapshot = path.join(directory, `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}.json`);
 fs.writeFileSync(snapshot, JSON.stringify({ ...doc, cases }, null, 2));
@@ -41,11 +43,11 @@ const run = extra => {
 // Expired sessions stop here instead of generating misleading failures for the
 // entire workbook. Session refresh remains a human-owned step.
 if (!listing) {
-  run(['tests/modules/registration/session.spec.ts']);
+  run([`${TESTS_DIR}/session.spec.ts`]);
   status.state = 'executing';
   saveStatus();
 }
-run(['tests/modules/registration/cases.spec.ts', ...args]);
+run([`${TESTS_DIR}/cases.spec.ts`, ...args]);
 if (!listing) {
   status.state = 'completed';
   status.finishedAt = new Date().toISOString();

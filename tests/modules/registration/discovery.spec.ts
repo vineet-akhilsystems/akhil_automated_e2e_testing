@@ -2,13 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect } from '../../fixtures/auth';
 import { RegistrationPage } from './registration.page';
+import { moduleDir } from '../../shared/module-paths';
 
 // Read-only walk of the Registration page: never clicks Save.
-// Output: qa/modules/registration/discovery/
+// Output: <qa module folder>/discovery/ (moduleDir('qa', 'augastam', 'registration'))
 //   fields-<type>.json   every visible field with card, label, column, required, kind, default, options
 //   config/*.json        raw workflow / webpart / lookup responses the page loaded from the backend
 //   discovery.md         human-readable field + options table
-const OUT = 'qa/modules/registration/discovery';
+const OUT = `${moduleDir('qa', 'augastam', 'registration')}/discovery`;
 const TYPES = (process.env.REG_TYPES ?? 'New Registration,New Born Registration,International Registration,Outside Registration,Staff Registration,Diagnostic Registration')
   .split(',').map((s) => s.trim());
 const MAX_OPTIONS = 300;

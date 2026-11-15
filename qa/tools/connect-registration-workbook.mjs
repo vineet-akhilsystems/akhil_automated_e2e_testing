@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const source = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-business-cases.json'), 'utf8'));
-const automation = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/cases/registration-automation.json'), 'utf8'));
+const QA_DIR = resolveModuleFolder(root, 'qa', 'augastam', 'registration');
+const source = JSON.parse(fs.readFileSync(path.join(root, QA_DIR, 'cases/registration-business-cases.json'), 'utf8'));
+const automation = JSON.parse(fs.readFileSync(path.join(root, QA_DIR, 'cases/registration-automation.json'), 'utf8'));
 const plans = {
   14: 'mandatory-tab-traversal', 15: 'dropdown-keyboard', 18: 'search-identity', 21: 'partial-name-suggestions', 22: 'REG-WB-022', 23: 'REG-WB-023',
   25: 'title-gender', 26: 'dob-age', 27: 'REG-WB-027', 28: 'photo-upload', 33: 'duplicate-mobile-alert', 34: 'REG-WB-034', 35: 'country-mobile-code',
@@ -58,7 +60,7 @@ const cases = source.cases.map(original => {
   let plan;
   if (plans[n]?.startsWith('REG-')) plan = automation.cases.find(c => c.id === plans[n]);
   else if (plans[n]) {
-    const flow = JSON.parse(fs.readFileSync(path.join(root, 'qa/modules/registration/workflows.json'), 'utf8'))[plans[n]];
+    const flow = JSON.parse(fs.readFileSync(path.join(root, QA_DIR, 'workflows.json'), 'utf8'))[plans[n]];
     if (!flow) throw new Error(`Missing workflow ${plans[n]}`);
     plan = { action: 'workflow', input: { workflow: plans[n], ...(n === 21 ? { peer: '{{regId@REG-WB-022}}' } : {}) }, expected: { outcome: 'verified' }, ...(flow.savedRecord ? { target: '{{regId@REG-E2E-BASE}}' } : {}) };
   }
@@ -74,7 +76,7 @@ const cases = source.cases.map(original => {
   if (n === 65) result.executionAdaptation = 'This build checks duplicates during Save. Execute Save, verify the matching-patient prompt before any extra create request, and select the existing UHID. This replaces the obsolete Check Duplicate button step without dropping duplicate detection or patient-identity assertions.';
   return result;
 });
-const output = path.join(root, 'qa/modules/registration/cases/registration-workbook-automation.json');
+const output = path.join(root, QA_DIR, 'cases/registration-workbook-automation.json');
 fs.writeFileSync(output, JSON.stringify({ module: 'registration', source: source.source, cases }, null, 2) + '\n');
 const readyCount = cases.filter(c => c.action !== 'unavailable').length;
 const report = `# Current registration workbook automation coverage

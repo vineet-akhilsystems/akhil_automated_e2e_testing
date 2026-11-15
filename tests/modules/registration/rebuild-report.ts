@@ -4,8 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import type { CaseResult } from './case-runner.ts';
 import { writeReport } from './report.ts';
+import { resolveModuleFolder } from '../../shared/module-layout.mjs'; // direct .mjs import: this file also runs under plain node (npm run reg:report)
 
-const RUNS_DIR = 'qa/modules/registration/results/runs';
+const QA_DIR = resolveModuleFolder('.', 'qa', 'augastam', 'registration');
+const RUNS_DIR = `${QA_DIR}/results/runs`;
 const runs = fs.existsSync(RUNS_DIR)
   ? fs.readdirSync(RUNS_DIR).filter((d) => fs.existsSync(path.join(RUNS_DIR, d, 'results.jsonl')))
   : [];
@@ -19,6 +21,6 @@ for (const line of fs.readFileSync(path.join(RUNS_DIR, runId, 'results.jsonl'), 
   const r = JSON.parse(line) as CaseResult;
   byId.set(r.id, r); // a re-run case keeps its latest result
 }
-writeReport([...byId.values()], process.env.CASES_FILE ?? 'qa/modules/registration/cases/registration-cases.json').then((dir) =>
+writeReport([...byId.values()], process.env.CASES_FILE ?? `${QA_DIR}/cases/registration-cases.json`).then((dir) =>
   console.log(`Rebuilt report from run ${runId} (${byId.size} cases): ${dir}`),
 );

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { expect, type TestInfo } from '@playwright/test';
 import { RegistrationPage } from './registration.page';
 import { captureEvidence } from '../../fixtures/evidence';
+import { moduleDir } from '../../shared/module-paths';
 
 // Calendar-age expectation for the workbook's day-accuracy requirement.
 export function calendarAge(birth: Date, today: Date): string {
@@ -160,7 +161,7 @@ export async function runWorkflow(reg: RegistrationPage, flow: string, input: Re
       await reg.assertAgentRecord();
       const target = page.url().split('/').pop()!;
       const field = page.locator('.reg-photo-field');
-      await field.locator('input[type=file]').setInputFiles(path.resolve('qa/modules/registration/data/agent-test-photo.png'));
+      await field.locator('input[type=file]').setInputFiles(path.resolve(moduleDir('qa', 'augastam', 'registration'), 'data/agent-test-photo.png'));
       const photo = field.locator('img.reg-photo-img');
       await expect(photo).toBeVisible();
       await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
@@ -521,7 +522,7 @@ export async function runWorkflow(reg: RegistrationPage, flow: string, input: Re
         await expect(upload, 'Unsupported format must not become uploadable').toBeDisabled();
         await expect(page.locator('.Toastify__toast')).toContainText(/format|supported|invalid|PDF/i);
       } else {
-        await drawer.locator('input[type=file]').setInputFiles(path.resolve('qa/modules/registration/data/agent-test-id-proof.pdf'));
+        await drawer.locator('input[type=file]').setInputFiles(path.resolve(moduleDir('qa', 'augastam', 'registration'), 'data/agent-test-id-proof.pdf'));
         await drawer.getByPlaceholder('Add a note').fill('Synthetic Agent Testing automation fixture');
         await expect(upload).toBeEnabled();
         if (flow === 'document-clear') {

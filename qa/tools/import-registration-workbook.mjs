@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { ROOT, validateCase } from '../../portal/registry.mjs';
 import { openStore } from '../../portal/store.mjs';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 
 export async function readRegistrationWorkbook(filename) {
   const workbook = await new ExcelJS.Workbook().xlsx.readFile(filename);
@@ -40,7 +41,7 @@ export async function readRegistrationWorkbook(filename) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const source = path.resolve(process.argv.slice(2).find(arg => !arg.startsWith('--')) || path.join(ROOT, 'Registration_Test_Cases 1.xlsx'));
   const document = await readRegistrationWorkbook(source);
-  const output = path.join(ROOT, 'qa/modules/registration/cases/registration-business-cases.json');
+  const output = path.join(ROOT, resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration'), 'cases/registration-business-cases.json');
   fs.writeFileSync(output, JSON.stringify(document, null, 2) + '\n');
   if (process.argv.includes('--import')) {
     const store = openStore(path.resolve(process.env.PORTAL_DATA_DIR || path.join(ROOT, '.portal')));

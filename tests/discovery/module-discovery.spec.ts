@@ -3,12 +3,15 @@ import path from 'path';
 import crypto from 'crypto';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/auth';
+import { resolveModuleFolder } from '../shared/module-layout.mjs';
+import { discoveryProduct } from '../shared/discovery-env.mjs';
 
 // Generic, READ-ONLY discovery of any EMR module page. Parameterised by environment:
 //   MODULE_ID        required, /^[a-z][a-z0-9-]*$/          e.g. billing
+//   MODULE_PRODUCT   product id of the module; defaults to PORTAL_PRODUCT_ID (set by the portal), otherwise required   e.g. augastam
 //   MODULE_URL       required, app path starting with "/"    e.g. /billing
 //   MODULE_VARIANTS  optional, comma list of tab/type labels to click and re-scan
-// Output (qa/modules/<MODULE_ID>/discovery/):
+// Output (<qa module folder>/discovery/, from the layout resolver, e.g. qa/augastam/<MODULE_ID>/discovery/):
 //   fields-default.json, fields-<variant>.json   same shape as registration's fields-<type>.json
 //   layout-<variant>.json                        cards, buttons (names only) and table headers
 //   config/*.json                                configuration-service / lookup responses (secrets redacted)
@@ -27,12 +30,8 @@ const READ_VERB_START = /^(search|lookup|list|get|query|find|filter)/i;
 const WRITE_WORDS = /(add|create|save|update|delete|remove|submit|post|register|book|cancel|confirm)/i;
 const MUTATING_BODY = /\bmutation\b|"(?:action|operation|operationName|op|method|command)"\s*:\s*"[^"]*(?:add|create|save|update|delete|remove|submit|register|book|cancel|confirm)/i;
 // Ids that already have a built-in adapter/discovery notes: discovery must never overwrite them.
-// Built-in = a plugin folder under portal/modules/ that has an index.mjs. No portal code imported.
-const BUILTIN_MODULE_IDS = new Set(
-  fs.readdirSync(path.join('portal', 'modules'), { withFileTypes: true })
-    .filter((d) => d.isDirectory() && fs.existsSync(path.join('portal', 'modules', d.name, 'index.mjs')))
-    .map((d) => d.name)
-);
+// Built-in = the module's plugin folder (from the layout resolver) has an index.mjs. No portal code imported.
+const isBuiltIn = (product: string, id: string) => fs.existsSync(path.join(resolveModuleFolder('.', 'portal', product, id), 'index.mjs'));
 
 function isReadOnlyRequest(method: string, urlStr: string, body: string | null): boolean {
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return true;
@@ -97,14 +96,15 @@ test('discover module fields, options and backend config (read-only)', async ({ 
   const moduleId = process.env.MODULE_ID ?? '';
   const moduleUrl = process.env.MODULE_URL ?? '';
   test.skip(!moduleId, 'MODULE_ID is not set; module discovery runs only via `MODULE_ID=<id> MODULE_URL=/<path> npm run module:discover`.');
-  if (BUILTIN_MODULE_IDS.has(moduleId)) throw new Error(`MODULE_ID "${moduleId}" has a built-in adapter and its own discovery (npm run reg:discover); refusing to overwrite its notes.`);
+  const productId = discoveryProduct(process.env);
   if (!MODULE_ID_RE.test(moduleId)) throw new Error(`MODULE_ID must match ${MODULE_ID_RE} (got "${moduleId}"). Example: MODULE_ID=billing`);
+  if (isBuiltIn(productId, moduleId)) throw new Error(`MODULE_ID "${moduleId}" has a built-in adapter and its own discovery (npm run reg:discover); refusing to overwrite its notes.`);
   if (!/^\/(?![/\\])[^\s\\]*$/.test(moduleUrl)) throw new Error(`MODULE_URL must be an app path starting with a single "/" (got "${moduleUrl}"). Example: MODULE_URL=/billing`);
   const variants = (process.env.MODULE_VARIANTS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   const refused = variants.filter((v) => DESTRUCTIVE.test(v));
   if (refused.length) throw new Error(`Refusing destructive-looking MODULE_VARIANTS (discovery is read-only): ${refused.join(', ')}`);
 
-  const OUT = path.join('qa', 'modules', moduleId, 'discovery');
+  const OUT = path.join(...resolveModuleFolder('.', 'qa', productId, moduleId).split('/'), 'discovery');
   fs.mkdirSync(path.join(OUT, 'config'), { recursive: true });
 
   // Read-only guard: abort anything that could change data.

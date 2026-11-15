@@ -1,6 +1,7 @@
 import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
 import type { CaseResult } from './case-runner';
 import { writeReport } from './report';
+import { moduleDir } from '../../shared/module-paths';
 
 // Runs in the main Playwright process, so it survives the worker restarts that follow every
 // failed test (an afterAll hook in the spec would fire once per worker and lose earlier results).
@@ -34,7 +35,7 @@ export default class RegistrationResultsReporter implements Reporter {
   async onEnd(_result: FullResult) {
     const ran = [...this.results.values()].filter((r) => r.status !== 'SKIPPED');
     if (!ran.length) return;
-    const dir = await writeReport([...this.results.values()], process.env.CASES_FILE ?? 'qa/modules/registration/cases/registration-cases.json');
+    const dir = await writeReport([...this.results.values()], process.env.CASES_FILE ?? `${moduleDir('qa', 'augastam', 'registration')}/cases/registration-cases.json`);
     console.log(`\nExpected-vs-actual report: ${dir}\\results.xlsx (and summary.md)`);
   }
 

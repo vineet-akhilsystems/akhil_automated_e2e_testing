@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import { ROOT } from '../../portal/registry.mjs';
 import path from 'node:path';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 
-const source = JSON.parse(fs.readFileSync(path.join(ROOT, 'qa/modules/registration/cases/registration-business-cases.json'), 'utf8'));
+const QA_DIR = resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration'), TESTS_DIR = resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration');
+
+const source = JSON.parse(fs.readFileSync(path.join(ROOT, QA_DIR, 'cases/registration-business-cases.json'), 'utf8'));
 const ready = {
   22: 'REG-001: save synthetic mandatory data, assert created UHID and reopen saved record.',
   23: 'REG-010: save empty form, assert blocked and required-field toast.',
@@ -53,11 +56,11 @@ All 80 imported TC_REG cases are currently manual. The executor does not interpr
 
 ## Implementation evidence
 
-- tests/modules/registration/fields.ts maps supported controls; permanent-address fields, employee ID, policy details, photo, promotional consent and audit controls are absent.
-- tests/modules/registration/case-runner.ts supports fill/save/saveTwice/saveDoubleClick/search/update; it compares values, field errors, hints, toasts and persisted values. It does not execute ordered manual procedures.
-- tests/modules/registration/registration.page.ts implements registration navigation, one-pass field filling, save, update with generated nonempty remarks, duplicate-dialog detection and search. Search checks found/not-found rather than patient identity or suggestion correctness.
+- ${TESTS_DIR}/fields.ts maps supported controls; permanent-address fields, employee ID, policy details, photo, promotional consent and audit controls are absent.
+- ${TESTS_DIR}/case-runner.ts supports fill/save/saveTwice/saveDoubleClick/search/update; it compares values, field errors, hints, toasts and persisted values. It does not execute ordered manual procedures.
+- ${TESTS_DIR}/registration.page.ts implements registration navigation, one-pass field filling, save, update with generated nonempty remarks, duplicate-dialog detection and search. Search checks found/not-found rather than patient identity or suggestion correctness.
 - portal/registry.mjs validates supported actions, registration variants and checks. Staff Dependent is not a supported variant. Upload automation is explicitly pending.
-- qa/modules/registration/cases/registration-cases.json contains the reusable REG definitions referenced below.
+- ${QA_DIR}/cases/registration-cases.json contains the reusable REG definitions referenced below.
 
 ## Case matrix
 

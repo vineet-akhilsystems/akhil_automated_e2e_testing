@@ -1,13 +1,10 @@
-import { moduleFolder } from './module-layout.mjs';
+import { resolveModuleFolder } from './module-layout.mjs';
 
 /** Repo-relative folder of a module (forward slashes): `qa/<product>/<folder>` or `tests/<product>/<folder>`.
- *  Delegates to the single resolver in module-layout.mjs. Product and module id are both required. */
-export function moduleDir(kind: 'qa' | 'tests', productId: string, id: string): string {
-  return moduleFolder(kind, productId, id);
-}
-
-/** TEMPORARY (removed by Task 2/3 of the product-scoped layout plan): the OLD flat path `<kind>/modules/<id>`. */
-export function legacyModuleDir(kind: 'qa' | 'tests', id: string): string {
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) throw new Error(`Invalid module id: ${JSON.stringify(id)} (expected lowercase letters, digits and hyphens)`);
-  return `${kind}/modules/${id}`;
+ *  Delegates to the single resolver in module-layout.mjs; product and module id are both required.
+ *  Runtime (disk-aware) version: while the folders are still in the old flat layout the resolver falls back to
+ *  `<kind>/modules/<id>` when the product-scoped folder does not exist (removed with the move in Task 3).
+ *  `root` is the repo root; Playwright runs from it, so the default `.` matches the existing relative paths. */
+export function moduleDir(kind: 'qa' | 'tests', productId: string, id: string, root = '.'): string {
+  return resolveModuleFolder(root, kind, productId, id);
 }

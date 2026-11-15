@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import ExcelJS from 'exceljs';
 import type { CaseResult } from './case-runner';
+import { resolveModuleFolder } from '../../shared/module-layout.mjs'; // direct .mjs import: this file also runs under plain node (npm run reg:report)
 
 const COLORS: Record<string, string> = {
   PASS: 'FFC6EFCE',
@@ -13,10 +14,12 @@ const COLORS: Record<string, string> = {
   BLOCKED: 'FFFFEB9C',
 };
 
+const resultsRoot = () => `${resolveModuleFolder('.', 'qa', 'augastam', 'registration')}/results`;
+
 /** Write results.json, results.xlsx (Expected vs Actual) and summary.md; returns the run folder. */
 export async function writeReport(results: CaseResult[], casesFile: string): Promise<string> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const dir = process.env.PORTAL_REPORT_DIR ?? path.join('qa/modules/registration/results', stamp);
+  const dir = process.env.PORTAL_REPORT_DIR ?? path.join(resultsRoot(), stamp);
   fs.mkdirSync(dir, { recursive: true });
 
   fs.writeFileSync(path.join(dir, 'results.json'), JSON.stringify({ casesFile, runAt: new Date().toISOString(), results }, null, 2));
@@ -58,7 +61,7 @@ export async function writeReport(results: CaseResult[], casesFile: string): Pro
   fs.writeFileSync(path.join(dir, 'summary.md'), lines.join('\n'));
   if (!process.env.PORTAL_REPORT_DIR) {
     for (const f of ['results.json', 'results.xlsx', 'summary.md']) {
-      fs.copyFileSync(path.join(dir, f), path.join('qa/modules/registration/results', `latest-${f}`));
+      fs.copyFileSync(path.join(dir, f), path.join(resultsRoot(), `latest-${f}`));
     }
   }
   return dir;

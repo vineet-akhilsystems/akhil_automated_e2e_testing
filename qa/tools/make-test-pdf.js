@@ -4,7 +4,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const out = process.argv[2] || 'qa/modules/registration/data/agent-test-id-proof.pdf';
+// The default output folder comes from the layout resolver (an ES module, hence the dynamic import).
+const ROOT = path.resolve(__dirname, '..', '..');
+import('../../portal/module-layout.mjs').then(({ resolveModuleFolder }) => {
+const out = process.argv[2] || `${resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration')}/data/agent-test-id-proof.pdf`;
 const text = [
   'AGENT TESTING - SYNTHETIC ID PROOF',
   'Not a real document. Created by the Augastam E2E suite.',
@@ -32,3 +35,4 @@ pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xre
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, pdf);
 console.log(`wrote ${out} (${pdf.length} bytes)`);
+}).catch((e) => { console.error(e); process.exitCode = 1; });

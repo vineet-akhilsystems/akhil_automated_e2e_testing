@@ -11,7 +11,7 @@ function sandbox(t, { files, adapter } = {}) {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const root = path.join(dir, 'repo'), from = path.join(dir, 'proposal');
   fs.mkdirSync(root); fs.mkdirSync(from);
-  const good = { id: 'billing', name: 'Billing', spec: 'tests/modules/billing/cases.spec.ts', prefix: 'BIL', actions: { fill: 'Fill' }, outcomes: ['created'], variants: [], fields: { amount: { label: 'Amount', kind: 'text' } }, bases: { valid: { amount: '1' } } };
+  const good = { id: 'billing', name: 'Billing', spec: 'tests/augastam/billing/cases.spec.ts', prefix: 'BIL', actions: { fill: 'Fill' }, outcomes: ['created'], variants: [], fields: { amount: { label: 'Amount', kind: 'text' } }, bases: { valid: { amount: '1' } } };
   const all = { 'fields.ts': 'export const FIELDS = {};\n', 'billing.page.ts': 'export class BillingPage {}\n', 'case-runner.ts': 'export {};\n', 'cases.spec.ts': 'export {};\n', 'NOTES.md': 'todo\n', 'adapter.json': JSON.stringify({ ...good, ...adapter }), ...files };
   for (const [n, v] of Object.entries(all)) if (v !== null) fs.writeFileSync(path.join(from, n), v);
   const calls = [], log = [];
@@ -25,16 +25,16 @@ test('dry run validates and prints a plan but writes nothing and runs nothing', 
   const r = await install(['--module', 'billing', '--from', s.from, '--dry-run'], s.opts);
   assert.equal(r.installed, false); assert.deepEqual(s.calls, []);
   assert.ok(!fs.existsSync(path.join(s.root, 'tests')) && !fs.existsSync(path.join(s.root, 'qa')));
-  assert.ok(s.log.some(l => /create\s+qa\/modules\/billing\/adapter\.json/.test(l)));
+  assert.ok(s.log.some(l => /create\s+qa\/augastam\/billing\/adapter\.json/.test(l)));
 });
 
-test('install copies files to tests/modules/<id> and adapter.json to qa/modules/<id>, then runs the two checks', async t => {
+test('install copies files to tests/<product>/<module> and adapter.json to qa/<product>/<module>, then runs the two checks', async t => {
   const s = sandbox(t);
   const r = await install(['--module', 'billing', '--from', s.from, '--yes'], s.opts);
   assert.equal(r.installed, true); assert.equal(r.ok, true);
-  for (const n of ['fields.ts', 'billing.page.ts', 'case-runner.ts', 'cases.spec.ts', 'NOTES.md']) assert.ok(fs.existsSync(path.join(s.root, 'tests', 'modules', 'billing', n)), n);
-  assert.ok(fs.existsSync(path.join(s.root, 'qa', 'modules', 'billing', 'adapter.json')));
-  assert.ok(!fs.existsSync(path.join(s.root, 'tests', 'modules', 'billing', 'adapter.json')));
+  for (const n of ['fields.ts', 'billing.page.ts', 'case-runner.ts', 'cases.spec.ts', 'NOTES.md']) assert.ok(fs.existsSync(path.join(s.root, 'tests', 'augastam', 'billing', n)), n);
+  assert.ok(fs.existsSync(path.join(s.root, 'qa', 'augastam', 'billing', 'adapter.json')));
+  assert.ok(!fs.existsSync(path.join(s.root, 'tests', 'augastam', 'billing', 'adapter.json')));
   assert.deepEqual(s.calls, ['npx tsc --noEmit', 'npm run portal:check']);
   assert.ok(s.log.some(l => /does not edit \.portal\/portal\.sqlite/.test(l)));
   // second install refuses to overwrite unless forced
@@ -135,7 +135,8 @@ test('never installs registration or an id that already has an adapter/tests fol
   const s = sandbox(t);
   await rejects(install(['--module', 'registration', '--from', s.from, '--dry-run'], s.opts), /built in/);
   await rejects(install(['--module', 'registration', '--from', s.from, '--yes', '--force'], s.opts), /built in/);
-  const s2 = sandbox(t);
+  // while the old flat folder still exists for the id, the resolver (and so the adapter spec) uses it
+  const s2 = sandbox(t, { adapter: { spec: 'tests/modules/billing/cases.spec.ts' } });
   fs.mkdirSync(path.join(s2.root, 'tests', 'modules', 'billing'), { recursive: true });
   await rejects(install(['--module', 'billing', '--from', s2.from, '--dry-run'], s2.opts), /already has/);
   assert.equal((await install(['--module', 'billing', '--from', s2.from, '--dry-run', '--force'], s2.opts)).installed, false);

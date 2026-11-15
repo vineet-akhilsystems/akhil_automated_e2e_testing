@@ -3,6 +3,7 @@ import path from 'node:path';
 import { test, expect } from '../../fixtures/auth';
 import { RegistrationPage } from './registration.page';
 import { captureEvidence } from '../../fixtures/evidence';
+import { moduleDir } from '../../shared/module-paths';
 
 // Observe the configured controls without saving or invoking master changes.
 // This inventory is evidence for coverage review, not a functional pass for
@@ -50,7 +51,7 @@ test('inventory configured registration buttons, fields and tabs across all vari
     await captureEvidence(page, info, `INVENTORY-${variant.replace(/\W/g, '-')}`, 'Configured registration controls');
   }
   expect(screens.length).toBeGreaterThanOrEqual(variants.length);
-  const directory = process.env.PORTAL_RUN_DIR || 'qa/modules/registration/discovery';
+  const directory = process.env.PORTAL_RUN_DIR || `${moduleDir('qa', 'augastam', 'registration')}/discovery`;
   fs.mkdirSync(directory, { recursive: true });
   const output = path.join(directory, 'controls-inventory.json');
   fs.writeFileSync(output, JSON.stringify({ capturedAt: new Date().toISOString(), scope: 'Unsaved form variants and visible tabs only; no patient values captured.', screens }, null, 2));

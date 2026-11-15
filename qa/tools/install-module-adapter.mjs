@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Installs a REVIEWED automation proposal (from the Test Studio coding agent) into the repo:
-//   output/automation/{fields.ts,<id>.page.ts,case-runner.ts,cases.spec.ts,NOTES.md} -> tests/modules/<id>/
-//   output/automation/adapter.json                                                    -> qa/modules/<id>/adapter.json
+//   output/automation/{fields.ts,<id>.page.ts,case-runner.ts,cases.spec.ts,NOTES.md} -> tests/<product>/<module>/
+//   output/automation/adapter.json                                                    -> qa/<product>/<module>/adapter.json
+// (folders come from the layout resolver, portal/module-layout.mjs)
 // then runs `npx tsc --noEmit` and `npm run portal:check`.
 //
 // Usage:
-//   node qa/tools/install-module-adapter.mjs --module <id> --job <jobId> [--data-dir .portal] [--dry-run] [--yes] [--force] [--show]
-//   node qa/tools/install-module-adapter.mjs --module <id> --from <dir>  [--dry-run] [--yes] [--force] [--show]
-// Never installs "registration" (not even with --force). File hashes and a preview are always printed; --show prints full files.
+//   node qa/tools/install-module-adapter.mjs --module <id> [--product <productId>] --job <jobId> [--data-dir .portal] [--dry-run] [--yes] [--force] [--show]
+//   node qa/tools/install-module-adapter.mjs --module <id> [--product <productId>] --from <dir>  [--dry-run] [--yes] [--force] [--show]
+// --product defaults to augastam (the product of every existing module). Never installs "registration" (not even with --force). File hashes and a preview are always printed; --show prints full files.
 //
 // It never edits .portal/portal.sqlite, .env or .auth. Connecting the module to the adapter is a separate,
 // deliberate step (printed at the end).
@@ -19,13 +20,14 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { adapters, validateAdapterDefinition, loadModuleAdapters } from '../../portal/registry.mjs';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ID_RE = /^[a-z][a-z0-9-]*$/; // identical to the registry's adapter id rule
 const MAX_ID = 60;
 const JOB_RE = /^[A-Za-z0-9_-]{1,80}$/;
 const MAX_FILE_BYTES = 400_000;
-const ADAPTER_KEYS = new Set(['id', 'name', 'spec', 'prefix', 'actions', 'outcomes', 'variants', 'fields', 'bases', 'variantLabel', 'targetLabel', 'targetPlaceholder']);
+const ADAPTER_KEYS = new Set(['id', 'product', 'name', 'spec', 'prefix', 'actions', 'outcomes', 'variants', 'fields', 'bases', 'variantLabel', 'targetLabel', 'targetPlaceholder']);
 const SAFE_KEY = /^[A-Za-z_][\w-]{0,63}$/;
 
 export class InstallError extends Error {}
@@ -110,13 +112,15 @@ export function scanCode(name, text, id = '') {
   return out;
 }
 
-export function validateAdapter(id, raw) {
+export function validateAdapter(id, raw, { root = ROOT, product = 'augastam' } = {}) {
   let a; try { a = JSON.parse(raw); } catch { fail('adapter.json is not valid JSON.'); }
   if (!a || typeof a !== 'object' || Array.isArray(a)) fail('adapter.json must be a JSON object.');
   for (const k of Object.keys(a)) if (!ADAPTER_KEYS.has(k)) fail(`adapter.json has an unsupported key "${k}" (commands and scripts cannot be declared here).`);
   if (a.id !== id) fail(`adapter.json id must be "${id}".`);
   if (typeof a.name !== 'string' || !a.name.trim() || a.name.length > 120) fail('adapter.json needs a name.');
-  if (a.spec !== `tests/modules/${id}/cases.spec.ts`) fail(`adapter.json spec must be exactly "tests/modules/${id}/cases.spec.ts".`);
+  if (a.product !== undefined && a.product !== product) fail(`adapter.json product must be "${product}".`);
+  const specPath = `${resolveModuleFolder(root, 'tests', product, id)}/cases.spec.ts`;
+  if (a.spec !== specPath) fail(`adapter.json spec must be exactly "${specPath}".`);
   if (a.prefix !== undefined && !(typeof a.prefix === 'string' && /^[A-Za-z][A-Za-z0-9]{0,11}$/.test(a.prefix))) fail('adapter.json prefix must be 1-12 letters/digits.');
   const obj = (v, n) => { if (!v || typeof v !== 'object' || Array.isArray(v) || !Object.keys(v).length) fail(`adapter.json ${n} must be a non-empty object.`); return v; };
   const actions = obj(a.actions, 'actions'), fields = obj(a.fields, 'fields');
@@ -136,12 +140,14 @@ export function validateAdapter(id, raw) {
 
 // Runs the registry's own validator against a temp root that holds the staged spec, so nothing is written to the repo
 // before the registry is known to accept the adapter.
-export function registryValidate(id, adapter, files) {
+export function registryValidate(id, adapter, files, { root = ROOT, product = 'augastam' } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'augastam-adapter-'));
   try {
-    fs.mkdirSync(path.join(tmp, 'tests', 'modules', id), { recursive: true });
-    fs.writeFileSync(path.join(tmp, 'tests', 'modules', id, 'cases.spec.ts'), files['cases.spec.ts'] ?? '');
-    try { return validateAdapterDefinition(adapter, { root: tmp, dirId: id }); } catch (e) { fail(`The registry would reject adapter.json: ${e.message}`); }
+    const qaRel = resolveModuleFolder(root, 'qa', product, id), testsRel = resolveModuleFolder(root, 'tests', product, id);
+    fs.mkdirSync(path.join(tmp, ...qaRel.split('/')), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ...testsRel.split('/')), { recursive: true });
+    fs.writeFileSync(path.join(tmp, ...testsRel.split('/'), 'cases.spec.ts'), files['cases.spec.ts'] ?? '');
+    try { return validateAdapterDefinition(adapter, { root: tmp, folder: qaRel }); } catch (e) { fail(`The registry would reject adapter.json: ${e.message}`); }
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
 
@@ -164,8 +170,8 @@ export function readProposal(dir, id) {
   return out;
 }
 
-export function planInstall({ root, id, files, force }) {
-  const testsDir = path.join(root, 'tests', 'modules', id), adapterTarget = path.join(root, 'qa', 'modules', id, 'adapter.json');
+export function planInstall({ root, id, files, force, product = 'augastam' }) {
+  const testsDir = path.join(root, ...resolveModuleFolder(root, 'tests', product, id).split('/')), adapterTarget = path.join(root, ...resolveModuleFolder(root, 'qa', product, id).split('/'), 'adapter.json');
   const plan = Object.keys(files).map(n => ({ name: n, to: n === 'adapter.json' ? adapterTarget : path.join(testsDir, n) }));
   for (const p of plan) {
     const rel = path.relative(root, p.to);
@@ -186,7 +192,7 @@ export function parseArgs(argv) {
   const o = { dataDir: '.portal', dryRun: false, yes: false, force: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], next = () => argv[++i] ?? fail(`${a} needs a value.`);
-    if (a === '--module') o.module = next(); else if (a === '--job') o.job = next(); else if (a === '--data-dir') o.dataDir = next(); else if (a === '--from') o.from = next();
+    if (a === '--module') o.module = next(); else if (a === '--product') o.product = next(); else if (a === '--job') o.job = next(); else if (a === '--data-dir') o.dataDir = next(); else if (a === '--from') o.from = next();
     else if (a === '--dry-run') o.dryRun = true; else if (a === '--yes') o.yes = true; else if (a === '--force') o.force = true; else if (a === '--show') o.show = true;
     else fail(`Unknown argument: ${a}`);
   }
@@ -197,9 +203,11 @@ export async function install(argv, { root = ROOT, run = defaultRun, log = conso
   const o = parseArgs(argv);
   if (!o.module || !ID_RE.test(o.module) || o.module.length > MAX_ID) fail('--module is required and must match /^[a-z][a-z0-9-]*$/ (max 60 characters).');
   if (!!o.job === !!o.from) fail('Provide exactly one of --job <jobId> or --from <dir>.');
-  const id = o.module;
+  const id = o.module, product = o.product ?? 'augastam';
+  if (!ID_RE.test(product)) fail('--product must be a product id such as augastam.');
+  const testsRel = resolveModuleFolder(root, 'tests', product, id);
   if (id === 'registration') fail('The Registration module is built in and cannot be installed or overwritten by this tool (not even with --force).');
-  if (!o.force && (Object.hasOwn(adapters, id) || fs.existsSync(path.join(root, 'tests', 'modules', id)))) fail(`Module "${id}" already has an automation adapter or a tests/modules/${id} folder. Refusing to overwrite it (use --force only after reviewing, never for registration).`);
+  if (!o.force && (Object.hasOwn(adapters, id) || fs.existsSync(path.join(root, ...testsRel.split('/'))))) fail(`Module "${id}" already has an automation adapter or a ${testsRel} folder. Refusing to overwrite it (use --force only after reviewing, never for registration).`);
   let source;
   if (o.job) {
     if (!JOB_RE.test(o.job)) fail('--job has an invalid format.');
@@ -208,11 +216,11 @@ export async function install(argv, { root = ROOT, run = defaultRun, log = conso
 
   const files = readProposal(source, id);
   const problems = [];
-  const adapter = validateAdapter(id, files['adapter.json']);
-  registryValidate(id, JSON.parse(files['adapter.json']), files);
+  const adapter = validateAdapter(id, files['adapter.json'], { root, product });
+  registryValidate(id, JSON.parse(files['adapter.json']), files, { root, product });
   for (const [n, text] of Object.entries(files)) problems.push(...scanCode(n, text, id));
   if (problems.length) fail(`The proposal was rejected:\n  - ${problems.join('\n  - ')}`);
-  const plan = planInstall({ root, id, files, force: o.force });
+  const plan = planInstall({ root, id, files, force: o.force, product });
 
   log(`Module "${id}" (${adapter.name}) proposal from ${source}`);
   // Always show what is about to be installed (also with --yes): hash plus a preview, or the full text with --show.
@@ -259,8 +267,8 @@ export async function install(argv, { root = ROOT, run = defaultRun, log = conso
   log(ok ? 'Checks passed.' : 'Checks FAILED. The files were installed and left in place so you can fix them; review the errors above.');
   log([
     '', 'Next steps (not done automatically):',
-    `  1. Review tests/modules/${id}/ and NOTES.md, and fill in any TODO locators.`,
-    `  2. Restart the portal FIRST: adapters (qa/modules/${id}/adapter.json) are loaded only at startup.`,
+    `  1. Review ${testsRel}/ and NOTES.md, and fill in any TODO locators.`,
+    `  2. Restart the portal FIRST: adapters (${resolveModuleFolder(root, 'qa', product, id)}/adapter.json) are loaded only at startup.`,
     '  3. Then connect the module to the adapter in the portal (module settings / registry).',
     '     This tool does not edit .portal/portal.sqlite, the env file or the saved login session.',
     '  4. Run one controlled smoke case before enabling the full suite.',

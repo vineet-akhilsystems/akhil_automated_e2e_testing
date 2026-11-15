@@ -19,7 +19,7 @@ export class UsageError extends Error {}
 export const norm = p => String(p).replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/');
 
 // Generated outputs: never trigger rules and are never listed.
-export const GENERATED_GLOBS = ['qa/modules/*/results/**'];
+export const GENERATED_GLOBS = ['qa/*/*/results/**'];
 
 /** True for credential or session paths (every path segment is tested, so a folder with such a name is dropped too) and for generated outputs. */
 export function isIgnoredPath(p) {

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT, registrationData, registrationWorkflows, validateCase } from '../../portal/registry.mjs';
 import { openStore } from '../../portal/store.mjs';
+import { resolveModuleFolder } from '../../portal/module-layout.mjs';
 
 const baseline = structuredClone(registrationData.cases.find(c => c.id === 'REG-001'));
 baseline.id = 'REG-E2E-BASE';
@@ -33,7 +34,7 @@ cases.push({ id: 'REG-WB-042', title: 'Self-pay registration saves without insur
   notes: 'TC_REG_042. Live verification pending refreshed application login.' });
 const module = { adapter: 'registration', config: { bases: registrationData.bases } };
 const validated = cases.map(c => validateCase(c, module));
-const output = path.join(ROOT, 'qa/modules/registration/cases/registration-automation.json');
+const output = path.join(ROOT, resolveModuleFolder(ROOT, 'qa', 'augastam', 'registration'), 'cases/registration-automation.json');
 fs.writeFileSync(output, JSON.stringify({ module: 'registration', bases: registrationData.bases, cases: validated }, null, 2) + '\n');
 if (process.argv.includes('--import')) {
   const store = openStore(path.resolve(process.env.PORTAL_DATA_DIR || path.join(ROOT, '.portal')));

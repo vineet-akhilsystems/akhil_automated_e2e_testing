@@ -12,7 +12,7 @@ const CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const dir = path.join(root, 'qa', 'modules', 'billing', 'discovery');
+  const dir = path.join(root, 'qa', 'augastam', 'billing', 'discovery');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'fields-default.json'), JSON.stringify([
     { card: 'Invoice', label: 'Invoice No', required: true, kind: 'text', column: 'invoice_no', default: '', disabled: false },
@@ -27,7 +27,7 @@ function fixture(t) {
     { card: 'Credit', label: 'Approved', kind: 'checkbox', column: 'approved' },
   ]));
   fs.writeFileSync(path.join(dir, 'layout-default.json'), '{"cards":[]}'); // must be ignored
-  return { root, target: path.join(root, 'tests', 'modules', 'billing', 'fields.ts') };
+  return { root, target: path.join(root, 'tests', 'augastam', 'billing', 'fields.ts') };
 }
 
 test('normalizeKind maps raw input types onto the registration FieldKind set', () => {

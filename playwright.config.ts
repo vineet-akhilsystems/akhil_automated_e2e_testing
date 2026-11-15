@@ -1,8 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import fs from 'fs';
 import 'dotenv/config';
-// TODO(task-2): switch to moduleDir(kind, product, id)
-import { legacyModuleDir } from './tests/shared/module-paths';
+import { moduleDir } from './tests/shared/module-paths';
 
 export const STORAGE_STATE = `${process.env.AUTH_DIR ?? '.auth'}/admin.json`;
 // Before the first `npm run auth` the file is missing; tests/fixtures/auth.ts then explains what to run.
@@ -23,7 +22,7 @@ export default defineConfig({
   retries: Math.max(0, Number(process.env.PORTAL_RETRIES ?? 0) || 0),
   reporter: process.env.PORTAL_AUTH_RUN ? [['dot']] : [['list'], ['html', { open: 'never' }],
     // Registration-only summary/UHID reporter: skipped when the portal runs another module (PORTAL_MODULE_ID); unset keeps `npm run reg:*` behaviour.
-    ...(!process.env.PORTAL_MODULE_ID || process.env.PORTAL_MODULE_ID === 'registration' ? [[`./${legacyModuleDir('tests', 'registration')}/results-reporter.ts`] as [string]] : []),
+    ...(!process.env.PORTAL_MODULE_ID || process.env.PORTAL_MODULE_ID === 'registration' ? [[`./${moduleDir('tests', 'augastam', 'registration')}/results-reporter.ts`] as [string]] : []),
     ...(process.env.PORTAL_RUN_DIR ? [['./portal/reporter.cjs'] as [string]] : [])],
   use: {
     baseURL: process.env.BASE_URL ?? 'https://demo.augastam.com',
