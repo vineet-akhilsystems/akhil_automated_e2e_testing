@@ -3,7 +3,8 @@ import path from 'path';
 import { Page, TestInfo } from '@playwright/test';
 import { FIELDS, FILL_ORDER } from './fields';
 import { RegistrationPage, SaveResult } from './registration.page';
-import { moduleDir } from '../../shared/module-paths';
+// TODO(task-2): switch to moduleDir(kind, product, id)
+import { legacyModuleDir } from '../../shared/module-paths';
 import { captureEvidence } from '../../fixtures/evidence';
 import { runWorkflow } from './workflow-runner';
 
@@ -59,9 +60,9 @@ export interface CaseResult {
 
 const SEQ_FILE = process.env.PORTAL_RUN_DIR
   ? path.join(process.env.PORTAL_RUN_DIR, 'agent-seq.json')
-  : `${moduleDir('qa', 'registration')}/data/agent-seq.json`;
+  : `${legacyModuleDir('qa', 'registration')}/data/agent-seq.json`;
 /** Per-run folder (id from tests/global-setup.ts) so concurrent Playwright processes cannot clobber it. */
-export const RUNS_DIR = process.env.PORTAL_RUN_DIR ?? `${moduleDir('qa', 'registration')}/results/runs`;
+export const RUNS_DIR = process.env.PORTAL_RUN_DIR ?? `${legacyModuleDir('qa', 'registration')}/results/runs`;
 const RUN_DIR = path.join(RUNS_DIR, process.env.REG_RUN_ID ?? 'adhoc');
 /** Values produced by earlier cases (registration ids, phones) for later cases. A file, because
  *  Playwright restarts the worker after every failed test. */
@@ -233,7 +234,7 @@ function errorsByKey(errors: Record<string, string>): Record<string, string> {
 // ---------------- running ----------------
 
 export function blockedCaseResult(c: RegCase): CaseResult {
-  const source = JSON.parse(fs.readFileSync(`${moduleDir('qa', 'registration')}/cases/registration-workbook-automation.json`, 'utf8')).cases.find((source: RegCase) => source.id === c.id);
+  const source = JSON.parse(fs.readFileSync(`${legacyModuleDir('qa', 'registration')}/cases/registration-workbook-automation.json`, 'utf8')).cases.find((source: RegCase) => source.id === c.id);
   if (c.action !== 'unavailable' || source?.action !== 'unavailable' || c.automationBlocker !== source.automationBlocker) throw new Error('No reviewed automation blocker exists for this case.');
   return { id: c.id, title: c.title, category: c.category ?? '', priority: c.priority ?? '', status: 'BLOCKED', verificationPerformed: false,
     expected: (c.steps ?? []).map(step => step.expected).join('\n'), actual: `NOT AUTOMATED — ${source.automationBlocker} No application assertions executed.`,
