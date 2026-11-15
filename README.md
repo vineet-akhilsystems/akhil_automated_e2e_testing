@@ -144,7 +144,7 @@ Default exit criteria, applied in this order: **Do not release** when any open f
 
 The portal records which application version and which automation version each run used, so results can be compared across versions. This is a spike: it records and displays, it does not change how tests run.
 
-**Application version (typed).** Type the version on the login profile (environment settings). A run uses the profile's value unless the run dialog supplies an override. The run stores the label and where it came from (profile or override). Re-running failures keeps the original run's version, not the profile's current value.
+**Application version (typed).** Type the version on the login profile (environment settings). A run uses the profile's value unless the run dialog supplies an override. The run stores the label and where it came from (profile or override). The **Re-run failures** and **Rerun all cases** buttons open the run dialog with the original run's version label already filled in, so the re-run keeps it unless you change or clear the box (if the original run had no version, the box is blank and the profile's current value applies). The API route `POST /api/runs/<id>/rerun-failures` keeps the original version exactly (label and source) and records `rerunOf`.
 
 **Detected profile (automatic).** While a run executes, the reporter notes which configuration-service endpoints the application answered and builds a fingerprint from those responses. Each key is made of the endpoint path and a short hash of its non-cache-buster query parameters, so keys never contain query text. The portal derives the parts and an overall hash from the keys, shown as a short code (6 characters). A key is marked unstable only when the same key returned different content within one run. Runs of different case subsets touch different endpoints, so a partial-subset run gives a different overall hash than a full run; this is a known limitation, and comparing on common keys is not built. The detected profile helps spot that two runs saw different application configuration; it does not state a version number.
 
@@ -169,7 +169,7 @@ Validation rules: module and node ids match `/^[A-Za-z0-9_-]+$/`; exactly one ro
 **Report packs.** The pack `00-README.txt` ("Version:" line), the PDF run details and the workbook Summary sheet carry the run's version text, for example `1.58 (typed) · profile a1b2c3 (detected) · automation v2`, or "version unknown" for older runs. In `MANIFEST.json`, `run.version` is that text as a string; in the internal report model, `run.version` is an object (typed, profile, automation and `text`). The bug register workbook, Jira CSV and HTML report do not carry a version yet.
 
 **Limitations.**
-- Re-run keeps the original run's version; older automation versions cannot be run again (the portal stores fingerprints, not copies of the code).
+- Re-run buttons prefill the original run's version (editable); older automation versions cannot be run again (the portal stores fingerprints, not copies of the code).
 - Versions are never retired or deleted.
 - The tree is edited by developers in files; there is no tree editor.
 - The Tree tab checks for a tree file only on modules with an automation adapter.

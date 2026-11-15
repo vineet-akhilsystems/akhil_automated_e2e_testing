@@ -167,7 +167,7 @@ document.addEventListener('click', async event => {
       const sourceIds = action === 'rerun-failed' ? r.results.filter(isFindingResult).map(x => x.id) : r.cases.map(c => c.id);
       const eligible = sourceIds.filter(cid => current.some(x => x.id === cid && x.enabled !== false && isApproved(x)));
       if (!eligible.length) throw new Error('None of the requested cases are currently enabled and approved.');
-      await showRunDialog(r.module.id, eligible, r.mode);
+      await showRunDialog(r.module.id, eligible, r.mode, r.appVersion?.label ?? '');
     }
     if (action === 'show-log') {
       const response = await fetch(`/api/runs/${id}/files/runner.log`); if (!response.ok) throw new Error('Runner log is not available yet.');

@@ -155,6 +155,19 @@ test('Versions and Tree tabs in real Chromium: counts, only-differences toggle, 
   assert.ok(await overflow() <= 1, 'versions page has no horizontal page scroll on a phone');
   if (shots) await page.screenshot({ path: path.join(shots, 'versions-phone.png'), fullPage: true });
 
+  // Re-run buttons keep the original run's application version: the run dialog opens with its label filled in.
+  store.saveRun({ ...base_, id: 'r-manual', name: 'Run manual', mode: 'manual', status: 'failed', module: { id: 'registration', name: 'Registration', area: 'Registration' }, environmentId: 'none', environmentName: 'x',
+    createdAt: '2026-11-13T10:00:00Z', finishedAt: '2026-11-13T10:00:00Z', appVersion: { label: '1.57', source: 'profile' }, results: [{ id: 'T-1', status: 'FAIL' }, { id: 'T-2', status: 'PASS' }, { id: 'T-3', status: 'PASS' }] });
+  for (const cid of ['T-1', 'T-2', 'T-3']) { const existing = store.case('registration', cid); store.saveCase('registration', { ...existing, reviewStatus: 'approved' }, existing.version); }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  for (const name of [/^Re-run failures/, /^Rerun all cases/]) {
+    await page.goto(`${base}/#/runs/r-manual`);
+    await page.getByRole('button', { name }).click();
+    await expect(page.locator('input[name="run-app-version"]')).toHaveValue('1.57');
+    await page.keyboard.press('Escape');
+    await page.reload();
+  }
+
   // a module without a tree has no Tree tab; nothing injected
   await call('/api/modules', 'POST', { name: 'Facility Setup', area: 'Setup', prefix: 'FAC' });
   await page.setViewportSize({ width: 1440, height: 1000 });
