@@ -15,7 +15,7 @@ import { currentModule, state } from '../state.js';
 const AGENT_NAMES = { claude: 'Claude Code', codex: 'Codex' };
 const agentName = id => AGENT_NAMES[id] ?? humanKey(id ?? 'agent');
 export const agentStore = { get() { try { return localStorage.getItem('qa.codingAgent'); } catch { return null; } }, set(v) { try { localStorage.setItem('qa.codingAgent', v); } catch { /* choice is just not remembered */ } } };
-Object.assign(state, { agentStatus: null, agentStatusError: '', agentJobs: {}, agentRuns: {}, agentPick: agentStore.get() });
+Object.assign(state, { agentPrompt: '', agentCodePaths: '', agentStatus: null, agentStatusError: '', agentJobs: {}, agentRuns: {}, agentPick: agentStore.get() });
 export const runKey = (moduleId, kind) => `${moduleId}:${kind}`;
 const agentChoice = () => { const av = (state.agentStatus?.agents ?? []).filter(a => a.available); return av.some(a => a.id === state.agentPick) ? state.agentPick : av[0]?.id ?? ''; };
 const agentTime = t => { if (t == null || t === '') return ''; const d = new Date(t); return Number.isNaN(d.getTime()) ? String(t) : d.toLocaleTimeString(); };
@@ -45,6 +45,11 @@ export async function startAgent(kind, force = false) {
   const m = currentModule(), body = { agent: agentChoice(), kind };
   if (force) body.force = true;
   if (kind === 'analyze') body.critic = state.agentCritic !== false;
+  if (kind === 'analyze') {
+    const prompt = (state.agentPrompt ?? '').trim(), codePaths = (state.agentCodePaths ?? '').split('\n').map(x => x.trim()).filter(Boolean);
+    if (prompt) body.prompt = prompt;
+    if (codePaths.length) body.codePaths = codePaths;
+  }
   if (kind === 'analyze') { const ids = [...state.intakeSel ?? []].filter(id => state.intake?.files?.some(f => f.id === id)); if (ids.length) body.fileIds = ids; }
   let r;
   try { r = await api(`/api/modules/${m.id}/agent/jobs`, 'POST', body); }
@@ -103,7 +108,8 @@ function agentPanelInner(m, kind) {
   const canGo = can('agent.run', m.id), approved = state.cases.filter(isApproved).length;
   const nSel = [...state.intakeSel ?? []].filter(id => state.intake?.files?.some(f => f.id === id)).length, nFiles = state.intake?.files?.length ?? 0;
   const gate = auto ? proposeGate(m) : null, info = state.agentInfo[runKey(m.id, kind)];
-  const reason = gate?.text ?? (!choice ? '' : auto && !approved ? 'Approve at least one case first.' : !auto && !nFiles ? 'Add files to this module first.' : otherBusy ? `Another agent job is already running${busy.moduleId ? ` (module ${busy.moduleId})` : ''}. Wait for it to finish.` : '');
+  const reason = gate?.text ?? (!choice ? '' : auto && !approved ? 'Approve at least one case first.' : !auto && !nFiles && !hasExtra ? 'Add files, a request or a code path first.' : otherBusy ? `Another agent job is already running${busy.moduleId ? ` (module ${busy.moduleId})` : ''}. Wait for it to finish.` : '');
+  const hasExtra = Boolean((state.agentPrompt ?? '').trim() || (state.agentCodePaths ?? '').trim());
   const label = auto ? 'Generate automation proposal' : `Analyse with ${choice ? agentName(choice) : 'agent'}`;
   const history = (state.agentJobs[m.id] ?? []).filter(j => j.kind === kind).slice(0, 5), files = job?.result?.files ?? [];
   return `<div class="panel-heading"><div><h2 id="ag-${kind}-title">${auto ? 'Generate automation proposal' : 'Analyse with your coding agent'}</h2><span class="tiny muted">${auto ? 'For a developer to review. Not installed or run automatically.' : "Reads this module's files and writes proposals for review."}</span></div>${job ? agentStatusBadge(job.status) : ''}</div>`
@@ -112,6 +118,9 @@ function agentPanelInner(m, kind) {
       : !st ? '<div class="tiny muted" role="status">Checking which agents are installed…</div>'
       : `<fieldset class="agent-picker"><legend class="visually-hidden">Choose the coding agent</legend>${agents.map(a => `<label class="agent-card ${a.id === choice ? 'active' : ''} ${a.available ? '' : 'off'}"><input type="radio" name="agent-${kind}" value="${esc(a.id)}" data-agent-pick data-fid="pick-${esc(a.id)}" ${a.id === choice ? 'checked' : ''} ${a.available && !running ? '' : 'disabled'}><span><strong>${esc(a.label || agentName(a.id))}</strong><span class="tiny ${a.available ? 'agent-ok' : 'muted'}">${a.available ? `Available${a.version ? ` · ${esc(a.version)}` : ''}` : 'Not installed'}${a.note ? ` · ${esc(a.note)}` : ''}</span></span></label>`).join('') || '<span class="tiny muted">No coding agents were reported by the server.</span>'}</fieldset>`)
     + (!auto && canGo && nFiles ? `<div class="tiny muted">${nSel ? `${nSel} ticked file${nSel === 1 ? '' : 's'} will be analyzed.` : 'All files in this module will be analyzed. Tick files in the table above to choose only some.'}</div>` : '')
+    + (!auto && canGo ? `<div class="agent-extra"><label for="agent-prompt"><strong>Request for the agent</strong> <span class="tiny muted">(optional)</span></label><textarea id="agent-prompt" data-agent-prompt data-fid="prompt" rows="4" maxlength="4000" ${running ? 'disabled' : ''} placeholder="Tell the agent what you need: requirements, screens or flows to focus on, rules it must check, or which areas to skip. For example: 'Focus on the discharge flow. A patient cannot be discharged with unpaid bills.'">${esc(state.agentPrompt ?? '')}</textarea>`
+      + (can('case.review', m.id) ? `<label for="agent-codepaths"><strong>Code to read</strong> <span class="tiny muted">(optional, one full path per line, up to 5)</span></label><textarea id="agent-codepaths" data-agent-codepaths data-fid="codepaths" rows="3" ${running ? 'disabled' : ''} spellcheck="false" placeholder="C:\\projects\\emr\\src\\billing&#10;C:\\projects\\emr\\src\\billing\\invoice.service.ts">${esc(state.agentCodePaths ?? '')}</textarea><div class="tiny muted">The agent gets a read-only copy of the text source files in these folders or files, so it can write cases from what the code really does. Secrets (.env, keys, logins), dependencies and binaries are never copied.</div>` : '')
+      + '</div>' : '')
     + (!auto && canGo ? `<label class="check-line agent-critic"><input type="checkbox" data-agent-critic ${state.agentCritic === false ? '' : 'checked'}> Include a reviewer pass: a second agent checks the draft like a senior reviewer (takes longer and uses more of your AI allowance)</label>` : '')
     + `<div class="flex agent-actions">${canGo ? `<button class="primary" type="button" data-action="agent-start" data-kind="${kind}" data-fid="start" ${!choice || running || reason ? 'disabled' : ''}>${icon('sparkle')} ${running ? 'Running…' : esc(label)}</button>` : `<span class="tiny muted">You can watch but not start jobs.</span>`}${canGo && running ? `<button type="button" data-action="agent-cancel" data-kind="${kind}" data-fid="cancel">Cancel</button>` : ''}${canGo && reason ? `<span class="tiny muted">${esc(reason)}</span>` : ''}</div>`
     + (gate ? gate.html : '')

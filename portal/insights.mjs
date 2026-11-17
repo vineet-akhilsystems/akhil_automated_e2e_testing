@@ -256,7 +256,28 @@ export function foldSteps(steps, caseExpected, title) {
   return out;
 }
 
-export function saveExternalInsights({ store, module, body, user, mode = 'assistant', model, coveredFileIds, treeNodeIds }) {
+// The AI's suggested target setup (module URL path and tabs) is applied right after an analysis, so nobody has to type what the AI already found.
+// A setup a person confirmed by hand is never replaced; the suggestion stays visible next to it. The login profile is chosen only when the
+// product has exactly one (guessing between several could point automation at the wrong environment).
+function autoApplySetup({ store, mid, user, suggested, environments }) {
+  if (!suggested?.moduleUrl) return null;
+  const current = store.module(mid);
+  if (!current) return null;
+  const existing = current.setup ?? null;
+  if (existing?.confirmedAt && !existing.auto) return null;
+  const profiles = Array.isArray(environments) ? environments : [];
+  const keep = existing?.loginProfileId && profiles.some(e => e.id === existing.loginProfileId) ? existing.loginProfileId : '';
+  const loginProfileId = keep || (profiles.length === 1 ? profiles[0].id : '');
+  const variants = suggested.variants?.length ? suggested.variants : existing?.variants ?? [];
+  const now = new Date().toISOString();
+  const setup = { moduleUrl: suggested.moduleUrl, variants, ...(loginProfileId ? { loginProfileId, confirmedBy: 'AI analysis', confirmedAt: now } : {}), auto: true, suggestedAt: now };
+  if (existing && existing.moduleUrl === setup.moduleUrl && JSON.stringify(existing.variants ?? []) === JSON.stringify(variants) && (existing.loginProfileId ?? '') === loginProfileId) return null;
+  store.saveModule({ ...current, setup }, current.version);
+  store.audit?.({ actor: user.username, action: 'module.setup', scopeType: 'module', scopeId: mid, subject: null, detail: { auto: true, moduleUrl: setup.moduleUrl, variants, loginProfileId: loginProfileId || null, previous: existing ? { moduleUrl: existing.moduleUrl, variants: existing.variants, loginProfileId: existing.loginProfileId } : null } });
+  return { moduleUrl: setup.moduleUrl, variants, confirmed: Boolean(loginProfileId) };
+}
+
+export function saveExternalInsights({ store, module, body, user, mode = 'assistant', model, coveredFileIds, treeNodeIds, environments }) {
   const knownNodes = new Set(Array.isArray(treeNodeIds) ? treeNodeIds : []);
   const mid = module.id;
   check(body && typeof body === 'object', 'Insights must be a JSON object.');
@@ -309,6 +330,7 @@ export function saveExternalInsights({ store, module, body, user, mode = 'assist
     draftCaseIds: drafts.cases.map(c => c.id), draftSkipped: drafts.skipped, draftDuplicates: drafts.duplicates, draftAutomated: drafts.automated };
   // Tolerant is not the same as accepting nothing: an analysis with no summary and no content at all is still an error.
   check(clip(body.summary, 8000) || specs.length || fields.length || flows.length || doc.rules.length || doc.edgeCases.length || doc.openQuestions.length || doc.risks.length, 'The analysis had no usable content.');
-  const stored = store.transaction(() => { const saved = store.saveInsights(doc); drafts.cases.forEach(c => store.saveCase(mid, c)); return saved; });
-  return { id, version: stored.version, changeSummary: stored.changeSummary, mode, draftCases: drafts.cases.length, draftIds: drafts.cases.map(c => c.id), skipped: drafts.skipped, duplicates: drafts.duplicates, automatedDrafts: drafts.automated, ...(notes.length ? { notes } : {}) };
+  let setupApplied = null;
+  const stored = store.transaction(() => { const saved = store.saveInsights(doc); drafts.cases.forEach(c => store.saveCase(mid, c)); setupApplied = autoApplySetup({ store, mid, user, suggested: suggestedSetup, environments }); return saved; });
+  return { id, version: stored.version, changeSummary: stored.changeSummary, mode, ...(setupApplied ? { setupApplied } : {}), draftCases: drafts.cases.length, draftIds: drafts.cases.map(c => c.id), skipped: drafts.skipped, duplicates: drafts.duplicates, automatedDrafts: drafts.automated, ...(notes.length ? { notes } : {}) };
 }

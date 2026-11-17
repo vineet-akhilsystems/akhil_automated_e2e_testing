@@ -492,3 +492,4 @@ details.pack-section summary{cursor:pointer;display:flex;align-items:baseline;ga
 .matrix-panel .panel-heading{flex-wrap:wrap;gap:10px}
 .readiness-panel .panel-heading .flex{flex-wrap:wrap}
 .agent-install{flex-wrap:wrap;margin-top:10px}
+.agent-extra{display:grid;gap:6px}.agent-extra textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;line-height:1.5;padding:9px 11px;border:1px solid #cfd3e0;border-radius:8px;resize:vertical;background:#fff;color:inherit}.agent-extra textarea:disabled{opacity:.6}.agent-extra label{font-size:13px;margin-top:4px}

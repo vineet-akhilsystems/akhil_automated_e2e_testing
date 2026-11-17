@@ -50,7 +50,7 @@ export async function loadPipeline(id, sub) {
 }
 export function noteReadiness(id, r) { if (r && Array.isArray(r.stages)) { state.readiness[id] = r; paintReadiness(); } }
 export async function refreshReadiness(id) {
-  await loadReadiness(id);
+  await Promise.all([loadReadiness(id), loadSetup(id)]);
   if (state.route[0] !== 'modules' || state.route[1] !== id) return;
   paintReadiness(); scheduleReadiness(id);
 }
@@ -138,7 +138,7 @@ export function setupPanel(m) {
   const val = { moduleUrl: draft.moduleUrl ?? saved.moduleUrl ?? '', variants: draft.variants ?? (saved.variants ?? []).join(', '), loginProfileId: draft.loginProfileId ?? saved.loginProfileId ?? '' };
   const profiles = [['', 'Choose a login profile'], ...(state.data.environments ?? []).map(e => [e.id, e.name ?? e.id])];
   const suggVariants = Array.isArray(sugg?.variants) ? sugg.variants.join(', ') : sugg?.variants ?? '';
-  return `<section class="panel spaced-panel" id="setup-panel" aria-labelledby="setup-title"><div class="panel-heading"><div><h2 id="setup-title">Target setup</h2><span class="tiny muted">Where this module lives in the live application. A lead confirms it once; discovery and code generation use it.</span></div>${saved.confirmedAt ? badge('Confirmed', 'green') : badge('Not confirmed', 'orange')}</div>`
+  return `<section class="panel spaced-panel" id="setup-panel" aria-labelledby="setup-title"><div class="panel-heading"><div><h2 id="setup-title">Target setup</h2><span class="tiny muted">Where this module lives in the live application. The AI fills it in after analysis and a lead can correct it. Discovery and code generation use it.</span></div>${saved.confirmedAt ? badge(saved.auto ? 'Set by AI' : 'Confirmed', 'green') : badge(saved.auto ? 'Filled by AI, needs a login profile' : 'Not confirmed', 'orange')}</div>`
     + `<form id="setup-form" class="setup-body">`
     + (sugg && (sugg.moduleUrl || suggVariants) ? `<div class="info-strip setup-suggestion" role="status">${icon('sparkle')}<div><strong>Suggested from the insights</strong><p>${sugg.moduleUrl ? `URL path <code>${esc(sugg.moduleUrl)}</code>` : ''}${suggVariants ? ` · Variants: ${esc(suggVariants)}` : ''}</p></div><button type="button" class="small" data-action="setup-suggest">Use suggestion</button></div>` : '')
     + `<div class="form-grid three">${field('Module URL path', 'setup-url', val.moduleUrl, 'maxlength="300" placeholder="/registration" autocomplete="off"', 'The page of the live application, for example /registration.')}${field('Variants or tabs', 'setup-variants', val.variants, 'maxlength="500" placeholder="OPD, IPD, Emergency" autocomplete="off"', 'Separate with commas.')}${selectField('Login profile', 'setup-profile', profiles, val.loginProfileId, 'required')}</div>`

@@ -15,8 +15,8 @@ All module files resolve through `tests/shared/module-layout.mjs` (never hard-co
 - **`scanCode` safety (`qa/tools/install-module-adapter.mjs`):** Never put `\b(axios|got)\b` (even inside error strings — use `actual` or `found`), `.auth`/`.env`/`.portal`, `eval`/`Function`, `fs` writes, or concatenated URLs into generated TypeScript.
 
 ## Skills & Subagents (`.claude/`)
-- **Skills:** `analyzing-module-intake`, `extracting-video-walkthroughs`, `onboarding-portal-modules`, `designing-registration-cases`, `automating-registration-workflows`, `triaging-registration-failures`, `checking-module-isolation`, `checking-change-impact`, `working-with-versions-and-tree`, `auditing-project-skills`, `creating-project-skills`, `routing-work-to-models`, `registration-testing`.
-- **Agents:** `explorer` (Haiku read-only search), `intake-analyst` (Sonnet BA intake), `module-automator` (Sonnet adapter synthesis), `playwright-test-planner`, `playwright-test-generator`, `playwright-test-healer`, `implementer` (Sonnet code edits), `reviewer` (Opus final check).
+- **Skills:** `analyzing-module-intake`, `analyzing-codebase-context`, `extracting-video-walkthroughs`, `onboarding-portal-modules`, `designing-registration-cases`, `automating-registration-workflows`, `triaging-registration-failures`, `checking-module-isolation`, `checking-change-impact`, `working-with-versions-and-tree`, `auditing-project-skills`, `creating-project-skills`, `routing-work-to-models`, `registration-testing`.
+- **Agents:** `explorer` (Haiku read-only search), `intake-analyst` (Sonnet BA intake), `codebase-reader` (Sonnet code-grounded cases), `module-automator` (Sonnet adapter synthesis), `playwright-test-planner`, `playwright-test-generator`, `playwright-test-healer`, `implementer` (Sonnet code edits), `reviewer` (Opus final check).
 
 ## Hard Guardrails & Verification
 - **Secrets & DB:** Never read, print, or edit `.env`, `.env.*`, `login.txt`, `PORTAL_LOGIN.txt`, or `.auth/`. MongoDB is strictly read-only via `node qa/tools/mongo-read.js` (`.claude/hooks/db-readonly-guard.js`).

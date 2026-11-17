@@ -17,7 +17,7 @@ export default async function handle(ctx, rc) {
           if (area === 'insights' && rest === 'history' && req.method === 'GET') return json(res, 200, store.insightsHistory(mid).map(d => ({ id: d.id, version: d.version, createdAt: d.createdAt, createdBy: d.createdBy, mode: d.mode, basedOn: d.basedOn ?? null, counts: countsOf(d), changeSummary: d.changeSummary ?? null })));
           if (area === 'pack' && !rest && req.method === 'GET') return sendPack(req, res, module, url, user);
           if (area === 'insights' && !rest && req.method === 'PUT') {
-            const saved = saveExternalInsights({ store, module, body: await readJson(req), user, mode: 'assistant' });
+            const saved = saveExternalInsights({ store, module, body: await readJson(req), user, mode: 'assistant', environments: ctx.helpers.envsFor(module.productId ?? 'augastam') });
             inModule(user, 'insights.save', mid, { insightId: saved.id, draftCases: saved.draftCases });
             return json(res, 201, saved);
           }

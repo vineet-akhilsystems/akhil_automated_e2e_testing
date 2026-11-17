@@ -39,8 +39,11 @@ export default async function handle(ctx, rc) {
             const body = await readJson(req);
             check(body.kind !== 'automation' || acc.module(module).has('case.review'), 'Only a tester or administrator can ask for an automation proposal.', 403);
             if (body.kind === 'automation') automationGate();
-            const job = await agent.start({ module, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', fileIds: Array.isArray(body.fileIds) ? body.fileIds.slice(0, 500) : undefined, force: body.force === true, critic: body.critic !== false, user });
-            inModule(user, 'agent.start', mid, { jobId: job.id, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', ...(body.force === true ? { force: true } : {}) });
+            // Letting the agent read source code from the server's disk is limited to testers and administrators.
+            const wantsCode = Array.isArray(body.codePaths) ? body.codePaths.some(p => String(p).trim()) : body.codePaths != null;
+            check(!wantsCode || acc.module(module).has('case.review'), 'Only a tester or administrator can point the agent at a codebase.', 403);
+            const job = await agent.start({ module, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', fileIds: Array.isArray(body.fileIds) ? body.fileIds.slice(0, 500) : undefined, force: body.force === true, critic: body.critic !== false, prompt: body.prompt, codePaths: body.codePaths, user });
+            inModule(user, 'agent.start', mid, { jobId: job.id, agent: String(body.agent ?? ''), kind: body.kind ?? 'analyze', ...(body.force === true ? { force: true } : {}), ...(body.prompt ? { hasPrompt: true } : {}), ...(wantsCode ? { codePaths: body.codePaths.length } : {}) });
             return json(res, 202, { id: job.id });
           }
           if (jid && sub === 'retry' && req.method === 'POST') {

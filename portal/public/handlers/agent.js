@@ -73,6 +73,8 @@ document.addEventListener('change', async event => {
 });
 document.addEventListener('input', event => {
   const el = event.target;
+  if (el.matches('[data-agent-prompt]')) { state.agentPrompt = el.value; return; }
+  if (el.matches('[data-agent-codepaths]')) { state.agentCodePaths = el.value; return; }
   if (el.matches('[data-staged-note]')) { const u = state.uploads.find(x => x.uid === el.dataset.stagedNote); if (u) u.note = el.value; }
 });
 document.addEventListener('submit', async event => {

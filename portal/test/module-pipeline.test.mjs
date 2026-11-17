@@ -265,14 +265,15 @@ test('incremental analysis: previous insights and per-source state go to the age
   const states = Object.fromEntries(seen[2].manifest.map(m => [`${m.name}:${m.sha256?.slice(0, 4)}`, m.state]));
   assert.deepEqual(seen[2].manifest.map(m => [m.name, m.state]).sort(), [['a.txt', 'changed'], ['a.txt', 'unchanged'], ['b.txt', 'new']]);
   assert.equal(seen[2].manifest.find(m => m.fileId === fa.id).state, 'unchanged'); void states;
-  // saved as version 3, based on 2, covering all three files, with the change summary and the suggested setup (never applied)
+  // saved as version 3, based on 2, covering all three files, with the change summary and the target setup the AI identified (applied automatically)
   const latest = (await admin.request('/api/modules/billing/insights')).value;
   assert.equal(latest.version, 3); assert.equal(latest.coveredSources.length, 3); assert.equal(latest.changeSummary.addedFields, 1);
   assert.deepEqual(latest.suggestedSetup, { moduleUrl: '/billing/invoices', variants: ['Tab A', 'Tab B'] });
-  assert.equal(f.store.module('billing').setup, undefined);
+  const auto = f.store.module('billing').setup;
+  assert.deepEqual([auto.moduleUrl, auto.variants, auto.loginProfileId, auto.auto, auto.confirmedBy], ['/billing/invoices', ['Tab A', 'Tab B'], 'local', true, 'AI analysis']);
   assert.equal((await admin.request('/api/modules/billing/setup')).value.suggestedSetup.moduleUrl, '/billing/invoices');
   assert.equal(stageOf((await admin.request('/api/modules/billing/readiness')).value, 'insights').status, 'ready');
-  assert.match(stageOf((await admin.request('/api/modules/billing/readiness')).value, 'setup').detail, /suggests \/billing\/invoices/);
+  assert.equal(stageOf((await admin.request('/api/modules/billing/readiness')).value, 'setup').status, 'ready');
 });
 
 test('a suggested setup with an invalid path is dropped, never an error', async t => {

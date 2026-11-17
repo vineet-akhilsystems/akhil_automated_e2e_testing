@@ -60,7 +60,7 @@ export function createContext(options = {}) {
   setImmediate(() => { intake.backfill().catch(() => {}).then(() => intake.resume()).catch(() => {}); });
   const jobs = new Map();
   const knowledgeRoot = path.resolve(options.knowledgeRoot ?? ROOT);
-  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: saveExternalInsights, knowledgeRootDir: knowledgeRoot, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration')).split('/')), discoveryRoot: layoutRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
+  const agent = options.agent ?? createAgentRunner({ dataDir, store, intake, ingest: args => saveExternalInsights({ ...args, environments: envsFor(args.module?.productId ?? 'augastam') }), knowledgeRootDir: knowledgeRoot, referenceDir: path.join(ROOT, ...(plugins().find(p => p.agent?.referenceDir)?.agent.referenceDir ?? resolveModuleFolder(ROOT, 'tests', 'augastam', 'registration')).split('/')), discoveryRoot: layoutRoot, env: options.env ?? process.env, logger, ...options.agentOptions });
   const credentialsFor = e => e.managed ? settings.credentials(e.id)
     : Object.fromEntries(Object.entries(loginSchema(e.productId)?.fields ?? {}).map(([key, variable]) => [key, process.env[variable] ?? '']));
   // Alerts fire when a run ends; `notifications` is created below, before any run can finish.
