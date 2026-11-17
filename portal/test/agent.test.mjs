@@ -243,11 +243,13 @@ test('starting a job never waits for file preparation, a videos-only module is r
   const fake = fakeSpawn(({ child }) => finish(child));
   const runner = createAgentRunner({ dataDir: path.join(tmp, 'data'), store, intake, ingest: () => ({ id: 'x', draftCases: 0 }), spawn: fake.spawn, probe });
 
-  // Videos only: refused in milliseconds with an actionable message, no job created.
+  // Unprocessable videos only: no longer refused, so the flow can still be tested. The job starts at once; the manifest flags the video as unreadable.
   const t0 = Date.now();
-  await assert.rejects(runner.start({ module, agent: 'claude', user: { username: 'u' } }), e => e.status === 409 && /could not process these videos/.test(e.message) && /transcript/.test(e.message));
+  const vjob = await runner.start({ module, agent: 'claude', user: { username: 'u' } });
   assert.ok(Date.now() - t0 < 1000);
-  assert.deepEqual(runner.list('billing'), []);
+  assert.equal(runner.list('billing').length, 1);
+  runner.cancel('billing', vjob.id);
+  release();
 
   // A text file exists: start returns immediately even though extraction is slow.
   files = [{ id: 't1', name: 'rules.txt', kind: 'text', extract: 'pending' }];

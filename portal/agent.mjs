@@ -323,7 +323,8 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
       job.stats = { chars: 0, images: 0, files: 0, trimmed: 0, omitted: 0 };
       let charBudget = limits.totalChars;
       sources.forEach(({ file, content }, i) => {
-        const entry = { fileId: file.id, name: file.name, kind: file.kind, extract: file.extract, note: file.extractNote ?? '', ...(file.sha256 ? { sha256: file.sha256 } : {}), state: stateOf(file) };
+        const unreadable = file.kind === 'video' && !['ok', 'partial', 'pending'].includes(file.extract);
+        const entry = { fileId: file.id, name: file.name, kind: file.kind, extract: file.extract, note: `${file.extractNote ?? ''}${unreadable ? ' No keyframes or transcript were produced for this video, so nothing could be read from it. Do not invent requirements from it; add an open question asking for a transcript or notes.' : ''}`.trim(), ...(file.sha256 ? { sha256: file.sha256 } : {}), state: stateOf(file) };
         const text = content?.text ?? '';
         if (job.skipUnchanged && entry.state === 'unchanged') { entry.omitted = 'unchanged since the previous insights; its content is already captured there'; job.stats.omitted++; }
         else if ((file.extract === 'ok' || file.extract === 'partial') && text) {
@@ -489,9 +490,8 @@ export function createAgentRunner({ dataDir, store, intake, ingest, referenceDir
     let files = store.intakeFiles(module.id);
     if (fileIds?.length) { const want = new Set(fileIds.map(String)); files = files.filter(f => want.has(f.id)); }
     check(files.length > 0, 'Upload at least one file before running the agent.', 409);
-    // Videos are fine once the portal has extracted their keyframes (the agent looks at those images). Refuse at once only when nothing usable exists.
-    check(files.some(f => f.kind !== 'video' || ['ok', 'partial', 'pending'].includes(f.extract)),
-      'The portal could not process these videos (no keyframes or transcript were produced). Add a transcript or notes as a text file, or a spreadsheet, Word document or PDF, then run it again.', 409);
+    // Videos the portal could not process (no keyframes or transcript) are no longer refused: the run proceeds so the flow can be tested,
+    // and the manifest tells the agent those videos have no readable content (it must record that as an open question, not invent requirements).
     // Incremental analysis: when every selected source is already covered by the latest insights there is nothing to do (unless forced).
     const previous = force === true ? null : store.insights?.(module.id);
     if (previous) check(files.some(f => f.extract !== 'pending' && classifySource(f, previous) !== 'unchanged'), `Nothing new to analyse since version ${previous.version ?? 1}.`, 409);
