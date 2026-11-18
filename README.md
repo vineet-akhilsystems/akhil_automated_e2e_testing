@@ -23,6 +23,10 @@ Profiles are shared within the workspace. Developers, BAs and QA can create sepa
 
 Credentials are encrypted with AES-256-GCM in `.portal/environment-settings.json`; the server key is `.portal/environment-settings.key`. Both stay outside reports, run snapshots and source control. Restrict filesystem access to the portal data directory and back up both files together. Encryption does not protect against someone who can read both the server key and settings file. Login recordings and raw worker output are suppressed to prevent password disclosure; login failures give a Settings troubleshooting message. The login adapter supports Augastam's username/password, tenant, facility and role flow. Adding another website URL does not create browser automation for a different product or an SSO/OTP flow.
 
+## Desktop launcher (Akhil Test)
+
+One-click start without VS Code. After cloning or pulling, double-click `launcher/Install-Shortcut.bat` once to create the **Akhil Test** icon on your Desktop. Each launch pulls the latest code (skipped if you have local changes), installs packages only when `package-lock.json` changed, starts the portal and opens http://127.0.0.1:4173. Close the console window to stop it. Credential and login files are not in git and still need one-time setup per machine.
+
 ## Automation health: retries, trends, alerts and schedules
 
 - **Retries and flaky cases.** Automated runs retry a failing case once (`PORTAL_RETRIES`, 0-3, default 1). A case that fails and then passes is recorded as PASS with a **Flaky - passed on attempt 2** badge, and the first attempt's evidence is kept (`attemptHistory`). A case that fails every attempt stays a failure. Retries re-execute the case, so a case that creates data may create it twice; set `PORTAL_RETRIES=0` to switch retries off.
